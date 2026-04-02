@@ -16,6 +16,9 @@
 .DS_Store
 Thumbs.db
 
+# Local documents
+/documents/
+
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
