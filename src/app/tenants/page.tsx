@@ -28,10 +28,9 @@ export default function TenantsPage() {
             <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Tenants Directory</h1>
             <p className="text-on-surface-variant font-medium">Manage {TENANTS.length} active leases across your portfolio.</p>
             {/* Search */}
-            <div className="relative w-full max-w-xl mt-4">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">search</span>
+            <div className="w-full max-w-xl mt-4">
               <input
-                className="input-base pl-10"
+                className="input-base"
                 placeholder="Search by name, property, or unit..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}

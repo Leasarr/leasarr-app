@@ -70,7 +70,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 primary-gradient rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-primary">
             <span className="material-symbols-outlined text-white text-3xl">domain</span>
           </div>
-          <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tight">PMSoft</h1>
+          <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tight">Leasarr</h1>
           <p className="text-on-surface-variant mt-1 text-sm">Property Management, Simplified</p>
         </div>
 
@@ -89,25 +89,19 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Email address</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">email</span>
-                <input
-                  type="email" required className="input-base pl-10"
-                  value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </div>
+              <input
+                type="email" required className="input-base"
+                value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Password</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">lock_outline</span>
-                <input
-                  type="password" required className="input-base pl-10"
-                  value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
+              <input
+                type="password" required className="input-base"
+                value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
 
             <div className="flex justify-end">

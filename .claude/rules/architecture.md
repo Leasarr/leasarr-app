@@ -1,6 +1,6 @@
 # Architecture
 
-**PMSoft** is a property management SaaS app — Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase.
+**Leasarr** is a property management SaaS app — Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase.
 
 ## Routes
 

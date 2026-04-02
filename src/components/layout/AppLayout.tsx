@@ -61,7 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-9 h-9 rounded-xl primary-gradient flex items-center justify-center">
               <span className="material-symbols-outlined text-white text-lg">domain</span>
             </div>
-            <span className="text-xl font-headline font-extrabold text-primary tracking-tight">PMSoft</span>
+            <span className="text-xl font-headline font-extrabold text-primary tracking-tight">Leasarr</span>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-xl primary-gradient flex items-center justify-center">
               <span className="material-symbols-outlined text-white text-base">domain</span>
             </div>
-            <span className="text-lg font-headline font-extrabold text-primary">PMSoft</span>
+            <span className="text-lg font-headline font-extrabold text-primary">Leasarr</span>
           </div>
           <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
             <span className="material-symbols-outlined text-on-surface-variant">notifications</span>

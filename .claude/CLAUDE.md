@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-PMSoft — property management SaaS. Next.js 14 App Router, TypeScript, Tailwind (Material You), Supabase.
+Leasarr — property management SaaS. Next.js 14 App Router, TypeScript, Tailwind (Material You), Supabase.
 
 Component rules in `.claude/rules/`:
 

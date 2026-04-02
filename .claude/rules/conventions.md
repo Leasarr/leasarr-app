@@ -34,5 +34,5 @@ Always use these helpers — don't reimplement them:
 ## Forms
 
 - Use `react-hook-form` + `zod` for validation
-- Inputs use `.input-base` class, wrapped in a `relative` div with a left-positioned Material Symbol icon
+- Inputs use `.input-base` class; no icons inside input fields
 - Labels above inputs; error messages below

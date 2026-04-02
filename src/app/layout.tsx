@@ -17,7 +17,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'PMSoft — Property Management',
+  title: 'Leasarr — Property Management',
   description: 'Modern property management platform for landlords and property managers.',
   manifest: '/manifest.json',
 }

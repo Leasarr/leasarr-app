@@ -57,15 +57,12 @@ export default function CommunicationPage() {
             </div>
 
             {/* Search */}
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">search</span>
-              <input
-                className="input-base pl-10"
-                placeholder="Search tenants or units..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
+            <input
+              className="input-base"
+              placeholder="Search tenants or units..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
 
           {/* Horizontal Quick Access */}
