@@ -1,50 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
-const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+type Role = 'manager' | 'tenant'
 
-// Mock credentials for testing without Supabase
-const MOCK_USERS = {
-  'manager@demo.com': { password: 'password', role: 'manager' },
-  'tenant@demo.com':  { password: 'password', role: 'tenant'  },
-} as const
-
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState<Role>('manager')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    if (MOCK_AUTH) {
-      await new Promise(r => setTimeout(r, 600))
-      const match = MOCK_USERS[email as keyof typeof MOCK_USERS]
-      if (!match || match.password !== password) {
-        setError('Invalid email or password.')
-        setLoading(false)
-        return
-      }
-      document.cookie = `mock_role=${match.role}; path=/; max-age=86400`
-      const destination = (redirectTo && !redirectTo.startsWith('/auth'))
-        ? redirectTo
-        : match.role === 'tenant' ? '/portal' : '/dashboard'
-      router.push(destination)
-      return
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, role },
+      },
+    })
 
     if (error) {
       setError(error.message)
@@ -52,17 +37,12 @@ export default function LoginPage() {
       return
     }
 
-    const role = data.user?.user_metadata?.role as string
-    const destination = (redirectTo && !redirectTo.startsWith('/auth'))
-      ? redirectTo
-      : role === 'tenant' ? '/portal' : '/dashboard'
-
-    router.push(destination)
+    router.push(role === 'tenant' ? '/portal' : '/dashboard')
     router.refresh()
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface px-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface px-4 py-12">
       <div className="w-full max-w-md">
 
         {/* Logo */}
@@ -76,8 +56,39 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-modal">
-          <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">Welcome back</h2>
-          <p className="text-on-surface-variant text-sm mb-8">Sign in to your portfolio</p>
+          <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">Create account</h2>
+          <p className="text-on-surface-variant text-sm mb-6">Choose your account type to get started</p>
+
+          {/* Role selector */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {([
+              { value: 'manager', icon: 'domain', label: 'Property Manager', sub: 'Manage properties & tenants' },
+              { value: 'tenant', icon: 'person', label: 'Tenant', sub: 'View your lease & pay rent' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setRole(opt.value)}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 text-center transition-all duration-150',
+                  role === opt.value
+                    ? 'border-primary bg-primary-fixed text-primary'
+                    : 'border-outline-variant text-on-surface-variant hover:border-primary/40 hover:bg-surface-container'
+                )}
+              >
+                <span className={cn(
+                  'material-symbols-outlined text-3xl',
+                  role === opt.value && 'material-symbols-filled'
+                )}>
+                  {opt.icon}
+                </span>
+                <div>
+                  <p className="text-sm font-bold">{opt.label}</p>
+                  <p className="text-[10px] opacity-70 leading-tight mt-0.5">{opt.sub}</p>
+                </div>
+              </button>
+            ))}
+          </div>
 
           {error && (
             <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
@@ -86,7 +97,18 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Full name</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">badge</span>
+                <input
+                  type="text" required className="input-base pl-10"
+                  value={name} onChange={e => setName(e.target.value)}
+                  placeholder="Your full name"
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Email address</label>
               <div className="relative">
@@ -103,17 +125,11 @@ export default function LoginPage() {
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">lock_outline</span>
                 <input
-                  type="password" required className="input-base pl-10"
+                  type="password" required minLength={6} className="input-base pl-10"
                   value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Min. 6 characters"
                 />
               </div>
-            </div>
-
-            <div className="flex justify-end">
-              <a href="/auth/reset-password" className="text-sm font-semibold text-primary hover:underline">
-                Forgot password?
-              </a>
             </div>
 
             <button
@@ -126,27 +142,16 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Signing in...
+                  Creating account...
                 </span>
-              ) : 'Sign In'}
+              ) : `Create ${role === 'tenant' ? 'Tenant' : 'Manager'} Account`}
             </button>
           </form>
-
-          {MOCK_AUTH && (
-            <div className="mt-6 bg-primary-fixed rounded-2xl p-4 space-y-1.5">
-              <p className="text-primary text-xs font-bold flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base leading-none">info</span>
-                Demo mode — no Supabase needed
-              </p>
-              <p className="text-primary/70 text-xs">manager@demo.com / password → Manager dashboard</p>
-              <p className="text-primary/70 text-xs">tenant@demo.com / password → Tenant portal</p>
-            </div>
-          )}
         </div>
 
         <p className="text-center text-sm text-on-surface-variant mt-6">
-          Don&apos;t have an account?{' '}
-          <a href="/auth/register" className="font-bold text-primary hover:underline">Create one</a>
+          Already have an account?{' '}
+          <a href="/auth/login" className="font-bold text-primary hover:underline">Sign in</a>
         </p>
       </div>
     </div>

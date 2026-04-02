@@ -316,6 +316,67 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+-- ─── TENANT RLS POLICIES ─────────────────────────────────────────────────────
+-- Tenants can view and update their own tenant record
+CREATE POLICY "Tenants view own record" ON tenants
+  FOR SELECT USING (profile_id = auth.uid());
+
+-- Tenants can view their own leases
+CREATE POLICY "Tenants view own leases" ON leases
+  FOR SELECT USING (
+    tenant_id IN (SELECT id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can view their own lease documents
+CREATE POLICY "Tenants view own lease docs" ON lease_documents
+  FOR SELECT USING (
+    lease_id IN (
+      SELECT l.id FROM leases l
+      JOIN tenants t ON t.id = l.tenant_id
+      WHERE t.profile_id = auth.uid()
+    )
+  );
+
+-- Tenants can view their own payments
+CREATE POLICY "Tenants view own payments" ON payments
+  FOR SELECT USING (
+    tenant_id IN (SELECT id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can view their own unit
+CREATE POLICY "Tenants view own unit" ON units
+  FOR SELECT USING (
+    id IN (SELECT unit_id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can view the property they live in
+CREATE POLICY "Tenants view own property" ON properties
+  FOR SELECT USING (
+    id IN (SELECT property_id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can create and view their own maintenance requests
+CREATE POLICY "Tenants CRUD own maintenance" ON maintenance_requests
+  FOR ALL USING (
+    tenant_id IN (SELECT id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can view conversations they are a party to
+CREATE POLICY "Tenants view own conversations" ON conversations
+  FOR SELECT USING (
+    tenant_id IN (SELECT id FROM tenants WHERE profile_id = auth.uid())
+  );
+
+-- Tenants can read and write messages in their conversations
+CREATE POLICY "Tenants CRUD own messages" ON messages
+  FOR ALL USING (
+    conversation_id IN (
+      SELECT c.id FROM conversations c
+      JOIN tenants t ON t.id = c.tenant_id
+      WHERE t.profile_id = auth.uid()
+    )
+  );
+
 -- ─── ENABLE REALTIME ─────────────────────────────────────────────────────────
 -- Enable real-time for the messages table (for live chat)
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;

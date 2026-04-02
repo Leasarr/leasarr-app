@@ -58,9 +58,7 @@ export default function CommunicationPage() {
 
             {/* Search */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-outline text-xl">search</span>
-              </div>
+              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px] leading-none pointer-events-none">search</span>
               <input
                 className="input-base pl-10"
                 placeholder="Search tenants or units..."

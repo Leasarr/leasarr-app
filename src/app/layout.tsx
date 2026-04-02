@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Manrope, Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
+import { AuthProvider } from '@/context/AuthContext'
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -31,8 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-surface font-body text-on-surface antialiased">
-        {children}
-        <Toaster position="top-right" richColors />
+        <AuthProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </AuthProvider>
       </body>
     </html>
   )
