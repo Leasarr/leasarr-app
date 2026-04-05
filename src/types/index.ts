@@ -213,6 +213,40 @@ export interface AiRiskAlert {
   reason: string
 }
 
+// ─── People ───────────────────────────────────────────────────────────────────
+export interface TeamMember {
+  id: string
+  name: string
+  role: string
+  email: string
+  phone: string
+  avatar_url?: string
+  assigned_properties: string[]
+  status: 'active' | 'inactive'
+}
+
+export interface Vendor {
+  id: string
+  name: string
+  company: string
+  specialty: 'plumbing' | 'electrical' | 'hvac' | 'landscaping' | 'general' | 'cleaning'
+  email: string
+  phone: string
+  rating: number
+  last_job?: string
+  status: 'active' | 'inactive'
+}
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+export interface ActivityFeedItem {
+  id: string
+  type: 'maintenance' | 'payment' | 'message' | 'lease' | 'announcement'
+  title: string
+  description: string
+  time_label: string
+  property_name?: string
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 export interface ReportData {
   period: string

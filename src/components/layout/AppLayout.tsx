@@ -9,7 +9,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 const MANAGER_NAV_ITEMS = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { href: '/properties', icon: 'domain', label: 'Properties' },
-  { href: '/tenants', icon: 'group', label: 'Tenants' },
+  { href: '/people', icon: 'group', label: 'People' },
   { href: '/payments', icon: 'payments', label: 'Payments' },
   { href: '/maintenance', icon: 'build', label: 'Maintenance' },
   { href: '/leases', icon: 'description', label: 'Leases' },
@@ -24,7 +24,7 @@ const TENANT_NAV_ITEMS = [
 const MANAGER_BOTTOM_NAV = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { href: '/properties', icon: 'domain', label: 'Properties' },
-  { href: '/tenants', icon: 'group', label: 'Tenants' },
+  { href: '/people', icon: 'group', label: 'People' },
   { href: '/payments', icon: 'payments', label: 'Payments' },
   { href: '/maintenance', icon: 'build', label: 'More' },
 ]

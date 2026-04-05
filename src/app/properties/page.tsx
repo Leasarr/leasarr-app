@@ -25,6 +25,15 @@ export default function PropertiesPage() {
           <div>
             <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {PROPERTIES.length} active real estate assets</p>
+            <div className="flex gap-2 mt-2">
+              <span className="badge bg-surface-container-high text-on-surface-variant text-[10px]">
+                {PROPERTIES.filter(p => p.type !== 'commercial').length} Residential
+              </span>
+              <span className="badge bg-primary-container/30 text-primary text-[10px]">
+                <span className="material-symbols-outlined text-[10px] mr-0.5">business</span>
+                {PROPERTIES.filter(p => p.type === 'commercial').length} Commercial
+              </span>
+            </div>
           </div>
           <div className="flex gap-3">
             <button className="btn-secondary h-14 px-6">
@@ -66,12 +75,25 @@ export default function PropertiesPage() {
                   <div className="flex-grow flex flex-col justify-center py-1">
                     <div className="flex justify-between items-start gap-2">
                       <h3 className="font-bold text-lg text-on-surface leading-tight">{property.name}</h3>
-                      <span className={cn(
-                        'badge flex-shrink-0',
-                        property.occupancy_rate === 100 ? 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' : 'bg-secondary-container text-on-secondary-container'
-                      )}>
-                        {property.occupancy_rate === 100 ? 'Full' : 'Active'}
-                      </span>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className={cn(
+                          'badge',
+                          property.occupancy_rate === 100 ? 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' : 'bg-secondary-container text-on-secondary-container'
+                        )}>
+                          {property.occupancy_rate === 100 ? 'Full' : 'Active'}
+                        </span>
+                        <span className={cn(
+                          'badge capitalize',
+                          property.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
+                        )}>
+                          {property.type === 'commercial' ? (
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[10px]">business</span>
+                              Commercial
+                            </span>
+                          ) : property.type}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-on-surface-variant text-sm">{property.total_units} Units • {property.occupancy_rate}% Occupied</p>
                     <div className="mt-2 flex items-center gap-1 text-primary font-semibold text-xs">
@@ -91,7 +113,18 @@ export default function PropertiesPage() {
               {/* Detail Header */}
               <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
                 <div>
-                  <span className="text-primary font-bold tracking-widest text-xs uppercase mb-2 block">Detail View</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-primary font-bold tracking-widest text-xs uppercase">Detail View</span>
+                    <span className={cn(
+                      'badge capitalize',
+                      selected.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
+                    )}>
+                      {selected.type === 'commercial' && (
+                        <span className="material-symbols-outlined text-[10px] mr-0.5">business</span>
+                      )}
+                      {selected.type}
+                    </span>
+                  </div>
                   <h2 className="text-3xl font-headline font-extrabold text-on-surface">{selected.name}</h2>
                   <p className="text-on-surface-variant">{selected.address}, {selected.city}, {selected.state} {selected.zip}</p>
                 </div>

@@ -1,5 +1,5 @@
 import AppLayout from '@/components/layout/AppLayout'
-import { DASHBOARD_STATS, LEASES, TENANTS, PROPERTIES } from '@/data/mock'
+import { DASHBOARD_STATS, LEASES, TENANTS, PROPERTIES, ACTIVITY_FEED } from '@/data/mock'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 
 export default function DashboardPage() {
@@ -147,31 +147,68 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Revenue Trend Chart */}
-        <section className="bg-surface-container-low rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-headline font-bold">Revenue Trend</h3>
-            <div className="flex gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="w-2 h-2 rounded-full bg-surface-container-highest" />
+        {/* Revenue Trend + Activity Feed */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Revenue Trend Chart */}
+          <div className="bg-surface-container-low rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-headline font-bold">Revenue Trend</h3>
+              <div className="flex gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary" />
+                <span className="w-2 h-2 rounded-full bg-surface-container-highest" />
+              </div>
+            </div>
+            <div className="flex items-end justify-between h-32 gap-2">
+              {stats.revenue_trend.map((item, i) => {
+                const maxVal = Math.max(...stats.revenue_trend.map(r => r.amount))
+                const heightPct = (item.amount / maxVal) * 100
+                const isRecent = i >= 3
+                return (
+                  <div key={item.day} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className={cn('w-full rounded-t-sm transition-all', isRecent ? 'bg-primary' : 'bg-surface-container-high')}
+                      style={{ height: `${heightPct}%` }}
+                    />
+                    <span className="text-[8px] text-on-surface-variant font-medium">{item.day}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
-          <div className="flex items-end justify-between h-32 gap-2">
-            {stats.revenue_trend.map((item, i) => {
-              const maxVal = Math.max(...stats.revenue_trend.map(r => r.amount))
-              const heightPct = (item.amount / maxVal) * 100
-              const isRecent = i >= 3
-              return (
-                <div key={item.day} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className={cn('w-full rounded-t-sm transition-all', isRecent ? 'bg-primary' : 'bg-surface-container-high')}
-                    style={{ height: `${heightPct}%` }}
-                  />
-                  <span className="text-[8px] text-on-surface-variant font-medium">{item.day}</span>
-                </div>
-              )
-            })}
+
+          {/* Recent Activity Feed */}
+          <div className="bg-surface-container-low rounded-xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-headline font-bold">Recent Activity</h3>
+              <span className="text-[10px] font-bold text-primary hover:underline cursor-pointer">View All</span>
+            </div>
+            <div className="space-y-1">
+              {ACTIVITY_FEED.map((item, i) => {
+                const iconMap = {
+                  maintenance: { icon: 'engineering', color: 'text-tertiary', bg: 'bg-tertiary-container/20' },
+                  payment: { icon: 'payments', color: 'text-primary', bg: 'bg-primary-container/20' },
+                  message: { icon: 'chat', color: 'text-secondary', bg: 'bg-secondary-container/30' },
+                  lease: { icon: 'description', color: 'text-primary', bg: 'bg-primary-container/10' },
+                  announcement: { icon: 'campaign', color: 'text-tertiary', bg: 'bg-tertiary-container/20' },
+                }
+                const style = iconMap[item.type]
+                return (
+                  <div key={item.id} className={cn('flex items-start gap-3 py-2.5', i < ACTIVITY_FEED.length - 1 && 'border-b border-outline-variant/30')}>
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', style.bg)}>
+                      <span className={cn('material-symbols-outlined text-sm', style.color)}>{style.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-on-surface leading-tight">{item.title}</p>
+                      <p className="text-[10px] text-on-surface-variant mt-0.5 leading-tight truncate">{item.description}</p>
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant font-medium flex-shrink-0">{item.time_label}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
+
         </section>
 
       </div>

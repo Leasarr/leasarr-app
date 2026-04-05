@@ -1,6 +1,7 @@
 import type {
   Property, Tenant, Lease, Payment, MaintenanceRequest,
-  Conversation, DashboardStats, ReportData,
+  Conversation, DashboardStats, ReportData, ActivityFeedItem,
+  TeamMember, Vendor,
 } from '@/types'
 
 export const PROPERTIES: Property[] = [
@@ -24,6 +25,13 @@ export const PROPERTIES: Property[] = [
     type: 'condo', image_url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800',
     total_units: 24, occupied_units: 21, monthly_revenue: 97650, occupancy_rate: 87.5,
     created_at: '2022-03-10', updated_at: '2024-07-01',
+  },
+  {
+    id: 'p4', manager_id: 'mgr1', name: 'Metro Business Hub',
+    address: '450 Commerce St', city: 'Chicago', state: 'IL', zip: '60601',
+    type: 'commercial', image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
+    total_units: 8, occupied_units: 7, monthly_revenue: 68000, occupancy_rate: 87.5,
+    created_at: '2022-09-01', updated_at: '2024-07-01',
   },
 ]
 
@@ -254,6 +262,86 @@ export const REPORT_DATA: ReportData = {
     { title: 'Lease Renewals Due', description: '5 leases expire within 60 days. Start renewal campaigns now.', type: 'warning' },
   ],
 }
+
+export const TEAM_MEMBERS: TeamMember[] = [
+  {
+    id: 'tm1', name: 'Alexander Graham', role: 'Property Manager',
+    email: 'alexander@leasarr.com', phone: '+1 (555) 100-2000',
+    assigned_properties: ['p1', 'p2', 'p3', 'p4'], status: 'active',
+  },
+  {
+    id: 'tm2', name: 'Rachel Moore', role: 'Assistant Manager',
+    email: 'rachel@leasarr.com', phone: '+1 (555) 100-2001',
+    assigned_properties: ['p1', 'p2'], status: 'active',
+  },
+  {
+    id: 'tm3', name: 'James Park', role: 'Leasing Agent',
+    email: 'james@leasarr.com', phone: '+1 (555) 100-2002',
+    assigned_properties: ['p3'], status: 'active',
+  },
+]
+
+export const VENDORS: Vendor[] = [
+  {
+    id: 'v1', name: 'Mike Torres', company: 'Torres HVAC & Plumbing',
+    specialty: 'plumbing', email: 'mike@torresplumbing.com', phone: '+1 (555) 300-1001',
+    rating: 4.8, last_job: 'HVAC Filter Replacement — Azure Heights', status: 'active',
+  },
+  {
+    id: 'v2', name: 'Jake Wilson', company: 'Wilson Electrical Solutions',
+    specialty: 'electrical', email: 'jake@wilsonelec.com', phone: '+1 (555) 300-1002',
+    rating: 4.6, last_job: 'AC Not Cooling — Pacific View', status: 'active',
+  },
+  {
+    id: 'v3', name: 'Linda Park', company: 'GreenScape Landscaping',
+    specialty: 'landscaping', email: 'linda@greenscape.com', phone: '+1 (555) 300-1003',
+    rating: 4.9, last_job: 'Monthly grounds maintenance', status: 'active',
+  },
+  {
+    id: 'v4', name: 'Bob Hanson', company: 'Hanson General Contracting',
+    specialty: 'general', email: 'bob@hansoncontracting.com', phone: '+1 (555) 300-1004',
+    rating: 4.4, last_job: 'Loose Door Handle — Azure Heights', status: 'active',
+  },
+]
+
+export const ACTIVITY_FEED: ActivityFeedItem[] = [
+  {
+    id: 'a1', type: 'maintenance', time_label: '2h ago',
+    title: 'New Maintenance Request',
+    description: 'Leaking Kitchen Sink — Willow Creek Loft',
+    property_name: 'Willow Creek Loft',
+  },
+  {
+    id: 'a2', type: 'payment', time_label: '3h ago',
+    title: 'Rent Overdue',
+    description: 'Marcus Thorne — $4,100 overdue on Unit 4B',
+    property_name: 'The Azure Heights',
+  },
+  {
+    id: 'a3', type: 'message', time_label: '5h ago',
+    title: 'New Tenant Message',
+    description: 'Elena Rodriguez: "Payment confirmed for October."',
+    property_name: 'Pacific View',
+  },
+  {
+    id: 'a4', type: 'lease', time_label: '8h ago',
+    title: 'Lease Expiring Soon',
+    description: 'Sarah Jenkins — expires in 7 days, renewal offered',
+    property_name: 'The Azure Heights',
+  },
+  {
+    id: 'a5', type: 'payment', time_label: '1d ago',
+    title: 'Rent Payment Received',
+    description: 'David Chen — $12,800 paid via credit card',
+    property_name: 'The Azure Heights',
+  },
+  {
+    id: 'a6', type: 'maintenance', time_label: '2d ago',
+    title: 'Maintenance Completed',
+    description: 'Broken Dishwasher Door Latch — resolved by Mike Torres',
+    property_name: 'The Azure Heights',
+  },
+]
 
 export const PAYMENT_SUMMARY = {
   total_collected: 142850,

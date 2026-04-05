@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/auth/callback']
 
 const MANAGER_ROUTES = [
-  '/dashboard', '/tenants', '/payments', '/maintenance',
+  '/dashboard', '/tenants', '/people', '/payments', '/maintenance',
   '/leases', '/properties', '/communication', '/reports',
 ]
 
