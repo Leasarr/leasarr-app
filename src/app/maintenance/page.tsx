@@ -168,7 +168,7 @@ export default function MaintenancePage() {
                 <div className="p-8 bg-surface-container-low">
                   <div className="flex flex-wrap gap-3 mb-5">
                     <span className={cn('badge', getPriorityColor(selected.priority))}>{selected.priority.toUpperCase()}</span>
-                    <span className="badge bg-primary-fixed text-primary">{selected.category.toUpperCase()}</span>
+                    <span className="badge bg-primary-fixed text-on-primary-fixed">{selected.category.toUpperCase()}</span>
                     <span className={cn('badge', getStatusColor(selected.status))}>{selected.status.replace('_', ' ')}</span>
                   </div>
                   <h3 className="text-3xl font-headline font-extrabold leading-tight mb-3">{selected.title}</h3>
@@ -317,8 +317,8 @@ export default function MaintenancePage() {
                       className={cn(
                         'px-4 py-2 rounded-full border text-sm font-semibold capitalize transition-colors',
                         form.category === cat
-                          ? 'border-primary bg-primary-fixed text-primary'
-                          : 'border-outline-variant/30 hover:border-primary hover:bg-primary-fixed hover:text-primary'
+                          ? 'border-primary bg-primary-fixed text-on-primary-fixed'
+                          : 'border-outline-variant/30 text-on-surface-variant hover:border-primary hover:bg-primary-fixed hover:text-on-primary-fixed'
                       )}
                     >
                       {cat}
@@ -337,7 +337,7 @@ export default function MaintenancePage() {
                       className={cn(
                         'flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition-colors',
                         form.priority === p
-                          ? 'border-primary bg-primary-fixed text-primary'
+                          ? 'border-primary bg-primary-fixed text-on-primary-fixed'
                           : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
                       )}
                     >

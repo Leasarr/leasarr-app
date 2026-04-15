@@ -72,7 +72,7 @@ export default function RegisterPage() {
                 className={cn(
                   'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 text-center transition-all duration-150',
                   role === opt.value
-                    ? 'border-primary bg-primary-fixed text-primary'
+                    ? 'border-primary bg-primary-fixed text-on-primary-fixed'
                     : 'border-outline-variant text-on-surface-variant hover:border-primary/40 hover:bg-surface-container'
                 )}
               >

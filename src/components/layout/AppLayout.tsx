@@ -5,6 +5,13 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn, getInitials, formatRelative } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { useTheme, type Theme } from '@/context/ThemeContext'
+
+const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
+  { value: 'light', icon: 'light_mode', label: 'Light' },
+  { value: 'dark', icon: 'dark_mode', label: 'Dark' },
+  { value: 'system', icon: 'brightness_auto', label: 'System' },
+]
 
 const NOTIFICATIONS = [
   {
@@ -112,6 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { profile, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
 
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
@@ -151,7 +159,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
                   isActive
-                    ? 'bg-primary-fixed text-primary'
+                    ? 'bg-primary-fixed text-on-primary-fixed'
                     : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
                 )}
               >
@@ -232,17 +240,57 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span>/</span>
             <span className="font-semibold text-on-surface capitalize">{pathname.split('/')[1] || 'Dashboard'}</span>
           </div>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
-                <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-white"></span>
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <NotificationContent />
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+          <div className="flex items-center gap-2">
+            {/* Theme switcher */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
+                  <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                    {theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'brightness_auto'}
+                  </span>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-44 z-50"
+                  sideOffset={8}
+                  align="end"
+                >
+                  {THEME_OPTIONS.map(opt => (
+                    <DropdownMenu.Item
+                      key={opt.value}
+                      onSelect={() => setTheme(opt.value)}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer outline-none transition-colors',
+                        theme === opt.value
+                          ? 'bg-primary-fixed text-on-primary-fixed'
+                          : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                      {opt.label}
+                      {theme === opt.value && (
+                        <span className="material-symbols-outlined text-sm ml-auto material-symbols-filled">check</span>
+                      )}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+
+            {/* Notifications */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
+                  <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface"></span>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <NotificationContent />
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
         </header>
 
         {/* Page Content */}
@@ -252,7 +300,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ── Mobile Bottom Nav ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-outline-variant/20 rounded-t-3xl shadow-nav">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 rounded-t-3xl shadow-nav">
         <div className="flex justify-around items-center h-20 px-2 pb-safe">
           {bottomNav.map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -262,7 +310,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-150 active:scale-90',
-                  isActive ? 'bg-primary-fixed text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                  isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:text-on-surface'
                 )}
               >
                 <span className={cn('material-symbols-outlined text-[22px]', isActive && 'material-symbols-filled')}>

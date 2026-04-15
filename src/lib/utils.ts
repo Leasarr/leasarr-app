@@ -40,7 +40,7 @@ export function getStatusColor(status: string): string {
     active: 'bg-secondary-container text-on-secondary-container',
     completed: 'bg-emerald-100 text-emerald-700',
     pending: 'bg-[#ffefc2] text-[#7a5c00]',
-    in_progress: 'bg-primary-fixed text-primary',
+    in_progress: 'bg-primary-fixed text-on-primary-fixed',
     partial: 'bg-[#ffefc2] text-[#7a5c00]',
     overdue: 'bg-error-container text-on-error-container',
     expired: 'bg-error-container text-on-error-container',
