@@ -5,6 +5,9 @@ import AppLayout from '@/components/layout/AppLayout'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { DASHBOARD_STATS, PAYMENTS, MAINTENANCE_REQUESTS, LEASES, TENANTS, PROPERTIES } from '@/data/mock'
+
+const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 type LeaseExpiration = {
   id: string
@@ -51,6 +54,63 @@ export default function DashboardPage() {
     setLoading(true)
 
     async function fetchDashboard() {
+      if (isMockMode) {
+        const s = DASHBOARD_STATS
+        const totalUnits = PROPERTIES.reduce((sum, p) => sum + (p.total_units ?? 0), 0)
+        const occupiedUnits = PROPERTIES.reduce((sum, p) => sum + (p.occupied_units ?? 0), 0)
+        setStats({
+          totalCollected: s.total_rent_collected,
+          outstanding: s.outstanding_balance,
+          overdueCount: s.overdue_tenants,
+          occupancyRate: s.occupancy_rate,
+          totalUnits,
+          occupiedUnits,
+        })
+        const upcoming = LEASES.filter(l => {
+          const days = getDaysUntil(l.end_date)
+          return days <= 60
+        }).slice(0, 5).map(l => {
+          const tenant = TENANTS.find(t => t.id === l.tenant_id) ?? null
+          const property = PROPERTIES.find(p => p.id === l.property_id) ?? null
+          return {
+            id: l.id,
+            end_date: l.end_date,
+            tenant: tenant ? { first_name: tenant.first_name, last_name: tenant.last_name } : null,
+            property: property ? { name: property.name } : null,
+          }
+        })
+        setExpirations(upcoming)
+        const paymentActivity: ActivityItem[] = PAYMENTS
+          .filter(p => p.status === 'paid')
+          .slice(0, 4)
+          .map(p => {
+            const tenant = TENANTS.find(t => t.id === p.tenant_id)
+            return {
+              id: `pay-${p.id}`,
+              type: 'payment',
+              title: 'Rent Payment Received',
+              description: `${tenant ? `${tenant.first_name} ${tenant.last_name}` : 'Tenant'} — ${formatCurrency(p.amount)}`,
+              created_at: p.due_date,
+            }
+          })
+        const maintenanceActivity: ActivityItem[] = MAINTENANCE_REQUESTS.slice(0, 3).map(m => {
+          const tenant = TENANTS.find(t => t.id === m.tenant_id)
+          return {
+            id: `maint-${m.id}`,
+            type: 'maintenance',
+            title: m.title,
+            description: `${tenant ? `${tenant.first_name} ${tenant.last_name}` : 'Tenant'} — ${m.status.replace('_', ' ')}`,
+            created_at: m.created_at,
+          }
+        })
+        const combined = [...paymentActivity, ...maintenanceActivity]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 6)
+        setActivity(combined)
+        setLoading(false)
+        return
+      }
+
       const [paymentsRes, unitsRes, leasesRes, maintenanceRes] = await Promise.all([
         supabase
           .from('payments')
