@@ -22,8 +22,9 @@
 
 ## Key files
 
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar (64px) + top bar. Mobile: top bar + bottom nav. Breakpoint at `lg` (1024px).
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar (64px) + top bar (theme switcher + notification tray). Mobile: top bar + bottom nav. Breakpoint at `lg` (1024px).
 - `src/context/AuthContext.tsx` — Provides `user`, `profile`, `session`, `loading`, `signOut`. Use `useAuth()` hook.
+- `src/context/ThemeContext.tsx` — Provides `theme` (`'light' | 'dark' | 'system'`) and `setTheme`. Persists to localStorage. Use `useTheme()` hook. Theme applied via `dark` class on `<html>`.
 - `src/middleware.ts` — Route protection. Public: `/auth/*`. Manager routes: dashboard, tenants, etc. Tenant routes: `/portal`.
 - `src/lib/supabase/client.ts` — Browser Supabase client (stubs if env vars missing).
 - `src/lib/supabase/server.ts` — Server-side client with cookie handling.

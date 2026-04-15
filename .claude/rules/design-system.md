@@ -10,6 +10,28 @@ paths:
 
 Material You design tokens via Tailwind. See `tailwind.config.ts`.
 
+## Dark mode
+
+The app supports `light`, `dark`, and `system` themes via `ThemeContext`. The `dark` class on `<html>` activates dark mode.
+
+All Tailwind color tokens are driven by CSS variables defined in `globals.css`:
+- `:root` — light mode values
+- `.dark` — dark mode values
+
+**Never hardcode hex colors** for anything using a design token. Use Tailwind utilities (`bg-surface`, `text-primary`, etc.) and let the CSS variables do the switching.
+
+### Active state rule
+
+When placing text on a `bg-primary-fixed` surface (e.g. active nav items, selected filter pills), always use `text-on-primary-fixed` — **not** `text-primary`. In dark mode `primary` becomes light blue, creating near-zero contrast on the also-light `primary-fixed` background. `on-primary-fixed` is guaranteed dark in both modes.
+
+```tsx
+// Correct
+isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container'
+
+// Wrong — text-primary is invisible in dark mode on primary-fixed
+isActive ? 'bg-primary-fixed text-primary' : ...
+```
+
 ## Fonts
 
 - **Manrope** — headings, CSS var `--font-manrope`, Tailwind class `font-headline`
@@ -17,12 +39,15 @@ Material You design tokens via Tailwind. See `tailwind.config.ts`.
 
 ## Color tokens
 
-- Primary: `primary` (#003d9b), `on-primary`, `primary-container`, `on-primary-container`
-- Secondary: `secondary` (#525f73), with container variants
-- Tertiary: `tertiary` (#7b2600), with container variants
-- Error: `error` (#ba1a1a), `error-container`
-- Surface: `surface` (#f8f9fa), `surface-container-lowest/low/DEFAULT/high/highest`
+- Primary: `primary`, `on-primary`, `primary-container`, `on-primary-container`
+- Primary fixed: `primary-fixed`, `primary-fixed-dim`, `on-primary-fixed`, `on-primary-fixed-variant`
+- Secondary: `secondary`, `on-secondary`, `secondary-container`, `on-secondary-container`
+- Tertiary: `tertiary`, `on-tertiary`, `tertiary-container`, `on-tertiary-container`
+- Error: `error`, `on-error`, `error-container`, `on-error-container`
+- Surface: `surface`, `surface-container-lowest/low/DEFAULT/high/highest`, `on-surface`, `on-surface-variant`
 - Outline: `outline`, `outline-variant`
+
+Light mode values are listed in `tailwind.config.ts` comments; dark values are in `globals.css` under `.dark`.
 
 ## Border radius
 
@@ -35,7 +60,7 @@ Use custom shadow tokens instead of Tailwind defaults:
 - `shadow-modal` — modals and popovers
 - `shadow-nav` — mobile bottom nav
 - `shadow-fab` — FABs
-- `shadow-primary` — primary-colored elevated elements
+- `shadow-primary` — primary-colored elevated elements (adapts color in dark mode via CSS variable)
 
 ## Icons
 
@@ -61,9 +86,9 @@ Use these classes rather than re-implementing them with Tailwind:
 | `.btn-secondary` | Secondary/ghost button |
 | `.input-base` | All text inputs and selects |
 | `.badge` | Status/label pills |
-| `.glass` / `.glass-dark` | Backdrop-blur card effects |
+| `.glass` / `.glass-dark` | Backdrop-blur card effects (dark variants included) |
 | `.no-scrollbar` | Hide scrollbar on overflow containers |
-| `.primary-gradient` | `linear-gradient(135deg, #003d9b → #0052cc)` |
+| `.primary-gradient` | Gradient using primary CSS variables — adapts in dark mode |
 
 ## Layout patterns
 
