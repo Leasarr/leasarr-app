@@ -162,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <div className="pt-16 lg:pt-14 pb-24 lg:pb-8 min-h-screen">
+        <div className="pt-16 lg:pt-14 pb-24 lg:pb-8 min-h-screen animate-slide-up">
           {children}
         </div>
       </main>

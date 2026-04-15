@@ -23,19 +23,20 @@ type MaintenanceRow = {
 
 
 export default function MaintenancePage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [requests, setRequests] = useState<MaintenanceRow[]>([])
   const [selected, setSelected] = useState<MaintenanceRow | null>(null)
   const [view, setView] = useState<'active' | 'history'>('active')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [tenants, setTenants] = useState<{ id: string; first_name: string; last_name: string; unit_id: string | null }[]>([])
   const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchRequests() {
       const { data } = await supabase
         .from('maintenance_requests')
@@ -69,7 +70,7 @@ export default function MaintenancePage() {
     ? requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled')
     : requests.filter(r => r.status === 'completed' || r.status === 'cancelled')
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">

@@ -40,15 +40,16 @@ function getStats(p: PropertyRow) {
 }
 
 export default function PropertiesPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [selected, setSelected] = useState<PropertyRow | null>(null)
   const [detailTab, setDetailTab] = useState<'units' | 'applications'>('units')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchProperties() {
       const { data } = await supabase
         .from('properties')
@@ -64,7 +65,7 @@ export default function PropertiesPage() {
     fetchProperties()
   }, [profile])
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -100,7 +101,7 @@ export default function PropertiesPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-6 md:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">

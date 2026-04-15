@@ -60,20 +60,21 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function PeoplePage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [tenants, setTenants] = useState<TenantRow[]>([])
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null)
   const [tenantPayments, setTenantPayments] = useState<PaymentRow[]>([])
   const [activeLease, setActiveLease] = useState<LeaseRow | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<PeopleTab>('all')
   const [tenantDetailTab, setTenantDetailTab] = useState<TenantDetailTab>('payments')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchTenants() {
       const { data } = await supabase
         .from('tenants')
@@ -186,7 +187,7 @@ export default function PeoplePage() {
         {/* ── ALL PEOPLE TAB ── */}
         {activeTab === 'all' && (
           <div className="space-y-3">
-            {loading ? (
+            {(authLoading || loading) ? (
               <div className="text-center py-8">
                 <span className="material-symbols-outlined text-3xl text-primary animate-pulse">group</span>
                 <p className="text-on-surface-variant mt-2 text-sm">Loading...</p>

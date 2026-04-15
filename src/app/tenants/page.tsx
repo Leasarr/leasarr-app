@@ -39,7 +39,7 @@ type LeaseRow = {
 }
 
 export default function TenantsPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [tenants, setTenants] = useState<TenantRow[]>([])
@@ -48,10 +48,11 @@ export default function TenantsPage() {
   const [activeLease, setActiveLease] = useState<LeaseRow | null>(null)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'payments' | 'lease' | 'maintenance'>('payments')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchTenants() {
       const { data } = await supabase
         .from('tenants')
@@ -95,7 +96,7 @@ export default function TenantsPage() {
     `${t.first_name} ${t.last_name} ${t.email}`.toLowerCase().includes(search.toLowerCase())
   )
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">

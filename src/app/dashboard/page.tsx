@@ -31,7 +31,7 @@ type Stats = {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [stats, setStats] = useState<Stats>({
@@ -44,10 +44,11 @@ export default function DashboardPage() {
   })
   const [expirations, setExpirations] = useState<LeaseExpiration[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
 
     async function fetchDashboard() {
       const [paymentsRes, unitsRes, leasesRes, maintenanceRes] = await Promise.all([
@@ -130,7 +131,7 @@ export default function DashboardPage() {
     maintenance: { icon: 'engineering', color: 'text-tertiary', bg: 'bg-tertiary-container/20' },
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -145,7 +146,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
         {/* Welcome */}
         <section className="space-y-1">

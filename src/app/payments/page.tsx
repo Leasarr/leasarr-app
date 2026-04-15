@@ -26,15 +26,16 @@ const methodIcon: Record<string, string> = {
 }
 
 export default function PaymentsPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [payments, setPayments] = useState<PaymentRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchPayments() {
       const { data } = await supabase
         .from('payments')
@@ -58,7 +59,7 @@ export default function PaymentsPage() {
     ? Math.round((payments.filter(p => p.status === 'paid').length / payments.length) * 100)
     : 0
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -73,7 +74,7 @@ export default function PaymentsPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
         {/* Hero Stats */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">

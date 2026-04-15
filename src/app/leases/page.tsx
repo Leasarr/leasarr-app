@@ -24,13 +24,14 @@ type LeaseRow = {
 }
 
 export default function LeasesPage() {
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
   const [leases, setLeases] = useState<LeaseRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!profile) return
+    setLoading(true)
     async function fetchLeases() {
       const { data } = await supabase
         .from('leases')
@@ -47,7 +48,7 @@ export default function LeasesPage() {
     fetchLeases()
   }, [profile])
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -62,7 +63,7 @@ export default function LeasesPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 md:px-12 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
 
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
