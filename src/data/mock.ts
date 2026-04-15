@@ -1,7 +1,8 @@
 import type {
   Property, Tenant, Lease, Payment, MaintenanceRequest,
   Conversation, DashboardStats, ReportData, ActivityFeedItem,
-  TeamMember, Vendor,
+  TeamMember, Vendor, RecurringPayment, BankAccount,
+  RentalApplication, Announcement,
 } from '@/types'
 
 export const PROPERTIES: Property[] = [
@@ -340,6 +341,121 @@ export const ACTIVITY_FEED: ActivityFeedItem[] = [
     title: 'Maintenance Completed',
     description: 'Broken Dishwasher Door Latch — resolved by Mike Torres',
     property_name: 'The Azure Heights',
+  },
+]
+
+export const RENTAL_APPLICATIONS: RentalApplication[] = [
+  {
+    id: 'app1', property_id: 'p1', unit_id: 'u3',
+    applicant_name: 'Jordan Lee', email: 'jordan.lee@email.com', phone: '+1 (555) 400-1001',
+    submitted_at: '2024-07-08T09:00:00Z', desired_move_in: '2024-08-01',
+    monthly_income: 14000, credit_score: 740, status: 'reviewing',
+  },
+  {
+    id: 'app2', property_id: 'p1',
+    applicant_name: 'Priya Patel', email: 'priya.p@email.com', phone: '+1 (555) 400-1002',
+    submitted_at: '2024-07-07T14:30:00Z', desired_move_in: '2024-08-15',
+    monthly_income: 9500, credit_score: 710, status: 'pending',
+  },
+  {
+    id: 'app3', property_id: 'p3',
+    applicant_name: 'Carlos Ruiz', email: 'c.ruiz@email.com', phone: '+1 (555) 400-1003',
+    submitted_at: '2024-07-05T11:00:00Z', desired_move_in: '2024-09-01',
+    monthly_income: 12000, credit_score: 760, status: 'approved',
+  },
+  {
+    id: 'app4', property_id: 'p1',
+    applicant_name: 'Aisha Williams', email: 'aisha.w@email.com', phone: '+1 (555) 400-1004',
+    submitted_at: '2024-07-03T10:00:00Z', desired_move_in: '2024-08-01',
+    monthly_income: 7200, credit_score: 580, status: 'declined',
+    notes: 'Credit score below threshold',
+  },
+  {
+    id: 'app5', property_id: 'p4',
+    applicant_name: 'TechFlow Inc.', email: 'leasing@techflow.com', phone: '+1 (555) 400-1005',
+    submitted_at: '2024-07-09T15:00:00Z', desired_move_in: '2024-09-01',
+    monthly_income: 85000, status: 'reviewing',
+    notes: 'Commercial tenant — request for Suite 3B',
+  },
+]
+
+export const ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'ann1', title: 'Scheduled Water Shutdown — July 15',
+    message: 'Due to routine maintenance, water will be shut off from 9 AM to 1 PM on July 15. We apologize for any inconvenience.',
+    channels: ['email', 'sms', 'push'],
+    property_ids: ['p1'],
+    sent_at: '2024-07-10T08:00:00Z', recipients: 45, status: 'sent',
+  },
+  {
+    id: 'ann2', title: 'Welcome New Residents — August Move-Ins',
+    message: 'Please join us in welcoming new tenants moving in this August! Community orientation will be held August 2nd at 6 PM in the lobby.',
+    channels: ['email', 'in_app'],
+    property_ids: [],
+    sent_at: '2024-07-09T10:00:00Z', recipients: 84, status: 'sent',
+  },
+  {
+    id: 'ann3', title: 'Parking Lot Repaving — July 20–22',
+    message: 'The main parking lot will be closed for repaving July 20–22. Temporary parking available on Commerce Street.',
+    channels: ['push', 'sms'],
+    property_ids: ['p2'],
+    sent_at: '2024-07-08T09:00:00Z', recipients: 12, status: 'sent',
+  },
+  {
+    id: 'ann4', title: 'Q3 Rent Statement Available',
+    message: 'Your Q3 rent statement is now available in the tenant portal. Please review and contact us with any questions.',
+    channels: ['email', 'in_app', 'push'],
+    property_ids: [],
+    sent_at: '2024-07-12T09:00:00Z', recipients: 84, status: 'scheduled',
+  },
+]
+
+export const RECURRING_PAYMENTS: RecurringPayment[] = [
+  {
+    id: 'rp1', tenant_id: 't1', property_id: 'p1', unit_id: 'u1',
+    amount: 2450, frequency: 'monthly', next_due: '2024-11-01',
+    method: 'credit_card', status: 'active', created_at: '2023-03-01',
+  },
+  {
+    id: 'rp2', tenant_id: 't2', property_id: 'p1', unit_id: 'u2',
+    amount: 3450, frequency: 'monthly', next_due: '2024-11-01',
+    method: 'ach', status: 'paused', created_at: '2021-09-15',
+  },
+  {
+    id: 'rp3', tenant_id: 't3', property_id: 'p3', unit_id: 'u3',
+    amount: 2100, frequency: 'monthly', next_due: '2024-11-01',
+    method: 'ach', status: 'active', created_at: '2023-01-20',
+  },
+  {
+    id: 'rp4', tenant_id: 't4', property_id: 'p1', unit_id: 'u4',
+    amount: 12800, frequency: 'monthly', next_due: '2024-11-01',
+    method: 'credit_card', status: 'active', created_at: '2023-05-01',
+  },
+  {
+    id: 'rp5', tenant_id: 't5', property_id: 'p2', unit_id: 'u5',
+    amount: 2800, frequency: 'monthly', next_due: '2024-11-10',
+    method: 'check', status: 'cancelled', created_at: '2022-07-10',
+  },
+]
+
+export const BANK_ACCOUNTS: BankAccount[] = [
+  {
+    id: 'ba1', bank_name: 'Chase Bank', account_name: 'Operations Account',
+    account_type: 'checking', last_four: '4821', balance: 287340,
+    status: 'connected', connected_at: '2023-01-15',
+    property_ids: ['p1', 'p2'],
+  },
+  {
+    id: 'ba2', bank_name: 'Wells Fargo', account_name: 'Reserve Account',
+    account_type: 'savings', last_four: '9034', balance: 145000,
+    status: 'connected', connected_at: '2023-01-15',
+    property_ids: ['p3'],
+  },
+  {
+    id: 'ba3', bank_name: 'Bank of America', account_name: 'Commercial Receipts',
+    account_type: 'checking', last_four: '2267', balance: 94810,
+    status: 'pending', connected_at: '2024-07-01',
+    property_ids: ['p4'],
   },
 ]
 

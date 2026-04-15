@@ -247,6 +247,64 @@ export interface ActivityFeedItem {
   property_name?: string
 }
 
+// ─── Rental Applications ──────────────────────────────────────────────────────
+export interface RentalApplication {
+  id: string
+  property_id: string
+  unit_id?: string
+  applicant_name: string
+  email: string
+  phone: string
+  submitted_at: string
+  desired_move_in: string
+  monthly_income: number
+  credit_score?: number
+  status: 'pending' | 'reviewing' | 'approved' | 'declined'
+  notes?: string
+}
+
+// ─── Announcements ────────────────────────────────────────────────────────────
+export interface Announcement {
+  id: string
+  title: string
+  message: string
+  channels: ('email' | 'sms' | 'push' | 'in_app')[]
+  property_ids: string[]
+  sent_at: string
+  recipients: number
+  status: 'sent' | 'scheduled' | 'draft'
+}
+
+// ─── Recurring Payments ───────────────────────────────────────────────────────
+export interface RecurringPayment {
+  id: string
+  tenant_id: string
+  property_id: string
+  unit_id: string
+  amount: number
+  frequency: 'monthly' | 'weekly' | 'bi-weekly' | 'quarterly'
+  next_due: string
+  method: 'ach' | 'credit_card' | 'check'
+  status: 'active' | 'paused' | 'cancelled'
+  created_at: string
+  // Joined
+  tenant?: Tenant
+  property?: Property
+}
+
+// ─── Bank Accounts ────────────────────────────────────────────────────────────
+export interface BankAccount {
+  id: string
+  bank_name: string
+  account_name: string
+  account_type: 'checking' | 'savings'
+  last_four: string
+  balance: number
+  status: 'connected' | 'disconnected' | 'pending'
+  connected_at: string
+  property_ids: string[]
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 export interface ReportData {
   period: string
