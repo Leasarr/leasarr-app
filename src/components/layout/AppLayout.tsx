@@ -2,9 +2,84 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { cn, getInitials } from '@/lib/utils'
+import { cn, getInitials, formatRelative } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+
+const NOTIFICATIONS = [
+  {
+    id: '1',
+    icon: 'payments',
+    iconBg: 'bg-primary-container/20',
+    iconColor: 'text-primary',
+    title: 'Rent payment received',
+    body: 'Jane Doe paid $2,400 for November',
+    time: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    unread: true,
+  },
+  {
+    id: '2',
+    icon: 'build',
+    iconBg: 'bg-tertiary-container/20',
+    iconColor: 'text-tertiary',
+    title: 'New maintenance request',
+    body: 'Marcus Thorne — Leaking kitchen faucet',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    unread: true,
+  },
+  {
+    id: '3',
+    icon: 'description',
+    iconBg: 'bg-error-container/20',
+    iconColor: 'text-error',
+    title: 'Lease expiring soon',
+    body: 'Elena Rodriguez — expires in 18 days',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    unread: false,
+  },
+]
+
+function NotificationContent() {
+  const unreadCount = NOTIFICATIONS.filter(n => n.unread).length
+  return (
+    <DropdownMenu.Content
+      className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal w-80 z-50 overflow-hidden"
+      sideOffset={8}
+      align="end"
+    >
+      <div className="px-4 py-3 border-b border-outline-variant/10 flex items-center justify-between">
+        <p className="font-bold text-sm text-on-surface">Notifications</p>
+        {unreadCount > 0 && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-on-primary">{unreadCount} new</span>
+        )}
+      </div>
+      <div className="divide-y divide-outline-variant/10">
+        {NOTIFICATIONS.map(n => (
+          <DropdownMenu.Item
+            key={n.id}
+            className={cn(
+              'flex items-start gap-3 px-4 py-3 cursor-pointer outline-none transition-colors hover:bg-surface-container-low',
+              n.unread && 'bg-primary-fixed/30'
+            )}
+          >
+            <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', n.iconBg)}>
+              <span className={cn('material-symbols-outlined text-sm', n.iconColor)}>{n.icon}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-on-surface leading-tight">{n.title}</p>
+              <p className="text-[11px] text-on-surface-variant mt-0.5 leading-tight truncate">{n.body}</p>
+              <p className="text-[10px] text-outline mt-1">{formatRelative(n.time)}</p>
+            </div>
+            {n.unread && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
+          </DropdownMenu.Item>
+        ))}
+      </div>
+      <div className="px-4 py-2.5 border-t border-outline-variant/10">
+        <button className="w-full text-xs font-bold text-primary hover:underline text-center">Mark all as read</button>
+      </div>
+    </DropdownMenu.Content>
+  )
+}
 
 const MANAGER_NAV_ITEMS = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
@@ -137,10 +212,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <span className="text-lg font-headline font-extrabold text-primary">Leasarr</span>
           </div>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
-            <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
-          </button>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
+                <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <NotificationContent />
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </header>
 
         {/* Desktop Top Bar */}
@@ -150,15 +232,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span>/</span>
             <span className="font-semibold text-on-surface capitalize">{pathname.split('/')[1] || 'Dashboard'}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
-              <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-white"></span>
-            </button>
-            <div className="w-8 h-8 rounded-full primary-gradient flex items-center justify-center">
-              <span className="text-on-primary text-xs font-bold">{initials}</span>
-            </div>
-          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
+                <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-white"></span>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <NotificationContent />
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </header>
 
         {/* Page Content */}
