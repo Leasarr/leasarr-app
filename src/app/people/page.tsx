@@ -10,12 +10,12 @@ type PeopleTab = 'all' | 'tenants' | 'team' | 'vendors'
 type TenantDetailTab = 'payments' | 'lease' | 'maintenance'
 
 const SPECIALTY_STYLE = {
-  plumbing:    { icon: 'plumbing',             label: 'Plumbing',    bg: 'bg-blue-100',   text: 'text-blue-700' },
-  electrical:  { icon: 'electrical_services',  label: 'Electrical',  bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  hvac:        { icon: 'ac_unit',              label: 'HVAC',        bg: 'bg-cyan-100',   text: 'text-cyan-700' },
-  landscaping: { icon: 'yard',                 label: 'Landscaping', bg: 'bg-green-100',  text: 'text-green-700' },
-  general:     { icon: 'handyman',             label: 'General',     bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
-  cleaning:    { icon: 'cleaning_services',    label: 'Cleaning',    bg: 'bg-purple-100', text: 'text-purple-700' },
+  plumbing: { icon: 'plumbing', label: 'Plumbing', bg: 'bg-blue-100', text: 'text-blue-700' },
+  electrical: { icon: 'electrical_services', label: 'Electrical', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  hvac: { icon: 'ac_unit', label: 'HVAC', bg: 'bg-cyan-100', text: 'text-cyan-700' },
+  landscaping: { icon: 'yard', label: 'Landscaping', bg: 'bg-green-100', text: 'text-green-700' },
+  general: { icon: 'handyman', label: 'General', bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
+  cleaning: { icon: 'cleaning_services', label: 'Cleaning', bg: 'bg-purple-100', text: 'text-purple-700' },
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -59,10 +59,10 @@ export default function PeoplePage() {
   const tenantPayments = PAYMENTS.filter(p => p.tenant_id === selectedTenant.id)
 
   const TABS: { key: PeopleTab; label: string; count: number }[] = [
-    { key: 'all',     label: 'All People', count: TENANTS.length + TEAM_MEMBERS.length + VENDORS.length },
-    { key: 'tenants', label: 'Tenants',    count: TENANTS.length },
-    { key: 'team',    label: 'Team',       count: TEAM_MEMBERS.length },
-    { key: 'vendors', label: 'Vendors',    count: VENDORS.length },
+    { key: 'all', label: 'All People', count: TENANTS.length + TEAM_MEMBERS.length + VENDORS.length },
+    { key: 'tenants', label: 'Tenants', count: TENANTS.length },
+    { key: 'team', label: 'Team', count: TEAM_MEMBERS.length },
+    { key: 'vendors', label: 'Vendors', count: VENDORS.length },
   ]
 
   return (
@@ -78,9 +78,9 @@ export default function PeoplePage() {
             </p>
             <div className="flex gap-2 mt-3">
               {[
-                { label: `${TENANTS.length} Tenants`,      bg: 'bg-secondary-container text-on-secondary-container' },
-                { label: `${TEAM_MEMBERS.length} Team`,    bg: 'bg-primary-container/30 text-primary' },
-                { label: `${VENDORS.length} Vendors`,      bg: 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' },
+                { label: `${TENANTS.length} Tenants`, bg: 'bg-secondary-container text-on-secondary-container' },
+                { label: `${TEAM_MEMBERS.length} Team`, bg: 'bg-primary-container/30 text-primary' },
+                { label: `${VENDORS.length} Vendors`, bg: 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' },
               ].map(b => (
                 <span key={b.label} className={cn('badge text-[10px]', b.bg)}>{b.label}</span>
               ))}
@@ -301,7 +301,7 @@ export default function PeoplePage() {
                         </button>
                       </div>
                     </div>
-                    <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex items-center gap-4">
+                    {/* <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 flex items-center gap-4">
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary flex-shrink-0">
                         <span className="material-symbols-outlined material-symbols-filled">auto_awesome</span>
                       </div>
@@ -311,14 +311,14 @@ export default function PeoplePage() {
                           High likelihood of renewal (92%). Consider 3% rent adjustment.
                         </p>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
                   {[
-                    { label: 'Rent',       value: formatCurrency(2450) },
+                    { label: 'Rent', value: formatCurrency(2450) },
                     { label: 'Lease Ends', value: 'May 2025' },
-                    { label: 'Deposit',    value: formatCurrency(3000) },
+                    { label: 'Deposit', value: formatCurrency(3000) },
                     { label: 'Credit Score', value: selectedTenant.credit_score?.toString() ?? 'N/A' },
                   ].map(item => (
                     <div key={item.label} className="bg-surface-container-low rounded-2xl p-4">
@@ -330,8 +330,23 @@ export default function PeoplePage() {
               </div>
 
               {/* Detail Tabs */}
-              <div className="flex gap-3">
+              {/* <div className="flex gap-3">
                 {(['payments', 'lease', 'maintenance'] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setTenantDetailTab(tab)}
+                    className={cn(
+                      'px-6 py-3 rounded-xl text-sm font-bold transition-all',
+                      tenantDetailTab === tab ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
+                    )}
+                  >
+                    {tab === 'payments' ? 'Payment History' : tab === 'lease' ? 'Lease Documents' : 'Maintenance'}
+                  </button>
+                ))}
+              </div> */}
+
+              <div className="flex gap-3">
+                {(['payments', 'maintenance'] as const).map(tab => (
                   <button
                     key={tab}
                     onClick={() => setTenantDetailTab(tab)}
