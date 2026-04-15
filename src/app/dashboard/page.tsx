@@ -11,7 +11,7 @@ export default function DashboardPage() {
 
         {/* Welcome */}
         <section className="space-y-1">
-          <p className="text-sm text-on-surface-variant font-medium">Good Morning, Alexander</p>
+          <p className="text-sm text-on-surface-variant font-medium">Good Day, Alexander</p>
           <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Portfolio Summary</h1>
         </section>
 
@@ -58,6 +58,7 @@ export default function DashboardPage() {
         </section>
 
         {/* AI Risk Indicator */}
+        {/*
         <section className="bg-surface-container-low rounded-xl p-1 overflow-hidden">
           <div className="primary-gradient p-6 rounded-lg text-on-primary">
             <div className="flex items-start justify-between">
@@ -80,27 +81,7 @@ export default function DashboardPage() {
             </button>
           </div>
         </section>
-
-        {/* Quick Actions */}
-        <section className="space-y-4">
-          <h3 className="text-sm font-headline font-bold px-1">Quick Actions</h3>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-            {[
-              { icon: 'add_home', label: 'New Lease' },
-              { icon: 'engineering', label: 'Maintenance' },
-              { icon: 'description', label: 'Reports' },
-              { icon: 'account_balance', label: 'Bank Sync' },
-              { icon: 'settings', label: 'Settings' },
-            ].map(a => (
-              <button key={a.label} className="flex-shrink-0 flex flex-col items-center gap-2 group">
-                <div className="w-14 h-14 bg-surface-container-highest rounded-full flex items-center justify-center group-hover:bg-primary-fixed transition-colors">
-                  <span className="material-symbols-outlined text-primary">{a.icon}</span>
-                </div>
-                <span className="text-[10px] font-semibold text-on-surface">{a.label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+        */}
 
         {/* Upcoming Expirations */}
         <section className="space-y-4">
@@ -144,6 +125,27 @@ export default function DashboardPage() {
                 </div>
               )
             })}
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="space-y-4">
+          <h3 className="text-sm font-headline font-bold px-1">Quick Actions</h3>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {[
+              { icon: 'add_home', label: 'New Lease' },
+              { icon: 'engineering', label: 'Maintenance' },
+              { icon: 'description', label: 'Reports' },
+              { icon: 'account_balance', label: 'Bank Sync' },
+              { icon: 'settings', label: 'Settings' },
+            ].map(a => (
+              <button key={a.label} className="flex-shrink-0 flex flex-col items-center gap-2 group">
+                <div className="w-14 h-14 bg-surface-container-highest rounded-full flex items-center justify-center group-hover:bg-primary-fixed transition-colors">
+                  <span className="material-symbols-outlined text-primary">{a.icon}</span>
+                </div>
+                <span className="text-[10px] font-semibold text-on-surface">{a.label}</span>
+              </button>
+            ))}
           </div>
         </section>
 

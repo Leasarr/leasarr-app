@@ -70,8 +70,10 @@ export default function PaymentsPage() {
         </section>
 
         {/* History + Record Panel */}
-        <section className="flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-2/3 space-y-4">
+        {/* <section className="flex flex-col md:flex-row gap-8 items-start"> */}
+        {/* <div className="w-full md:w-2/3 space-y-4"> */}
+        <section className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="w-full space-y-4">
             <h2 className="text-xl font-bold font-headline px-1">Payment History</h2>
 
             {/* Filter Pills */}
@@ -101,8 +103,8 @@ export default function PaymentsPage() {
                         <div className={cn(
                           'w-12 h-12 rounded-xl flex items-center justify-center',
                           payment.status === 'overdue' ? 'bg-error-container/20 text-error' :
-                          payment.status === 'pending' ? 'bg-surface-container text-on-surface-variant' :
-                          'bg-secondary-container text-on-secondary-container'
+                            payment.status === 'pending' ? 'bg-surface-container text-on-surface-variant' :
+                              'bg-secondary-container text-on-secondary-container'
                         )}>
                           <span className="material-symbols-outlined">{icon}</span>
                         </div>
@@ -128,8 +130,8 @@ export default function PaymentsPage() {
           </div>
 
           {/* Record Payment Panel */}
-          <div className="w-full md:w-1/3 space-y-4 md:sticky md:top-20">
-            <div className="bg-primary-container p-8 rounded-2xl shadow-primary relative overflow-hidden">
+          {/* <div className="w-full md:w-1/3 space-y-4 md:sticky md:top-20"> */}
+          {/* <div className="bg-primary-container p-8 rounded-2xl shadow-primary relative overflow-hidden">
               <div className="absolute inset-0 opacity-10 pointer-events-none">
                 <svg width="100%" height="100%">
                   <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -158,10 +160,10 @@ export default function PaymentsPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
-            {/* Success Card */}
-            <div className="bg-white rounded-2xl shadow-modal border border-surface-container p-6 relative overflow-hidden">
+          {/* Success Card */}
+          {/* <div className="bg-white rounded-2xl shadow-modal border border-surface-container p-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500" />
               <div className="flex flex-col items-center text-center">
                 <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-4">
@@ -189,7 +191,7 @@ export default function PaymentsPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </section>
       </div>
     </AppLayout>

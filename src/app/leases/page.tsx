@@ -62,7 +62,7 @@ export default function LeasesPage() {
           </div>
 
           {/* AI Renewal Predictor */}
-          <div className="lg:col-span-4">
+          {/* <div className="lg:col-span-4">
             <div className="bg-primary-container/10 rounded-2xl p-6 h-full">
               <div className="flex items-center gap-2 mb-6">
                 <span className="material-symbols-outlined text-primary material-symbols-filled">auto_awesome</span>
@@ -89,15 +89,15 @@ export default function LeasesPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Lease Detail View */}
-        <div className="bg-surface-container-low rounded-3xl p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        {/* <div className="bg-surface-container-low rounded-3xl p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12"> */}
 
-            {/* Document Preview */}
-            <div className="space-y-4">
+        {/* Document Preview */}
+        {/* <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold font-headline text-lg">Lease Document Preview</h3>
                 <div className="flex gap-2">
@@ -108,33 +108,33 @@ export default function LeasesPage() {
                     <span className="material-symbols-outlined text-on-surface-variant">print</span>
                   </button>
                 </div>
-              </div>
-              <div className="aspect-[3/4] bg-white rounded-xl shadow-sm p-10 relative overflow-hidden">
-                <div className="space-y-6">
+              </div> */}
+        {/* <div className="aspect-[3/4] bg-white rounded-xl shadow-sm p-10 relative overflow-hidden"> */}
+        {/* <div className="space-y-6">
                   <div className="flex justify-between border-b border-slate-100 pb-4">
                     <div className="w-24 h-4 bg-slate-200 rounded" />
                     <div className="w-32 h-4 bg-slate-100 rounded" />
                   </div>
                   <div className="w-3/4 h-8 bg-slate-200 rounded mb-8" />
                   <div className="space-y-2">
-                    {[1,2,3,4].map(i => <div key={i} className={cn('h-3 bg-slate-100 rounded', i === 4 ? 'w-5/6' : 'w-full')} />)}
+                    {[1, 2, 3, 4].map(i => <div key={i} className={cn('h-3 bg-slate-100 rounded', i === 4 ? 'w-5/6' : 'w-full')} />)}
                   </div>
                   <div className="pt-6 space-y-2">
                     <div className="w-1/3 h-4 bg-slate-200 rounded" />
                     <div className="w-full h-3 bg-slate-100 rounded" />
                     <div className="w-full h-3 bg-slate-100 rounded" />
                   </div>
-                </div>
-                {/* AI Detected Clause Overlay */}
-                <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 py-4 bg-blue-50/90 backdrop-blur-sm border-y border-blue-100 px-10">
+                </div> */}
+        {/* AI Detected Clause Overlay */}
+        {/* <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 py-4 bg-blue-50/90 backdrop-blur-sm border-y border-blue-100 px-10">
                   <p className="text-[10px] uppercase tracking-widest text-primary font-bold mb-1">AI Detected Clause</p>
                   <p className="text-sm font-semibold text-primary">Rent escalation clause: 3.5% annual increase on Jan 1st.</p>
-                </div>
-              </div>
-            </div>
+                </div> */}
+        {/* </div>
+            </div> */}
 
-            {/* Key Dates & Renewal Roadmap */}
-            <div className="flex flex-col justify-between">
+        {/* Key Dates & Renewal Roadmap */}
+        {/* <div className="flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
@@ -182,9 +182,9 @@ export default function LeasesPage() {
                 <button className="flex-1 py-4 bg-white text-on-surface rounded-2xl font-bold text-sm hover:bg-surface-container-high transition-colors">Edit Terms</button>
                 <button className="flex-1 py-4 primary-gradient text-on-primary rounded-2xl font-bold text-sm shadow-primary">Renew Now</button>
               </div>
-            </div>
-          </div>
-        </div>
+            </div> */}
+        {/* </div>
+        </div> */}
 
         {/* Quick Action Bar */}
         <div className="mt-6 flex justify-center">
