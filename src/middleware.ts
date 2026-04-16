@@ -5,7 +5,7 @@ const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/auth/callback']
 
 const MANAGER_ROUTES = [
   '/dashboard', '/tenants', '/people', '/payments', '/maintenance',
-  '/leases', '/properties', '/communication', '/reports',
+  '/leases', '/properties', '/communication', '/reports', '/notifications',
 ]
 
 const TENANT_ROUTES = ['/portal']

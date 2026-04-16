@@ -47,6 +47,8 @@ export default function MaintenancePage() {
   const [vendors, setVendors] = useState<VendorRow[]>([])
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -165,6 +167,17 @@ export default function MaintenancePage() {
     setAssigning(false)
   }
 
+  async function handleDelete() {
+    if (!selected) return
+    setDeleting(true)
+    await supabase.from('maintenance_requests').delete().eq('id', selected.id)
+    const remaining = requests.filter(r => r.id !== selected.id)
+    setRequests(remaining)
+    setSelected(remaining.length > 0 ? remaining[0] : null)
+    setConfirmDelete(false)
+    setDeleting(false)
+  }
+
   async function handleMarkCompleted() {
     if (!selected) return
     await supabase.from('maintenance_requests').update({ status: 'completed' }).eq('id', selected.id)
@@ -238,7 +251,7 @@ export default function MaintenancePage() {
                 displayed.map(req => (
                   <button
                     key={req.id}
-                    onClick={() => setSelected(req)}
+                    onClick={() => { setSelected(req); setConfirmDelete(false) }}
                     className={cn(
                       'w-full group bg-surface-container-lowest p-5 rounded-xl hover:bg-surface-container-low transition-all cursor-pointer relative overflow-hidden text-left',
                       selected?.id === req.id && 'ring-2 ring-primary/20',
@@ -353,10 +366,20 @@ export default function MaintenancePage() {
                             <span className="material-symbols-outlined text-sm">person_add</span>
                             {selected.assigned_to ? 'Reassign Vendor' : 'Assign Vendor'}
                           </button>
-                          <button className="w-full h-12 bg-surface-container text-on-surface border border-outline-variant/30 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors">
-                            <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                            Message Tenant
-                          </button>
+                          {confirmDelete ? (
+                            <div className="flex items-center justify-between px-4 h-12 bg-error-container/30 rounded-xl border border-error/20">
+                              <span className="text-sm font-semibold text-error">Delete this request?</span>
+                              <div className="flex gap-3">
+                                <button onClick={handleDelete} disabled={deleting} className="text-sm font-bold text-error hover:underline">{deleting ? '...' : 'Yes'}</button>
+                                <button onClick={() => setConfirmDelete(false)} className="text-sm font-bold text-on-surface-variant hover:underline">No</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button onClick={() => setConfirmDelete(true)} className="w-full h-12 bg-surface-container text-error border border-error/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-error-container/20 transition-colors">
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                              Delete Request
+                            </button>
+                          )}
                           <button
                             onClick={handleMarkCompleted}
                             disabled={selected.status === 'completed'}

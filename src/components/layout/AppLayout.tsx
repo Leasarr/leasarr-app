@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn, getInitials, formatRelative } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
 
@@ -13,41 +15,29 @@ const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'system', icon: 'brightness_auto', label: 'System' },
 ]
 
-const NOTIFICATIONS = [
-  {
-    id: '1',
-    icon: 'payments',
-    iconBg: 'bg-primary-container/20',
-    iconColor: 'text-primary',
-    title: 'Rent payment received',
-    body: 'Jane Doe paid $2,400 for November',
-    time: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    unread: true,
-  },
-  {
-    id: '2',
-    icon: 'build',
-    iconBg: 'bg-tertiary-container/20',
-    iconColor: 'text-tertiary',
-    title: 'New maintenance request',
-    body: 'Marcus Thorne — Leaking kitchen faucet',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    unread: true,
-  },
-  {
-    id: '3',
-    icon: 'description',
-    iconBg: 'bg-error-container/20',
-    iconColor: 'text-error',
-    title: 'Lease expiring soon',
-    body: 'Elena Rodriguez — expires in 18 days',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    unread: false,
-  },
-]
+type NotificationRow = {
+  id: string
+  type: 'maintenance' | 'payment' | 'lease'
+  title: string
+  body: string
+  read: boolean
+  created_at: string
+}
 
-function NotificationContent() {
-  const unreadCount = NOTIFICATIONS.filter(n => n.unread).length
+const TYPE_META: Record<string, { icon: string; iconBg: string; iconColor: string }> = {
+  maintenance: { icon: 'build', iconBg: 'bg-tertiary-container/20', iconColor: 'text-tertiary' },
+  payment: { icon: 'payments', iconBg: 'bg-primary-container/20', iconColor: 'text-primary' },
+  lease: { icon: 'description', iconBg: 'bg-error-container/20', iconColor: 'text-error' },
+}
+
+type NotificationContentProps = {
+  notifications: NotificationRow[]
+  onMarkAllRead: () => void
+  allHref: string
+}
+
+function NotificationContent({ notifications, onMarkAllRead, allHref }: NotificationContentProps) {
+  const unreadCount = notifications.filter(n => !n.read).length
   return (
     <DropdownMenu.Content
       className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal w-80 z-50 overflow-hidden"
@@ -60,29 +50,42 @@ function NotificationContent() {
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-on-primary">{unreadCount} new</span>
         )}
       </div>
-      <div className="divide-y divide-outline-variant/10">
-        {NOTIFICATIONS.map(n => (
-          <DropdownMenu.Item
-            key={n.id}
-            className={cn(
-              'flex items-start gap-3 px-4 py-3 cursor-pointer outline-none transition-colors hover:bg-surface-container-low',
-              n.unread && 'bg-primary-fixed/30'
-            )}
-          >
-            <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', n.iconBg)}>
-              <span className={cn('material-symbols-outlined text-sm', n.iconColor)}>{n.icon}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-on-surface leading-tight">{n.title}</p>
-              <p className="text-[11px] text-on-surface-variant mt-0.5 leading-tight truncate">{n.body}</p>
-              <p className="text-[10px] text-outline mt-1">{formatRelative(n.time)}</p>
-            </div>
-            {n.unread && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
-          </DropdownMenu.Item>
-        ))}
-      </div>
-      <div className="px-4 py-2.5 border-t border-outline-variant/10">
-        <button className="w-full text-xs font-bold text-primary hover:underline text-center">Mark all as read</button>
+      {notifications.length === 0 ? (
+        <div className="px-4 py-10 text-center text-on-surface-variant">
+          <span className="material-symbols-outlined text-3xl mb-2 block">notifications_none</span>
+          <p className="text-sm font-semibold">No notifications yet</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-outline-variant/10 max-h-96 overflow-y-auto no-scrollbar">
+          {notifications.map(n => {
+            const meta = TYPE_META[n.type] ?? TYPE_META.maintenance
+            return (
+              <DropdownMenu.Item
+                key={n.id}
+                className={cn(
+                  'flex items-start gap-3 px-4 py-3 cursor-pointer outline-none transition-colors hover:bg-surface-container-low',
+                  !n.read && 'bg-primary-fixed/30'
+                )}
+              >
+                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', meta.iconBg)}>
+                  <span className={cn('material-symbols-outlined text-sm', meta.iconColor)}>{meta.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-on-surface leading-tight">{n.title}</p>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5 leading-tight truncate">{n.body}</p>
+                  <p className="text-[10px] text-outline mt-1">{formatRelative(n.created_at)}</p>
+                </div>
+                {!n.read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
+              </DropdownMenu.Item>
+            )
+          })}
+        </div>
+      )}
+      <div className="px-4 py-2.5 border-t border-outline-variant/10 flex items-center justify-between">
+        {unreadCount > 0 ? (
+          <button onClick={onMarkAllRead} className="text-xs font-bold text-primary hover:underline">Mark all as read</button>
+        ) : <span />}
+        <Link href={allHref} className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors">See all</Link>
       </div>
     </DropdownMenu.Content>
   )
@@ -99,12 +102,14 @@ const MANAGER_NAV_ITEMS: NavItem[] = [
   { href: '/leases', icon: 'description', label: 'Leases' },
   { href: '/communication', icon: 'chat', label: 'Messages' },
   { href: '/reports', icon: 'bar_chart', label: 'Reports' },
+  { href: '/notifications', icon: 'notifications', label: 'Notifications' },
 ]
 
 const TENANT_NAV_ITEMS: NavItem[] = [
   { href: '/portal', icon: 'home', label: 'Home', exact: true },
   { href: '/portal/maintenance', icon: 'build', label: 'Maintenance' },
   { href: '/portal/lease', icon: 'description', label: 'Lease' },
+  { href: '/portal/notifications', icon: 'notifications', label: 'Notifications' },
 ]
 
 const MANAGER_BOTTOM_NAV: NavItem[] = [
@@ -126,6 +131,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { profile, signOut } = useAuth()
   const { theme, setTheme } = useTheme()
+  const supabase = createClient()
+
+  const [notifications, setNotifications] = useState<NotificationRow[]>([])
+
+  useEffect(() => {
+    if (!profile) return
+
+    async function fetchNotifications() {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, type, title, body, read, created_at')
+        .eq('profile_id', profile!.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setNotifications((data as NotificationRow[]) ?? [])
+    }
+
+    fetchNotifications()
+
+    const channel = supabase
+      .channel('user-notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { new: NotificationRow }) => {
+          setNotifications(prev => [payload.new, ...prev])
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile])
+
+  async function handleMarkAllRead() {
+    if (!profile) return
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('profile_id', profile.id)
+      .eq('read', false)
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length
 
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
@@ -230,11 +279,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenu.Trigger asChild>
               <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
                 <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
-                <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+                {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />}
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-              <NotificationContent />
+              <NotificationContent notifications={notifications} onMarkAllRead={handleMarkAllRead} allHref={isTenant ? '/portal/notifications' : '/notifications'} />
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
         </header>
@@ -291,11 +340,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenu.Trigger asChild>
                 <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
                   <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface"></span>
+                  {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface" />}
                 </button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Portal>
-                <NotificationContent />
+                <NotificationContent notifications={notifications} onMarkAllRead={handleMarkAllRead} allHref={isTenant ? '/portal/notifications' : '/notifications'} />
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
           </div>
