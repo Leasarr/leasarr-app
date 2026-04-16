@@ -5,6 +5,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { formatCurrency, formatDate, getInitials, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import Link from 'next/link'
 
 type TenantData = {
   id: string
@@ -29,10 +30,7 @@ type PaymentData = {
   status: 'paid' | 'pending' | 'overdue' | 'partial' | 'failed'
 }
 
-type ManagerData = {
-  name: string
-  email: string
-}
+type ManagerData = { name: string; email: string }
 
 export default function TenantPortalPage() {
   const { profile, loading: authLoading } = useAuth()
@@ -42,60 +40,40 @@ export default function TenantPortalPage() {
   const [lease, setLease] = useState<LeaseData | null>(null)
   const [payments, setPayments] = useState<PaymentData[]>([])
   const [manager, setManager] = useState<ManagerData | null>(null)
+  const [openRequests, setOpenRequests] = useState(0)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!profile) return
     setLoading(true)
-
     async function fetchPortalData() {
-      // Fetch tenant record linked to this profile
       const { data: tenantData } = await supabase
         .from('tenants')
         .select('id, first_name, last_name, unit:units(unit_number), property:properties(name, manager_id)')
         .eq('profile_id', profile!.id)
         .maybeSingle()
 
-      if (!tenantData) {
-        setLoading(false)
-        return
-      }
-
+      if (!tenantData) { setLoading(false); return }
       const t = tenantData as unknown as TenantData
       setTenant(t)
 
-      // Fetch active lease, recent payments, and manager in parallel
-      const [leaseRes, paymentsRes] = await Promise.all([
-        supabase
-          .from('leases')
-          .select('id, rent_amount, end_date, status')
-          .eq('tenant_id', t.id)
-          .eq('status', 'active')
-          .maybeSingle(),
-        supabase
-          .from('payments')
-          .select('id, amount, due_date, paid_date, status')
-          .eq('tenant_id', t.id)
-          .order('due_date', { ascending: false })
-          .limit(5),
+      const [leaseRes, paymentsRes, maintRes] = await Promise.all([
+        supabase.from('leases').select('id, rent_amount, end_date, status').eq('tenant_id', t.id).eq('status', 'active').maybeSingle(),
+        supabase.from('payments').select('id, amount, due_date, paid_date, status').eq('tenant_id', t.id).order('due_date', { ascending: false }).limit(5),
+        supabase.from('maintenance_requests').select('id', { count: 'exact' }).eq('tenant_id', t.id).in('status', ['open', 'in_progress']),
       ])
 
       setLease(leaseRes.data ?? null)
       setPayments(paymentsRes.data ?? [])
+      setOpenRequests(maintRes.count ?? 0)
 
-      // Fetch manager profile
       if (t.property?.manager_id) {
-        const { data: managerData } = await supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', t.property.manager_id)
-          .maybeSingle()
+        const { data: managerData } = await supabase.from('profiles').select('name, email').eq('id', t.property.manager_id).maybeSingle()
         setManager(managerData ?? null)
       }
 
       setLoading(false)
     }
-
     fetchPortalData()
   }, [profile])
 
@@ -132,7 +110,7 @@ export default function TenantPortalPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-md mx-auto px-4 md:px-8 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
         {/* Welcome */}
         <section className="space-y-1">
@@ -142,7 +120,7 @@ export default function TenantPortalPage() {
           </h1>
         </section>
 
-        {/* Balance Hero Card */}
+        {/* Balance Hero */}
         <section className="relative overflow-hidden rounded-[2rem] p-8 text-white shadow-2xl" style={{ background: 'linear-gradient(135deg, #003d9b 0%, #0052cc 100%)' }}>
           <div className="relative z-10">
             <p className="text-white/80 font-medium text-sm mb-1">
@@ -154,14 +132,13 @@ export default function TenantPortalPage() {
               </span>
               <span className="text-white/90 font-semibold">.00</span>
             </div>
-            <button className="w-full py-4 bg-white text-primary font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg hover:bg-white/95">
+            <button className="w-full py-4 bg-white text-on-primary-fixed font-bold rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg hover:bg-white/95">
               <span className="material-symbols-outlined">payments</span>
               Pay Rent
             </button>
             {pendingPayment && (
               <p className="text-center mt-4 text-xs text-white/70">
-                Due by {formatDate(pendingPayment.due_date)}
-                {isOverdue && ' — Overdue'}
+                Due by {formatDate(pendingPayment.due_date)}{isOverdue && ' — Overdue'}
               </p>
             )}
           </div>
@@ -171,32 +148,34 @@ export default function TenantPortalPage() {
 
         {/* Quick Actions */}
         <section className="grid grid-cols-2 gap-4">
-          <a href="/maintenance" className="col-span-2 bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between group active:bg-surface-container transition-colors cursor-pointer hover:shadow-card">
+          <Link href="/portal/maintenance" className="col-span-2 bg-surface-container-low p-5 rounded-[1.5rem] flex items-center justify-between group active:bg-surface-container transition-colors hover:shadow-card">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary">
                 <span className="material-symbols-outlined">build</span>
               </div>
               <div>
                 <h3 className="font-bold text-on-surface">Maintenance</h3>
-                <p className="text-xs text-on-surface-variant">Request a repair</p>
+                <p className="text-xs text-on-surface-variant">
+                  {openRequests > 0 ? `${openRequests} active request${openRequests > 1 ? 's' : ''}` : 'Request a repair'}
+                </p>
               </div>
             </div>
             <span className="material-symbols-outlined text-outline">chevron_right</span>
-          </a>
+          </Link>
 
-          <a href="/leases" className="bg-surface-container-low p-5 rounded-[1.5rem] space-y-3 active:bg-surface-container transition-colors cursor-pointer hover:shadow-card">
+          <Link href="/portal/lease" className="bg-surface-container-low p-5 rounded-[1.5rem] space-y-3 active:bg-surface-container transition-colors hover:shadow-card">
             <div className="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-secondary">
               <span className="material-symbols-outlined">description</span>
             </div>
             <div>
               <h3 className="font-bold text-on-surface text-sm">Lease</h3>
               <p className="text-[10px] text-on-surface-variant">
-                {lease ? `Ends ${formatDate(lease.end_date, 'MMM yyyy')}` : 'View documents'}
+                {lease ? `Ends ${formatDate(lease.end_date, 'MMM yyyy')}` : 'View details'}
               </p>
             </div>
-          </a>
+          </Link>
 
-          <div className="bg-surface-container-low p-5 rounded-[1.5rem] space-y-3 active:bg-surface-container transition-colors cursor-pointer hover:shadow-card">
+          <div className="bg-surface-container-low p-5 rounded-[1.5rem] space-y-3 transition-colors hover:shadow-card cursor-pointer">
             <div className="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-secondary">
               <span className="material-symbols-outlined">receipt_long</span>
             </div>
@@ -207,7 +186,7 @@ export default function TenantPortalPage() {
           </div>
         </section>
 
-        {/* Building Manager Card */}
+        {/* Manager Card */}
         {manager && (
           <section className="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-2xl shadow-card">
             <div className="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary font-bold flex-shrink-0">
@@ -236,15 +215,12 @@ export default function TenantPortalPage() {
               {payments.map((tx, i) => (
                 <div key={tx.id} className={cn('p-4 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors', i < payments.length - 1 && 'border-b border-surface-container')}>
                   <div>
-                    <p className="font-semibold text-sm text-on-surface">
-                      {formatDate(tx.due_date, 'MMMM yyyy')} Rent
-                    </p>
+                    <p className="font-semibold text-sm text-on-surface">{formatDate(tx.due_date, 'MMMM yyyy')} Rent</p>
                     <p className="text-xs text-on-surface-variant">{formatDate(tx.due_date)}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-sm text-on-surface">{formatCurrency(tx.amount)}</p>
-                    <span className={cn(
-                      'text-[10px] font-bold px-2 py-0.5 rounded-full',
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full',
                       tx.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
                       tx.status === 'overdue' ? 'bg-error-container text-error' :
                       'bg-surface-container-high text-on-surface-variant'

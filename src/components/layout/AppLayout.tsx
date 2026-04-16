@@ -88,7 +88,9 @@ function NotificationContent() {
   )
 }
 
-const MANAGER_NAV_ITEMS = [
+type NavItem = { href: string; icon: string; label: string; exact?: boolean }
+
+const MANAGER_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { href: '/properties', icon: 'domain', label: 'Properties' },
   { href: '/people', icon: 'group', label: 'People' },
@@ -99,11 +101,13 @@ const MANAGER_NAV_ITEMS = [
   { href: '/reports', icon: 'bar_chart', label: 'Reports' },
 ]
 
-const TENANT_NAV_ITEMS = [
-  { href: '/portal', icon: 'person', label: 'My Portal' },
+const TENANT_NAV_ITEMS: NavItem[] = [
+  { href: '/portal', icon: 'home', label: 'Home', exact: true },
+  { href: '/portal/maintenance', icon: 'build', label: 'Maintenance' },
+  { href: '/portal/lease', icon: 'description', label: 'Lease' },
 ]
 
-const MANAGER_BOTTOM_NAV = [
+const MANAGER_BOTTOM_NAV: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { href: '/properties', icon: 'domain', label: 'Properties' },
   { href: '/people', icon: 'group', label: 'People' },
@@ -111,8 +115,10 @@ const MANAGER_BOTTOM_NAV = [
   { href: '/maintenance', icon: 'build', label: 'More' },
 ]
 
-const TENANT_BOTTOM_NAV = [
-  { href: '/portal', icon: 'person', label: 'My Portal' },
+const TENANT_BOTTOM_NAV: NavItem[] = [
+  { href: '/portal', icon: 'home', label: 'Home', exact: true },
+  { href: '/portal/maintenance', icon: 'build', label: 'Maintenance' },
+  { href: '/portal/lease', icon: 'description', label: 'Lease' },
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -151,7 +157,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))
             return (
               <Link
                 key={item.href}
@@ -238,7 +244,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2 text-on-surface-variant text-sm">
             <span className="material-symbols-outlined text-base">home</span>
             <span>/</span>
-            <span className="font-semibold text-on-surface capitalize">{pathname.split('/')[1] || 'Dashboard'}</span>
+            <span className="font-semibold text-on-surface capitalize">
+              {pathname === '/portal' ? 'Home' : pathname.split('/').filter(Boolean).map(s => s === 'portal' ? null : s).filter(Boolean).join(' / ') || pathname.split('/')[1] || 'Dashboard'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {/* Theme switcher */}
@@ -303,7 +311,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 rounded-t-3xl shadow-nav">
         <div className="flex justify-around items-center h-20 px-2 pb-safe">
           {bottomNav.map(item => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))
             return (
               <Link
                 key={item.href}
