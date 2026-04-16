@@ -32,6 +32,17 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all')
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null)
+
+  async function handleMarkPaid(id: string) {
+    setMarkingPaid(id)
+    await supabase.from('payments').update({
+      status: 'paid',
+      paid_date: new Date().toISOString().split('T')[0],
+    }).eq('id', id)
+    setPayments(prev => prev.map(p => p.id === id ? { ...p, status: 'paid', paid_date: new Date().toISOString().split('T')[0] } : p))
+    setMarkingPaid(null)
+  }
 
   useEffect(() => {
     if (!profile) return
@@ -170,10 +181,22 @@ export default function PaymentsPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-on-surface">{formatCurrency(payment.amount)}</p>
-                        {payment.late_fee && <p className="text-xs text-error">+{formatCurrency(payment.late_fee)} late fee</p>}
-                        <span className={cn('badge mt-1', getStatusColor(payment.status))}>{payment.status}</span>
+                      <div className="flex items-center gap-4">
+                        {(payment.status === 'pending' || payment.status === 'overdue') && (
+                          <button
+                            onClick={() => handleMarkPaid(payment.id)}
+                            disabled={markingPaid === payment.id}
+                            className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-sm">check_circle</span>
+                            {markingPaid === payment.id ? 'Saving...' : 'Mark Paid'}
+                          </button>
+                        )}
+                        <div className="text-right">
+                          <p className="font-bold text-on-surface">{formatCurrency(payment.amount)}</p>
+                          {payment.late_fee && <p className="text-xs text-error">+{formatCurrency(payment.late_fee)} late fee</p>}
+                          <span className={cn('badge mt-1', getStatusColor(payment.status))}>{payment.status}</span>
+                        </div>
                       </div>
                     </div>
                   )

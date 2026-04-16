@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
-import { TEAM_MEMBERS, VENDORS } from '@/data/mock'
+import Modal from '@/components/ui/Modal'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+
+// ── DB row types ───────────────────────────────────────────────────────────────
 
 type TenantRow = {
   id: string
@@ -15,55 +17,75 @@ type TenantRow = {
   phone: string
   unit_id: string | null
   property_id: string | null
+  team_member_id: string | null
   status: 'active' | 'inactive' | 'pending'
   credit_score: number | null
   created_at: string
+  property: { name: string } | null
+  unit: { unit_number: string } | null
 }
 
-type PaymentRow = {
+type TeamMemberRow = {
   id: string
-  amount: number
-  due_date: string
-  status: 'paid' | 'pending' | 'overdue' | 'partial' | 'failed'
+  name: string
+  role: string
+  email: string
+  phone: string | null
+  status: 'active' | 'inactive'
+  created_at: string
 }
 
-type LeaseRow = {
+type VendorRow = {
   id: string
-  rent_amount: number
-  end_date: string
-  security_deposit: number
+  name: string
+  company: string
+  specialty: 'plumbing' | 'electrical' | 'hvac' | 'landscaping' | 'general' | 'cleaning'
+  email: string
+  phone: string | null
+  rating: number
+  status: 'active' | 'inactive'
+  created_at: string
 }
+
+type PaymentRow = { id: string; amount: number; due_date: string; status: 'paid' | 'pending' | 'overdue' | 'partial' | 'failed' }
+type LeaseRow = { id: string; rent_amount: number; end_date: string; security_deposit: number }
+type VacantUnit = { id: string; unit_number: string; property_id: string; property: { id: string; name: string } | null }
 
 type PeopleTab = 'all' | 'tenants' | 'team' | 'vendors'
 type TenantDetailTab = 'payments' | 'maintenance'
+type PersonType = 'tenant' | 'team_member' | 'vendor'
+
+// ── Specialty styles ───────────────────────────────────────────────────────────
 
 const SPECIALTY_STYLE: Record<string, { icon: string; label: string; bg: string; text: string }> = {
-  plumbing: { icon: 'plumbing', label: 'Plumbing', bg: 'bg-blue-100', text: 'text-blue-700' },
-  electrical: { icon: 'electrical_services', label: 'Electrical', bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  hvac: { icon: 'ac_unit', label: 'HVAC', bg: 'bg-cyan-100', text: 'text-cyan-700' },
-  landscaping: { icon: 'yard', label: 'Landscaping', bg: 'bg-green-100', text: 'text-green-700' },
-  general: { icon: 'handyman', label: 'General', bg: 'bg-surface-container-high', text: 'text-on-surface-variant' },
-  cleaning: { icon: 'cleaning_services', label: 'Cleaning', bg: 'bg-purple-100', text: 'text-purple-700' },
+  plumbing:    { icon: 'plumbing',            label: 'Plumbing',    bg: 'bg-blue-100',                  text: 'text-blue-700' },
+  electrical:  { icon: 'electrical_services', label: 'Electrical',  bg: 'bg-yellow-100',                text: 'text-yellow-700' },
+  hvac:        { icon: 'ac_unit',             label: 'HVAC',        bg: 'bg-cyan-100',                  text: 'text-cyan-700' },
+  landscaping: { icon: 'yard',                label: 'Landscaping', bg: 'bg-green-100',                 text: 'text-green-700' },
+  general:     { icon: 'handyman',            label: 'General',     bg: 'bg-surface-container-high',    text: 'text-on-surface-variant' },
+  cleaning:    { icon: 'cleaning_services',   label: 'Cleaning',    bg: 'bg-purple-100',                text: 'text-purple-700' },
 }
 
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} className={cn('material-symbols-outlined text-sm', i <= Math.round(rating) ? 'material-symbols-filled text-amber-400' : 'text-outline-variant')}>
-          star
-        </span>
+        <span key={i} className={cn('material-symbols-outlined text-sm', i <= Math.round(rating) ? 'material-symbols-filled text-amber-400' : 'text-outline-variant')}>star</span>
       ))}
       <span className="text-xs font-bold text-on-surface ml-1">{rating}</span>
     </div>
   )
 }
 
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function PeoplePage() {
   const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   const [tenants, setTenants] = useState<TenantRow[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([])
+  const [vendors, setVendors] = useState<VendorRow[]>([])
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null)
   const [tenantPayments, setTenantPayments] = useState<PaymentRow[]>([])
   const [activeLease, setActiveLease] = useState<LeaseRow | null>(null)
@@ -72,39 +94,57 @@ export default function PeoplePage() {
   const [tenantDetailTab, setTenantDetailTab] = useState<TenantDetailTab>('payments')
   const [search, setSearch] = useState('')
 
+  // ── Edit Tenant modal state
+  const [showEditTenant, setShowEditTenant] = useState(false)
+  const [editUnits, setEditUnits] = useState<VacantUnit[]>([])
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', phone: '', property_id: '', unit_id: '', team_member_id: '', status: 'active' as TenantRow['status'] })
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // ── Add Person modal state
+  const [showAddPerson, setShowAddPerson] = useState(false)
+  const [modalStep, setModalStep] = useState<1 | 2>(1)
+  const [personType, setPersonType] = useState<PersonType | null>(null)
+  const [vacantUnits, setVacantUnits] = useState<VacantUnit[]>([])
+  const [properties, setProperties] = useState<{ id: string; name: string }[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
+
+  const [tenantForm, setTenantForm] = useState({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
+  const [teamForm, setTeamForm] = useState({ name: '', role: '', email: '', phone: '' })
+  const [vendorForm, setVendorForm] = useState({ name: '', company: '', specialty: 'general' as VendorRow['specialty'], email: '', phone: '' })
+
+  // ── Fetch all people
   useEffect(() => {
     if (!profile) return
     setLoading(true)
-    async function fetchTenants() {
-      const { data } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('manager_id', profile!.id)
-        .order('created_at', { ascending: false })
-      const rows = data ?? []
+    async function fetchAll() {
+      const [tenantsRes, teamRes, vendorsRes, propsRes] = await Promise.all([
+        supabase.from('tenants').select('*, property:properties(name), unit:units(unit_number)').eq('manager_id', profile!.id).order('created_at', { ascending: false }),
+        supabase.from('team_members').select('*').eq('manager_id', profile!.id).order('created_at', { ascending: false }),
+        supabase.from('vendors').select('*').eq('manager_id', profile!.id).order('created_at', { ascending: false }),
+        supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
+      ])
+      setProperties((propsRes.data ?? []) as { id: string; name: string }[])
+      const rows = (tenantsRes.data ?? []) as TenantRow[]
+      const teamRows = (teamRes.data ?? []) as TeamMemberRow[]
+      const vendorRows = (vendorsRes.data ?? []) as VendorRow[]
       setTenants(rows)
       if (rows.length > 0) setSelectedTenant(rows[0])
+      setTeamMembers(teamRows)
+      setVendors(vendorRows)
       setLoading(false)
     }
-    fetchTenants()
+    fetchAll()
   }, [profile])
 
+  // ── Fetch tenant detail data
   useEffect(() => {
     if (!selectedTenant) return
     async function fetchTenantData() {
       const [paymentsRes, leaseRes] = await Promise.all([
-        supabase
-          .from('payments')
-          .select('id, amount, due_date, status')
-          .eq('tenant_id', selectedTenant!.id)
-          .order('due_date', { ascending: false })
-          .limit(10),
-        supabase
-          .from('leases')
-          .select('id, rent_amount, end_date, security_deposit')
-          .eq('tenant_id', selectedTenant!.id)
-          .eq('status', 'active')
-          .maybeSingle(),
+        supabase.from('payments').select('id, amount, due_date, status').eq('tenant_id', selectedTenant!.id).order('due_date', { ascending: false }).limit(10),
+        supabase.from('leases').select('id, rent_amount, end_date, security_deposit').eq('tenant_id', selectedTenant!.id).eq('status', 'active').maybeSingle(),
       ])
       setTenantPayments(paymentsRes.data ?? [])
       setActiveLease(leaseRes.data ?? null)
@@ -112,18 +152,177 @@ export default function PeoplePage() {
     fetchTenantData()
   }, [selectedTenant])
 
-  const matchesSearch = (text: string) =>
-    search === '' || text.toLowerCase().includes(search.toLowerCase())
+  // ── Open modal helpers
+  async function openAddPerson() {
+    setShowAddPerson(true)
+    setModalStep(1)
+    setPersonType(null)
+    setFormError('')
+    const [unitsRes, propsRes] = await Promise.all([
+      supabase.from('units').select('id, unit_number, property_id, property:properties(id, name)').eq('status', 'vacant'),
+      supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
+    ])
+    setVacantUnits((unitsRes.data as unknown as VacantUnit[]) ?? [])
+    setProperties((propsRes.data ?? []) as { id: string; name: string }[])
+  }
 
+  function selectType(type: PersonType) {
+    setPersonType(type)
+    setModalStep(2)
+    setFormError('')
+  }
+
+  function closeModal() {
+    setShowAddPerson(false)
+    setModalStep(1)
+    setPersonType(null)
+    setFormError('')
+    setSubmitting(false)
+    setTenantForm({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
+    setTeamForm({ name: '', role: '', email: '', phone: '' })
+    setVendorForm({ name: '', company: '', specialty: 'general', email: '', phone: '' })
+  }
+
+  // ── Edit Tenant
+  async function openEditTenant(tenant: TenantRow) {
+    setEditForm({
+      first_name: tenant.first_name,
+      last_name: tenant.last_name,
+      email: tenant.email,
+      phone: tenant.phone ?? '',
+      property_id: tenant.property_id ?? '',
+      unit_id: tenant.unit_id ?? '',
+      team_member_id: tenant.team_member_id ?? '',
+      status: tenant.status,
+    })
+    setEditError('')
+    // Fetch vacant units + the tenant's current unit (so it shows in the dropdown)
+    const { data } = await supabase
+      .from('units')
+      .select('id, unit_number, property_id, property:properties(id, name)')
+      .or(`status.eq.vacant${tenant.unit_id ? `,id.eq.${tenant.unit_id}` : ''}`)
+    setEditUnits((data as unknown as VacantUnit[]) ?? [])
+    setShowEditTenant(true)
+  }
+
+  async function handleEditTenant(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedTenant) return
+    setEditSubmitting(true)
+    setEditError('')
+
+    const prevUnitId = selectedTenant.unit_id
+    const nextUnitId = editForm.unit_id || null
+
+    const { data, error } = await supabase
+      .from('tenants')
+      .update({
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        email: editForm.email,
+        phone: editForm.phone,
+        property_id: editForm.property_id || null,
+        unit_id: nextUnitId,
+        team_member_id: editForm.team_member_id || null,
+        status: editForm.status,
+      })
+      .eq('id', selectedTenant.id)
+      .select('*, property:properties(name), unit:units(unit_number)')
+      .single()
+
+    if (error) { setEditError(error.message); setEditSubmitting(false); return }
+
+    // Always sync unit status to reflect tenant state
+    if (prevUnitId && prevUnitId !== nextUnitId) {
+      await supabase.from('units').update({ status: 'vacant' }).eq('id', prevUnitId)
+    }
+    if (nextUnitId) {
+      const unitStatus = editForm.status === 'active' ? 'occupied' : 'vacant'
+      await supabase.from('units').update({ status: unitStatus }).eq('id', nextUnitId)
+    }
+
+    const updated = data as TenantRow
+    setTenants(prev => prev.map(t => t.id === selectedTenant.id ? updated : t))
+    setSelectedTenant(updated)
+    setShowEditTenant(false)
+    setEditSubmitting(false)
+  }
+
+  // ── Submit handlers
+  async function handleAddTenant(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    setFormError('')
+    const { data, error } = await supabase.from('tenants').insert({
+      first_name: tenantForm.first_name,
+      last_name: tenantForm.last_name,
+      email: tenantForm.email,
+      phone: tenantForm.phone,
+      move_in_date: tenantForm.move_in_date || null,
+      unit_id: tenantForm.unit_id || null,
+      property_id: tenantForm.property_id || null,
+      team_member_id: tenantForm.team_member_id || null,
+      manager_id: profile!.id,
+      status: 'active',
+    }).select('*, property:properties(name), unit:units(unit_number)').single()
+    if (error) { setFormError(error.message); setSubmitting(false); return }
+    if (tenantForm.unit_id) {
+      await supabase.from('units').update({ status: 'occupied' }).eq('id', tenantForm.unit_id)
+    }
+    setTenants(prev => [data as TenantRow, ...prev])
+    setSelectedTenant(data as TenantRow)
+    setActiveTab('tenants')
+    closeModal()
+  }
+
+  async function handleAddTeamMember(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    setFormError('')
+    const { data, error } = await supabase.from('team_members').insert({
+      name: teamForm.name,
+      role: teamForm.role,
+      email: teamForm.email,
+      phone: teamForm.phone || null,
+      manager_id: profile!.id,
+      status: 'active',
+    }).select('*').single()
+    if (error) { setFormError(error.message); setSubmitting(false); return }
+    setTeamMembers(prev => [data as TeamMemberRow, ...prev])
+    setActiveTab('team')
+    closeModal()
+  }
+
+  async function handleAddVendor(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    setFormError('')
+    const { data, error } = await supabase.from('vendors').insert({
+      name: vendorForm.name,
+      company: vendorForm.company,
+      specialty: vendorForm.specialty,
+      email: vendorForm.email,
+      phone: vendorForm.phone || null,
+      manager_id: profile!.id,
+      status: 'active',
+    }).select('*').single()
+    if (error) { setFormError(error.message); setSubmitting(false); return }
+    setVendors(prev => [data as VendorRow, ...prev])
+    setActiveTab('vendors')
+    closeModal()
+  }
+
+  // ── Search filter
+  const matchesSearch = (text: string) => search === '' || text.toLowerCase().includes(search.toLowerCase())
   const filteredTenants = tenants.filter(t => matchesSearch(`${t.first_name} ${t.last_name} ${t.email}`))
-  const filteredTeam = TEAM_MEMBERS.filter(m => matchesSearch(`${m.name} ${m.role} ${m.email}`))
-  const filteredVendors = VENDORS.filter(v => matchesSearch(`${v.name} ${v.company} ${v.specialty}`))
+  const filteredTeam = teamMembers.filter(m => matchesSearch(`${m.name} ${m.role} ${m.email}`))
+  const filteredVendors = vendors.filter(v => matchesSearch(`${v.name} ${v.company} ${v.specialty}`))
 
   const TABS: { key: PeopleTab; label: string; count: number }[] = [
-    { key: 'all', label: 'All People', count: tenants.length + TEAM_MEMBERS.length + VENDORS.length },
-    { key: 'tenants', label: 'Tenants', count: tenants.length },
-    { key: 'team', label: 'Team', count: TEAM_MEMBERS.length },
-    { key: 'vendors', label: 'Vendors', count: VENDORS.length },
+    { key: 'all',     label: 'All People', count: tenants.length + teamMembers.length + vendors.length },
+    { key: 'tenants', label: 'Tenants',    count: tenants.length },
+    { key: 'team',    label: 'Team',       count: teamMembers.length },
+    { key: 'vendors', label: 'Vendors',    count: vendors.length },
   ]
 
   return (
@@ -136,20 +335,16 @@ export default function PeoplePage() {
             <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-1">People</h1>
             <p className="text-on-surface-variant font-medium">Manage everyone connected to your portfolio</p>
             <div className="flex gap-2 mt-3">
-              {[
-                { label: `${tenants.length} Tenants`, bg: 'bg-secondary-container text-on-secondary-container' },
-                { label: `${TEAM_MEMBERS.length} Team`, bg: 'bg-primary-container/30 text-primary' },
-                { label: `${VENDORS.length} Vendors`, bg: 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' },
-              ].map(b => (
-                <span key={b.label} className={cn('badge text-[10px]', b.bg)}>{b.label}</span>
-              ))}
+              <span className="badge text-[10px] bg-secondary-container text-on-secondary-container">{tenants.length} Tenants</span>
+              <span className="badge text-[10px] bg-primary-container/30 text-primary">{teamMembers.length} Team</span>
+              <span className="badge text-[10px] bg-tertiary-container/20 text-on-tertiary-fixed-variant">{vendors.length} Vendors</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button className="btn-secondary">
               <span className="material-symbols-outlined text-xl">filter_list</span> Filters
             </button>
-            <button className="btn-primary">
+            <button onClick={openAddPerson} className="btn-primary">
               <span className="material-symbols-outlined text-xl">person_add</span> Add Person
             </button>
           </div>
@@ -157,12 +352,7 @@ export default function PeoplePage() {
 
         {/* Search */}
         <div className="w-full max-w-xl mb-6">
-          <input
-            className="input-base"
-            placeholder="Search by name, email, role, or specialty..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <input className="input-base" placeholder="Search by name, email, role, or specialty..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         {/* Tabs */}
@@ -184,7 +374,7 @@ export default function PeoplePage() {
           ))}
         </div>
 
-        {/* ── ALL PEOPLE TAB ── */}
+        {/* ── ALL TAB ── */}
         {activeTab === 'all' && (
           <div className="space-y-3">
             {(authLoading || loading) ? (
@@ -195,64 +385,64 @@ export default function PeoplePage() {
             ) : (
               <>
                 {filteredTenants.map(t => (
-                  <div key={t.id} className="bg-surface-container-lowest rounded-2xl p-4 flex items-center gap-4 hover:shadow-card transition-all">
-                    <div className="w-11 h-11 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-base flex-shrink-0">
-                      {getInitials(`${t.first_name} ${t.last_name}`)}
-                    </div>
+                  <button
+                    key={t.id}
+                    onClick={() => { setSelectedTenant(t); setActiveTab('tenants'); setTenantDetailTab('payments') }}
+                    className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(`${t.first_name} ${t.last_name}`)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-sm text-on-surface">{t.first_name} {t.last_name}</p>
-                        <span className="badge bg-secondary-container text-on-secondary-container text-[10px]">Tenant</span>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="font-bold text-sm text-on-surface truncate">{t.first_name} {t.last_name}</p>
+                        <span className="badge bg-secondary-container text-on-secondary-container text-[10px] flex-shrink-0">Tenant</span>
                       </div>
-                      <p className="text-xs text-on-surface-variant truncate">{t.email}</p>
+                      <p className="text-xs text-on-surface-variant truncate">{t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}</p>
                     </div>
-                    <div className="text-right hidden sm:block flex-shrink-0">
-                      <p className="text-xs font-semibold text-on-surface">{t.phone}</p>
-                    </div>
-                  </div>
+                    <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
+                  </button>
                 ))}
-
                 {filteredTeam.map(m => (
-                  <div key={m.id} className="bg-surface-container-lowest rounded-2xl p-4 flex items-center gap-4 hover:shadow-card transition-all">
-                    <div className="w-11 h-11 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-base flex-shrink-0">
-                      {getInitials(m.name)}
-                    </div>
+                  <button
+                    key={m.id}
+                    onClick={() => setActiveTab('team')}
+                    className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(m.name)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-sm text-on-surface">{m.name}</p>
-                        <span className="badge bg-primary-container/30 text-primary text-[10px]">Team</span>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="font-bold text-sm text-on-surface truncate">{m.name}</p>
+                        <span className="badge bg-primary-container/30 text-primary text-[10px] flex-shrink-0">Team</span>
                       </div>
-                      <p className="text-xs text-on-surface-variant">{m.role} · {m.email}</p>
+                      <p className="text-xs text-on-surface-variant truncate">{m.role} · {m.email}</p>
                     </div>
-                    <div className="text-right hidden sm:block flex-shrink-0">
-                      <p className="text-xs font-semibold text-on-surface">{m.phone}</p>
-                    </div>
-                  </div>
+                    <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
+                  </button>
                 ))}
-
                 {filteredVendors.map(v => {
                   const sp = SPECIALTY_STYLE[v.specialty]
                   return (
-                    <div key={v.id} className="bg-surface-container-lowest rounded-2xl p-4 flex items-center gap-4 hover:shadow-card transition-all">
-                      <div className="w-11 h-11 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-base flex-shrink-0">
-                        {getInitials(v.name)}
-                      </div>
+                    <button
+                      key={v.id}
+                      onClick={() => setActiveTab('vendors')}
+                      className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(v.name)}</div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-on-surface">{v.name}</p>
-                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant text-[10px]">Vendor</span>
-                          <span className={cn('badge text-[10px]', sp.bg, sp.text)}>{sp.label}</span>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <p className="font-bold text-sm text-on-surface truncate">{v.name}</p>
+                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant text-[10px] flex-shrink-0">Vendor</span>
+                          <span className={cn('badge text-[10px] flex-shrink-0', sp.bg, sp.text)}>{sp.label}</span>
                         </div>
                         <p className="text-xs text-on-surface-variant truncate">{v.company} · {v.email}</p>
                       </div>
-                    </div>
+                      <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
+                    </button>
                   )
                 })}
-
                 {filteredTenants.length + filteredTeam.length + filteredVendors.length === 0 && (
                   <div className="text-center py-16 text-on-surface-variant">
                     <span className="material-symbols-outlined text-4xl mb-2 block">search_off</span>
-                    <p className="font-semibold">No results for "{search}"</p>
+                    <p className="font-semibold">{search ? `No results for "${search}"` : 'No people added yet'}</p>
                   </div>
                 )}
               </>
@@ -270,221 +460,444 @@ export default function PeoplePage() {
             <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
               <span className="material-symbols-outlined text-5xl mb-3">group_add</span>
               <p className="font-semibold">{search ? `No tenants match "${search}"` : 'No tenants yet'}</p>
+              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add First Tenant</button>}
             </div>
           ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-5 space-y-3">
-              {(
-                <>
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <span className="text-xs font-bold uppercase tracking-widest text-outline">{filteredTenants.length} tenants</span>
-                  </div>
-                  {filteredTenants.map(tenant => (
-                    <button
-                      key={tenant.id}
-                      onClick={() => { setSelectedTenant(tenant); setTenantDetailTab('payments') }}
-                      className={cn(
-                        'w-full bg-surface-container-lowest p-5 rounded-2xl flex items-center justify-between transition-all text-left',
-                        'hover:shadow-xl hover:shadow-black/5',
-                        selectedTenant?.id === tenant.id && 'ring-2 ring-primary/20 shadow-md'
-                      )}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">
-                          {getInitials(`${tenant.first_name} ${tenant.last_name}`)}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-on-surface text-sm">{tenant.first_name} {tenant.last_name}</h3>
-                          <p className="text-xs text-on-surface-variant font-medium">{tenant.email}</p>
-                        </div>
-                      </div>
-                      <span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
-
-            {selectedTenant && (
-              <div className="lg:col-span-7 space-y-5">
-                <div className="bg-white rounded-3xl p-8 shadow-card">
-                  <div className="flex flex-col md:flex-row gap-8 items-start">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-32 h-32 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-4xl font-bold ring-4 ring-surface-container-low">
-                        {getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg">
-                        <span className="material-symbols-outlined text-sm material-symbols-filled">verified</span>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">
-                            {selectedTenant.first_name} {selectedTenant.last_name}
-                          </h2>
-                          <p className="text-primary font-bold flex items-center gap-1 mt-1">
-                            <span className="material-symbols-outlined text-sm">mail</span>
-                            {selectedTenant.email}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-5 space-y-3">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-xs font-bold uppercase tracking-widest text-outline">{filteredTenants.length} tenants</span>
+                </div>
+                {filteredTenants.map(tenant => (
+                  <button
+                    key={tenant.id}
+                    onClick={() => { setSelectedTenant(tenant); setTenantDetailTab('payments') }}
+                    className={cn('w-full bg-surface-container-lowest p-5 rounded-2xl flex items-center justify-between transition-all text-left hover:shadow-xl hover:shadow-black/5', selectedTenant?.id === tenant.id && 'ring-2 ring-primary/20 shadow-md')}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>
+                      <div>
+                        <h3 className="font-bold text-on-surface text-sm">{tenant.first_name} {tenant.last_name}</h3>
+                        <p className="text-xs text-on-surface-variant font-medium">{tenant.email}</p>
+                        {tenant.property && (
+                          <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[10px]">location_on</span>
+                            {tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}
                           </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>
+                  </button>
+                ))}
+              </div>
+
+              {selectedTenant && (
+                <div className="lg:col-span-7 space-y-5">
+                  <div className="bg-white rounded-3xl p-8 shadow-card">
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-32 h-32 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-4xl font-bold ring-4 ring-surface-container-low">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
+                        <div className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg">
+                          <span className="material-symbols-outlined text-sm material-symbols-filled">verified</span>
                         </div>
-                        <div className="flex gap-2">
-                          <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors">
-                            <span className="material-symbols-outlined">mail</span>
-                          </button>
-                          <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors">
-                            <span className="material-symbols-outlined">call</span>
-                          </button>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h2 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">{selectedTenant.first_name} {selectedTenant.last_name}</h2>
+                            <p className="text-primary font-bold flex items-center gap-1 mt-1">
+                              <span className="material-symbols-outlined text-sm">mail</span>{selectedTenant.email}
+                            </p>
+                            {selectedTenant.property && (
+                              <p className="text-sm text-on-surface-variant flex items-center gap-1 mt-1">
+                                <span className="material-symbols-outlined text-sm">apartment</span>
+                                {selectedTenant.property.name}{selectedTenant.unit ? ` · Unit ${selectedTenant.unit.unit_number}` : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => openEditTenant(selectedTenant)} className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">edit</span></button>
+                            <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">mail</span></button>
+                            <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">call</span></button>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                      {[
+                        { label: 'Rent',        value: activeLease ? formatCurrency(activeLease.rent_amount) : '—' },
+                        { label: 'Lease Ends',  value: activeLease ? formatDate(activeLease.end_date, 'MMM yyyy') : '—' },
+                        { label: 'Deposit',     value: activeLease ? formatCurrency(activeLease.security_deposit) : '—' },
+                        { label: 'Credit Score',value: selectedTenant.credit_score?.toString() ?? 'N/A' },
+                      ].map(item => (
+                        <div key={item.label} className="bg-surface-container-low rounded-2xl p-4">
+                          <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">{item.label}</p>
+                          <p className="text-xl font-extrabold text-on-surface">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                    {[
-                      { label: 'Rent', value: activeLease ? formatCurrency(activeLease.rent_amount) : '—' },
-                      { label: 'Lease Ends', value: activeLease ? formatDate(activeLease.end_date, 'MMM yyyy') : '—' },
-                      { label: 'Deposit', value: activeLease ? formatCurrency(activeLease.security_deposit) : '—' },
-                      { label: 'Credit Score', value: selectedTenant.credit_score?.toString() ?? 'N/A' },
-                    ].map(item => (
-                      <div key={item.label} className="bg-surface-container-low rounded-2xl p-4">
-                        <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">{item.label}</p>
-                        <p className="text-xl font-extrabold text-on-surface">{item.value}</p>
-                      </div>
+                  <div className="flex gap-3">
+                    {(['payments', 'maintenance'] as const).map(tab => (
+                      <button key={tab} onClick={() => setTenantDetailTab(tab)} className={cn('px-6 py-3 rounded-xl text-sm font-bold transition-all', tenantDetailTab === tab ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high')}>
+                        {tab === 'payments' ? 'Payment History' : 'Maintenance'}
+                      </button>
                     ))}
                   </div>
-                </div>
-
-                <div className="flex gap-3">
-                  {(['payments', 'maintenance'] as const).map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setTenantDetailTab(tab)}
-                      className={cn(
-                        'px-6 py-3 rounded-xl text-sm font-bold transition-all',
-                        tenantDetailTab === tab ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
-                      )}
-                    >
-                      {tab === 'payments' ? 'Payment History' : 'Maintenance'}
-                    </button>
-                  ))}
-                </div>
-
-                {tenantDetailTab === 'payments' && (
-                  <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-card">
-                    {tenantPayments.length === 0 ? (
-                      <div className="text-center py-8">
-                        <span className="material-symbols-outlined text-3xl text-outline block mb-2">receipt_long</span>
-                        <p className="text-on-surface-variant text-sm">No payment history yet.</p>
-                      </div>
-                    ) : (
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-surface-container">
+                  {tenantDetailTab === 'payments' && (
+                    <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-card">
+                      {tenantPayments.length === 0 ? (
+                        <div className="text-center py-8"><span className="material-symbols-outlined text-3xl text-outline block mb-2">receipt_long</span><p className="text-on-surface-variant text-sm">No payment history yet.</p></div>
+                      ) : (
+                        <table className="w-full text-left">
+                          <thead><tr className="border-b border-surface-container">
                             <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest">Date</th>
                             <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest">Description</th>
                             <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Amount</th>
                             <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-container">
-                          {tenantPayments.map(p => (
-                            <tr key={p.id}>
-                              <td className="py-5 text-sm font-semibold">{formatDate(p.due_date)}</td>
-                              <td className="py-5 text-sm text-on-surface-variant">Monthly Rent</td>
-                              <td className="py-5 text-sm font-bold text-on-surface text-right">{formatCurrency(p.amount)}</td>
-                              <td className="py-5 text-right">
-                                <span className={cn('badge', getStatusColor(p.status))}>{p.status}</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
-
-                {tenantDetailTab === 'maintenance' && (
-                  <div className="bg-surface-container-lowest rounded-3xl p-8 text-center text-on-surface-variant shadow-card">
-                    <span className="material-symbols-outlined text-4xl mb-3 block">build</span>
-                    <p className="font-semibold">Coming soon</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                          </tr></thead>
+                          <tbody className="divide-y divide-surface-container">
+                            {tenantPayments.map(p => (
+                              <tr key={p.id}>
+                                <td className="py-5 text-sm font-semibold">{formatDate(p.due_date)}</td>
+                                <td className="py-5 text-sm text-on-surface-variant">Monthly Rent</td>
+                                <td className="py-5 text-sm font-bold text-on-surface text-right">{formatCurrency(p.amount)}</td>
+                                <td className="py-5 text-right"><span className={cn('badge', getStatusColor(p.status))}>{p.status}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
+                  {tenantDetailTab === 'maintenance' && (
+                    <div className="bg-surface-container-lowest rounded-3xl p-8 text-center text-on-surface-variant shadow-card">
+                      <span className="material-symbols-outlined text-4xl mb-3 block">build</span>
+                      <p className="font-semibold">Coming soon</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )
         )}
 
         {/* ── TEAM TAB ── */}
         {activeTab === 'team' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredTeam.map(member => (
-              <div key={member.id} className="bg-surface-container-lowest rounded-2xl p-6 shadow-card hover:shadow-md transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xl">
-                    {getInitials(member.name)}
+          loading ? (
+            <div className="flex items-center justify-center min-h-[40vh]"><span className="material-symbols-outlined text-3xl text-primary animate-pulse">group</span></div>
+          ) : filteredTeam.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
+              <span className="material-symbols-outlined text-5xl mb-3">badge</span>
+              <p className="font-semibold">{search ? `No team members match "${search}"` : 'No team members yet'}</p>
+              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add Team Member</button>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredTeam.map(member => (
+                <div key={member.id} className="bg-surface-container-lowest rounded-2xl p-6 shadow-card hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xl">{getInitials(member.name)}</div>
+                    <span className={cn('badge text-[10px]', member.status === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant')}>{member.status}</span>
                   </div>
-                  <span className={cn('badge text-[10px]', member.status === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant')}>
-                    {member.status}
-                  </span>
+                  <h3 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h3>
+                  <p className="text-xs font-semibold text-primary mb-4">{member.role}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-on-surface-variant"><span className="material-symbols-outlined text-sm text-outline">mail</span>{member.email}</div>
+                    {member.phone && <div className="flex items-center gap-2 text-xs text-on-surface-variant"><span className="material-symbols-outlined text-sm text-outline">call</span>{member.phone}</div>}
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    <button className="flex-1 py-2.5 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors">Message</button>
+                    <button className="flex-1 py-2.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-colors">View Profile</button>
+                  </div>
                 </div>
-                <h3 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h3>
-                <p className="text-xs font-semibold text-primary mb-4">{member.role}</p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm text-outline">mail</span>
-                    {member.email}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm text-outline">call</span>
-                    {member.phone}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                    <span className="material-symbols-outlined text-sm text-outline">domain</span>
-                    {member.assigned_properties.length} {member.assigned_properties.length === 1 ? 'property' : 'properties'} assigned
-                  </div>
-                </div>
-                <div className="mt-5 flex gap-2">
-                  <button className="flex-1 py-2.5 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors">Message</button>
-                  <button className="flex-1 py-2.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-colors">View Profile</button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
 
         {/* ── VENDORS TAB ── */}
         {activeTab === 'vendors' && (
-          <div className="space-y-4">
-            {filteredVendors.map(vendor => {
-              const sp = SPECIALTY_STYLE[vendor.specialty]
-              return (
-                <div key={vendor.id} className="bg-surface-container-lowest rounded-2xl p-5 shadow-card hover:shadow-md transition-all flex items-center gap-5">
-                  <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0', sp.bg)}>
-                    <span className={cn('material-symbols-outlined text-2xl', sp.text)}>{sp.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-on-surface">{vendor.name}</h3>
-                      <span className={cn('badge text-[10px]', sp.bg, sp.text)}>{sp.label}</span>
+          loading ? (
+            <div className="flex items-center justify-center min-h-[40vh]"><span className="material-symbols-outlined text-3xl text-primary animate-pulse">handyman</span></div>
+          ) : filteredVendors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
+              <span className="material-symbols-outlined text-5xl mb-3">handyman</span>
+              <p className="font-semibold">{search ? `No vendors match "${search}"` : 'No vendors yet'}</p>
+              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add Vendor</button>}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredVendors.map(vendor => {
+                const sp = SPECIALTY_STYLE[vendor.specialty]
+                return (
+                  <div key={vendor.id} className="bg-surface-container-lowest rounded-2xl p-5 shadow-card hover:shadow-md transition-all flex items-center gap-5">
+                    <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0', sp.bg)}>
+                      <span className={cn('material-symbols-outlined text-2xl', sp.text)}>{sp.icon}</span>
                     </div>
-                    <p className="text-xs font-semibold text-on-surface-variant mb-2">{vendor.company}</p>
-                    <StarRating rating={vendor.rating} />
-                  </div>
-                  <div className="hidden md:flex flex-col items-end gap-2 flex-shrink-0">
-                    <p className="text-xs text-on-surface-variant">{vendor.phone}</p>
-                    <div className="flex gap-2 mt-1">
-                      <button className="px-4 py-2 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors">Contact</button>
-                      <button className="px-4 py-2 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-colors">Job History</button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="font-bold text-on-surface">{vendor.name}</h3>
+                        <span className={cn('badge text-[10px]', sp.bg, sp.text)}>{sp.label}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-on-surface-variant mb-2">{vendor.company}</p>
+                      <StarRating rating={vendor.rating} />
+                    </div>
+                    <div className="hidden md:flex flex-col items-end gap-2 flex-shrink-0">
+                      <p className="text-xs text-on-surface-variant">{vendor.phone}</p>
+                      <div className="flex gap-2 mt-1">
+                        <button className="px-4 py-2 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors">Contact</button>
+                        <button className="px-4 py-2 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-colors">Job History</button>
+                      </div>
                     </div>
                   </div>
+                )
+              })}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* ── Edit Tenant Modal ── */}
+      <Modal open={showEditTenant} onClose={() => setShowEditTenant(false)} title="Edit Tenant" size="md">
+        <form onSubmit={handleEditTenant} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">First Name</label>
+              <input required className="input-base" value={editForm.first_name} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Last Name</label>
+              <input required className="input-base" value={editForm.last_name} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+            <input required type="email" className="input-base" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone</label>
+            <input className="input-base" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Property</label>
+            <select className="input-base" value={editForm.property_id} onChange={e => setEditForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}>
+              <option value="">— None —</option>
+              {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit</label>
+            <select className="input-base" value={editForm.unit_id} onChange={e => {
+              const unit = editUnits.find(u => u.id === e.target.value)
+              setEditForm(f => ({ ...f, unit_id: e.target.value, property_id: unit?.property_id ?? f.property_id }))
+            }}>
+              <option value="">— Unassigned —</option>
+              {editUnits.filter(u => !editForm.property_id || u.property_id === editForm.property_id).map(u => (
+                <option key={u.id} value={u.id}>Unit {u.unit_number}{u.id === selectedTenant?.unit_id ? ' (current)' : ''}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Assign Team Member</label>
+            <select className="input-base" value={editForm.team_member_id} onChange={e => setEditForm(f => ({ ...f, team_member_id: e.target.value }))}>
+              <option value="">— None —</option>
+              {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+            <select className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as TenantRow['status'] }))}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+          {editError && <p className="text-sm text-error">{editError}</p>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => setShowEditTenant(false)} className="btn-secondary flex-1 h-11">Cancel</button>
+            <button type="submit" disabled={editSubmitting} className="btn-primary flex-1 h-11">{editSubmitting ? 'Saving...' : 'Save Changes'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Add Person Modal ── */}
+      <Modal open={showAddPerson} onClose={closeModal} title={modalStep === 1 ? 'Add Person' : personType === 'tenant' ? 'New Tenant' : personType === 'team_member' ? 'New Team Member' : 'New Vendor'} size="md">
+
+        {/* Step 1 — Type selection */}
+        {modalStep === 1 && (
+          <div className="space-y-3">
+            <p className="text-sm text-on-surface-variant mb-4">Who would you like to add?</p>
+            {([
+              { type: 'tenant' as PersonType,      icon: 'person',    label: 'Tenant',       desc: 'A renter living in one of your properties' },
+              { type: 'team_member' as PersonType, icon: 'badge',     label: 'Team Member',  desc: 'Staff who help manage your portfolio' },
+              { type: 'vendor' as PersonType,      icon: 'handyman',  label: 'Vendor',       desc: 'Contractors and service providers' },
+            ]).map(opt => (
+              <button
+                key={opt.type}
+                onClick={() => selectType(opt.type)}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border border-outline-variant/30 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:bg-primary-container/20 transition-colors flex-shrink-0">
+                  <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary">{opt.icon}</span>
                 </div>
-              )
-            })}
+                <div>
+                  <p className="font-bold text-on-surface">{opt.label}</p>
+                  <p className="text-xs text-on-surface-variant">{opt.desc}</p>
+                </div>
+                <span className="material-symbols-outlined text-outline-variant ml-auto">chevron_right</span>
+              </button>
+            ))}
           </div>
         )}
 
-      </div>
+        {/* Step 2 — Tenant form */}
+        {modalStep === 2 && personType === 'tenant' && (
+          <form onSubmit={handleAddTenant} className="space-y-4">
+            <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Back
+            </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">First Name</label>
+                <input required className="input-base" placeholder="Jane" value={tenantForm.first_name} onChange={e => setTenantForm(f => ({ ...f, first_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">Last Name</label>
+                <input required className="input-base" placeholder="Smith" value={tenantForm.last_name} onChange={e => setTenantForm(f => ({ ...f, last_name: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+              <input required type="email" className="input-base" placeholder="jane@email.com" value={tenantForm.email} onChange={e => setTenantForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone</label>
+              <input className="input-base" placeholder="+1 (555) 000-0000" value={tenantForm.phone} onChange={e => setTenantForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Move-in Date <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <input type="date" className="input-base" value={tenantForm.move_in_date} onChange={e => setTenantForm(f => ({ ...f, move_in_date: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Property <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <select
+                className="input-base"
+                value={tenantForm.property_id}
+                onChange={e => setTenantForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}
+              >
+                <option value="">— Select property —</option>
+                {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {properties.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No properties yet. Add a property first.</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <select
+                className="input-base"
+                value={tenantForm.unit_id}
+                onChange={e => {
+                  const unit = vacantUnits.find(u => u.id === e.target.value)
+                  setTenantForm(f => ({ ...f, unit_id: e.target.value, property_id: unit?.property_id ?? f.property_id }))
+                }}
+              >
+                <option value="">— Unassigned —</option>
+                {vacantUnits
+                  .filter(u => !tenantForm.property_id || u.property_id === tenantForm.property_id)
+                  .map(u => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
+              </select>
+              {tenantForm.property_id && vacantUnits.filter(u => u.property_id === tenantForm.property_id).length === 0 && (
+                <p className="text-xs text-on-surface-variant mt-1">No vacant units in this property.</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Assign Team Member <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <select className="input-base" value={tenantForm.team_member_id} onChange={e => setTenantForm(f => ({ ...f, team_member_id: e.target.value }))}>
+                <option value="">— None —</option>
+                {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
+              </select>
+              {teamMembers.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No team members yet. Add a team member first.</p>}
+            </div>
+            {formError && <p className="text-sm text-error">{formError}</p>}
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Tenant'}</button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 2 — Team Member form */}
+        {modalStep === 2 && personType === 'team_member' && (
+          <form onSubmit={handleAddTeamMember} className="space-y-4">
+            <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Back
+            </button>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Full Name</label>
+              <input required className="input-base" placeholder="Alex Johnson" value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Role</label>
+              <input required className="input-base" placeholder="e.g. Property Manager, Leasing Agent" value={teamForm.role} onChange={e => setTeamForm(f => ({ ...f, role: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+              <input required type="email" className="input-base" placeholder="alex@yourcompany.com" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <input className="input-base" placeholder="+1 (555) 000-0000" value={teamForm.phone} onChange={e => setTeamForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
+            {formError && <p className="text-sm text-error">{formError}</p>}
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Team Member'}</button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 2 — Vendor form */}
+        {modalStep === 2 && personType === 'vendor' && (
+          <form onSubmit={handleAddVendor} className="space-y-4">
+            <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Back
+            </button>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Contact Name</label>
+              <input required className="input-base" placeholder="Mike Torres" value={vendorForm.name} onChange={e => setVendorForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Company</label>
+              <input required className="input-base" placeholder="Torres HVAC & Plumbing" value={vendorForm.company} onChange={e => setVendorForm(f => ({ ...f, company: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Specialty</label>
+              <select className="input-base" value={vendorForm.specialty} onChange={e => setVendorForm(f => ({ ...f, specialty: e.target.value as VendorRow['specialty'] }))}>
+                <option value="plumbing">Plumbing</option>
+                <option value="electrical">Electrical</option>
+                <option value="hvac">HVAC</option>
+                <option value="landscaping">Landscaping</option>
+                <option value="general">General</option>
+                <option value="cleaning">Cleaning</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+              <input required type="email" className="input-base" placeholder="mike@company.com" value={vendorForm.email} onChange={e => setVendorForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone <span className="text-on-surface-variant font-normal">(optional)</span></label>
+              <input className="input-base" placeholder="+1 (555) 000-0000" value={vendorForm.phone} onChange={e => setVendorForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
+            {formError && <p className="text-sm text-error">{formError}</p>}
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
+              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Vendor'}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </AppLayout>
   )
 }

@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
+import Modal from '@/components/ui/Modal'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+
+type VacantUnit = {
+  id: string
+  unit_number: string
+  property_id: string
+  property: { id: string; name: string } | null
+}
 
 type TenantRow = {
   id: string
@@ -50,6 +58,12 @@ export default function TenantsPage() {
   const [activeTab, setActiveTab] = useState<'payments' | 'lease' | 'maintenance'>('payments')
   const [loading, setLoading] = useState(false)
 
+  const [showAddTenant, setShowAddTenant] = useState(false)
+  const [vacantUnits, setVacantUnits] = useState<VacantUnit[]>([])
+  const [tenantForm, setTenantForm] = useState({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', unit_id: '' })
+  const [tenantSubmitting, setTenantSubmitting] = useState(false)
+  const [tenantError, setTenantError] = useState('')
+
   useEffect(() => {
     if (!profile) return
     setLoading(true)
@@ -67,6 +81,50 @@ export default function TenantsPage() {
     }
     fetchTenants()
   }, [profile])
+
+  async function fetchVacantUnits() {
+    const { data } = await supabase
+      .from('units')
+      .select('id, unit_number, property_id, property:properties(id, name)')
+      .eq('status', 'vacant')
+    setVacantUnits((data as unknown as VacantUnit[]) ?? [])
+  }
+
+  async function handleAddTenant(e: React.FormEvent) {
+    e.preventDefault()
+    setTenantSubmitting(true)
+    setTenantError('')
+
+    const selectedUnit = vacantUnits.find(u => u.id === tenantForm.unit_id)
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert({
+        first_name: tenantForm.first_name,
+        last_name: tenantForm.last_name,
+        email: tenantForm.email,
+        phone: tenantForm.phone,
+        move_in_date: tenantForm.move_in_date || null,
+        unit_id: tenantForm.unit_id || null,
+        property_id: selectedUnit?.property_id ?? null,
+        manager_id: profile!.id,
+        status: 'active',
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      setTenantError(error.message)
+      setTenantSubmitting(false)
+      return
+    }
+
+    const newTenant = data as TenantRow
+    setTenants(prev => [newTenant, ...prev])
+    setSelected(newTenant)
+    setTenantForm({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', unit_id: '' })
+    setShowAddTenant(false)
+    setTenantSubmitting(false)
+  }
 
   useEffect(() => {
     if (!selected) return
@@ -131,7 +189,7 @@ export default function TenantsPage() {
             <button className="btn-secondary">
               <span className="material-symbols-outlined text-xl">filter_list</span> Filters
             </button>
-            <button className="btn-primary">
+            <button onClick={() => { setShowAddTenant(true); fetchVacantUnits() }} className="btn-primary">
               <span className="material-symbols-outlined text-xl">add</span> New Tenant
             </button>
           </div>
@@ -316,6 +374,93 @@ export default function TenantsPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={showAddTenant}
+        onClose={() => { setShowAddTenant(false); setTenantError('') }}
+        title="Add Tenant"
+      >
+        <form onSubmit={handleAddTenant} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">First Name</label>
+              <input
+                required
+                className="input-base"
+                placeholder="Jane"
+                value={tenantForm.first_name}
+                onChange={e => setTenantForm(f => ({ ...f, first_name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Last Name</label>
+              <input
+                required
+                className="input-base"
+                placeholder="Smith"
+                value={tenantForm.last_name}
+                onChange={e => setTenantForm(f => ({ ...f, last_name: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+            <input
+              required
+              type="email"
+              className="input-base"
+              placeholder="jane@email.com"
+              value={tenantForm.email}
+              onChange={e => setTenantForm(f => ({ ...f, email: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone</label>
+            <input
+              className="input-base"
+              placeholder="+1 (555) 000-0000"
+              value={tenantForm.phone}
+              onChange={e => setTenantForm(f => ({ ...f, phone: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Move-in Date <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            <input
+              type="date"
+              className="input-base"
+              value={tenantForm.move_in_date}
+              onChange={e => setTenantForm(f => ({ ...f, move_in_date: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-on-surface mb-1.5">Assign to Unit <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            <select
+              className="input-base"
+              value={tenantForm.unit_id}
+              onChange={e => setTenantForm(f => ({ ...f, unit_id: e.target.value }))}
+            >
+              <option value="">— Unassigned —</option>
+              {vacantUnits.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.property?.name ?? 'Unknown property'} — Unit {u.unit_number}
+                </option>
+              ))}
+            </select>
+            {vacantUnits.length === 0 && (
+              <p className="text-xs text-on-surface-variant mt-1">No vacant units available. Add units to a property first.</p>
+            )}
+          </div>
+          {tenantError && <p className="text-sm text-error">{tenantError}</p>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={() => { setShowAddTenant(false); setTenantError('') }} className="btn-secondary flex-1 h-11">
+              Cancel
+            </button>
+            <button type="submit" disabled={tenantSubmitting} className="btn-primary flex-1 h-11">
+              {tenantSubmitting ? 'Adding...' : 'Add Tenant'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </AppLayout>
   )
 }

@@ -31,8 +31,13 @@ export default function MaintenancePage() {
   const [view, setView] = useState<'active' | 'history'>('active')
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [tenants, setTenants] = useState<{ id: string; first_name: string; last_name: string; unit_id: string | null }[]>([])
+  const [tenants, setTenants] = useState<{ id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }[]>([])
   const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [showAssign, setShowAssign] = useState(false)
+  const [assignName, setAssignName] = useState('')
+  const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -56,15 +61,70 @@ export default function MaintenancePage() {
     async function fetchTenants() {
       const { data } = await supabase
         .from('tenants')
-        .select('id, first_name, last_name, unit_id')
+        .select('id, first_name, last_name, unit_id, unit:units(property_id)')
         .eq('manager_id', profile!.id)
         .eq('status', 'active')
-      setTenants(data ?? [])
+      setTenants(((data ?? []) as unknown as { id: string; first_name: string; last_name: string; unit_id: string | null; unit: { property_id: string } | null }[]).map(t => ({
+        id: t.id,
+        first_name: t.first_name,
+        last_name: t.last_name,
+        unit_id: t.unit_id,
+        property_id: t.unit?.property_id ?? null,
+      })))
     }
 
     fetchRequests()
     fetchTenants()
   }, [profile])
+
+  async function handleSubmit() {
+    if (!form.tenant_id || !form.title || !form.category) { setFormError('Tenant, title, and category are required.'); return }
+    const tenant = tenants.find(t => t.id === form.tenant_id)
+    if (!tenant?.unit_id || !tenant?.property_id) { setFormError('This tenant has no unit assigned. Assign a unit first.'); return }
+    setSubmitting(true)
+    setFormError('')
+    const { error } = await supabase.from('maintenance_requests').insert({
+      tenant_id: form.tenant_id,
+      unit_id: tenant.unit_id,
+      property_id: tenant.property_id,
+      title: form.title,
+      category: form.category,
+      priority: form.priority,
+      description: form.description,
+      status: 'open',
+    })
+    if (error) { setFormError(error.message); setSubmitting(false); return }
+    const { data } = await supabase
+      .from('maintenance_requests')
+      .select('id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)')
+      .order('created_at', { ascending: false })
+    const rows = (data as unknown as MaintenanceRow[]) ?? []
+    setRequests(rows)
+    if (rows.length > 0) setSelected(rows[0])
+    setShowModal(false)
+    setForm({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
+    setSubmitting(false)
+  }
+
+  async function handleAssign() {
+    if (!selected || !assignName.trim()) return
+    setAssigning(true)
+    await supabase.from('maintenance_requests').update({ assigned_to: assignName.trim(), status: 'in_progress' }).eq('id', selected.id)
+    const updated = { ...selected, assigned_to: assignName.trim(), status: 'in_progress' as const }
+    setRequests(rs => rs.map(r => r.id === selected.id ? updated : r))
+    setSelected(updated)
+    setShowAssign(false)
+    setAssignName('')
+    setAssigning(false)
+  }
+
+  async function handleMarkCompleted() {
+    if (!selected) return
+    await supabase.from('maintenance_requests').update({ status: 'completed' }).eq('id', selected.id)
+    const updated = { ...selected, status: 'completed' as const }
+    setRequests(rs => rs.map(r => r.id === selected.id ? updated : r))
+    setSelected(updated)
+  }
 
   const displayed = view === 'active'
     ? requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled')
@@ -242,17 +302,40 @@ export default function MaintenancePage() {
                       <div className="p-5 rounded-2xl bg-surface-container-low border border-outline-variant/15">
                         <h5 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Action Center</h5>
                         <div className="space-y-3">
-                          <button className="w-full h-12 primary-gradient text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-primary active:scale-95 transition-all">
-                            <span className="material-symbols-outlined text-sm">person_add</span>
-                            Assign Technician
-                          </button>
+                          {showAssign ? (
+                            <div className="flex gap-2">
+                              <input
+                                className="input-base flex-1"
+                                placeholder="Technician name"
+                                value={assignName}
+                                onChange={e => setAssignName(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleAssign()}
+                                autoFocus
+                              />
+                              <button onClick={handleAssign} disabled={assigning} className="px-4 h-12 primary-gradient text-white rounded-xl font-bold shadow-primary active:scale-95 transition-all">
+                                {assigning ? '...' : 'Save'}
+                              </button>
+                              <button onClick={() => { setShowAssign(false); setAssignName('') }} className="px-3 h-12 bg-surface-container-high rounded-xl font-bold hover:bg-surface-container-highest transition-colors">
+                                <span className="material-symbols-outlined text-sm">close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setShowAssign(true)} disabled={selected.status === 'completed'} className="w-full h-12 primary-gradient text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-primary active:scale-95 transition-all disabled:opacity-50">
+                              <span className="material-symbols-outlined text-sm">person_add</span>
+                              {selected.assigned_to ? 'Reassign Technician' : 'Assign Technician'}
+                            </button>
+                          )}
                           <button className="w-full h-12 bg-white text-on-surface border border-outline-variant/30 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-surface transition-colors">
                             <span className="material-symbols-outlined text-sm">chat_bubble</span>
                             Message Tenant
                           </button>
-                          <button className="w-full h-12 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors">
+                          <button
+                            onClick={handleMarkCompleted}
+                            disabled={selected.status === 'completed'}
+                            className="w-full h-12 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                          >
                             <span className="material-symbols-outlined text-sm">check_circle</span>
-                            Mark Completed
+                            {selected.status === 'completed' ? 'Completed' : 'Mark Completed'}
                           </button>
                         </div>
                       </div>
@@ -356,9 +439,10 @@ export default function MaintenancePage() {
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 />
               </div>
+              {formError && <p className="text-sm text-error">{formError}</p>}
               <div className="pt-2 flex gap-4">
-                <button onClick={() => setShowModal(false)} className="flex-1 h-14 bg-surface-container-high rounded-xl font-bold transition-colors hover:bg-surface-container-highest">Cancel</button>
-                <button className="flex-[2] h-14 primary-gradient text-on-primary rounded-xl font-bold shadow-primary">Submit Request</button>
+                <button onClick={() => { setShowModal(false); setFormError('') }} className="flex-1 h-14 bg-surface-container-high rounded-xl font-bold transition-colors hover:bg-surface-container-highest">Cancel</button>
+                <button onClick={handleSubmit} disabled={submitting} className="flex-[2] h-14 primary-gradient text-on-primary rounded-xl font-bold shadow-primary disabled:opacity-60">{submitting ? 'Submitting...' : 'Submit Request'}</button>
               </div>
             </div>
           </div>
