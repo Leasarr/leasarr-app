@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
+import Modal from '@/components/ui/Modal'
 import { formatDate, formatCurrency, getPriorityColor, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+
+type VendorRow = {
+  id: string
+  name: string
+  company: string
+  specialty: string
+  rating: number
+}
 
 type MaintenanceRow = {
   id: string
@@ -35,8 +44,8 @@ export default function MaintenancePage() {
   const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
-  const [showAssign, setShowAssign] = useState(false)
-  const [assignName, setAssignName] = useState('')
+  const [vendors, setVendors] = useState<VendorRow[]>([])
+  const [showAssignModal, setShowAssignModal] = useState(false)
   const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
@@ -73,8 +82,46 @@ export default function MaintenancePage() {
       })))
     }
 
+    async function fetchVendors() {
+      const { data } = await supabase
+        .from('vendors')
+        .select('id, name, company, specialty, rating')
+        .eq('manager_id', profile!.id)
+        .eq('status', 'active')
+        .order('name')
+      setVendors((data as VendorRow[]) ?? [])
+    }
+
     fetchRequests()
     fetchTenants()
+    fetchVendors()
+
+    const channel = supabase
+      .channel('manager-maintenance-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'maintenance_requests' },
+        async () => {
+          // Refetch on new request so we get the joined tenant/unit data
+          const { data } = await supabase
+            .from('maintenance_requests')
+            .select(`id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)`)
+            .order('created_at', { ascending: false })
+          setRequests((data as unknown as MaintenanceRow[]) ?? [])
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'maintenance_requests' },
+        (payload: { new: MaintenanceRow }) => {
+          const updated = payload.new
+          setRequests(rs => rs.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+          setSelected(prev => prev?.id === updated.id ? { ...prev, ...updated } : prev)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [profile])
 
   async function handleSubmit() {
@@ -106,15 +153,15 @@ export default function MaintenancePage() {
     setSubmitting(false)
   }
 
-  async function handleAssign() {
-    if (!selected || !assignName.trim()) return
+  async function handleAssign(vendor: VendorRow) {
+    if (!selected) return
     setAssigning(true)
-    await supabase.from('maintenance_requests').update({ assigned_to: assignName.trim(), status: 'in_progress' }).eq('id', selected.id)
-    const updated = { ...selected, assigned_to: assignName.trim(), status: 'in_progress' as const }
+    const label = `${vendor.name} (${vendor.company})`
+    await supabase.from('maintenance_requests').update({ assigned_to: label, status: 'in_progress' }).eq('id', selected.id)
+    const updated = { ...selected, assigned_to: label, status: 'in_progress' as const }
     setRequests(rs => rs.map(r => r.id === selected.id ? updated : r))
     setSelected(updated)
-    setShowAssign(false)
-    setAssignName('')
+    setShowAssignModal(false)
     setAssigning(false)
   }
 
@@ -193,7 +240,7 @@ export default function MaintenancePage() {
                     key={req.id}
                     onClick={() => setSelected(req)}
                     className={cn(
-                      'w-full group bg-surface-container-lowest p-5 rounded-xl hover:bg-white transition-all cursor-pointer relative overflow-hidden text-left',
+                      'w-full group bg-surface-container-lowest p-5 rounded-xl hover:bg-surface-container-low transition-all cursor-pointer relative overflow-hidden text-left',
                       selected?.id === req.id && 'ring-2 ring-primary/20',
                       req.priority === 'emergency' && 'border-l-4 border-l-error'
                     )}
@@ -224,7 +271,7 @@ export default function MaintenancePage() {
 
             {/* Right: Detail */}
             {selected && (
-              <section className="lg:col-span-7 bg-white rounded-2xl overflow-hidden min-h-[600px] flex flex-col shadow-card">
+              <section className="lg:col-span-7 bg-surface-container-lowest rounded-2xl overflow-hidden min-h-[600px] flex flex-col shadow-card">
                 <div className="p-8 bg-surface-container-low">
                   <div className="flex flex-wrap gap-3 mb-5">
                     <span className={cn('badge', getPriorityColor(selected.priority))}>{selected.priority.toUpperCase()}</span>
@@ -302,37 +349,18 @@ export default function MaintenancePage() {
                       <div className="p-5 rounded-2xl bg-surface-container-low border border-outline-variant/15">
                         <h5 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Action Center</h5>
                         <div className="space-y-3">
-                          {showAssign ? (
-                            <div className="flex gap-2">
-                              <input
-                                className="input-base flex-1"
-                                placeholder="Technician name"
-                                value={assignName}
-                                onChange={e => setAssignName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleAssign()}
-                                autoFocus
-                              />
-                              <button onClick={handleAssign} disabled={assigning} className="px-4 h-12 primary-gradient text-white rounded-xl font-bold shadow-primary active:scale-95 transition-all">
-                                {assigning ? '...' : 'Save'}
-                              </button>
-                              <button onClick={() => { setShowAssign(false); setAssignName('') }} className="px-3 h-12 bg-surface-container-high rounded-xl font-bold hover:bg-surface-container-highest transition-colors">
-                                <span className="material-symbols-outlined text-sm">close</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <button onClick={() => setShowAssign(true)} disabled={selected.status === 'completed'} className="w-full h-12 primary-gradient text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-primary active:scale-95 transition-all disabled:opacity-50">
-                              <span className="material-symbols-outlined text-sm">person_add</span>
-                              {selected.assigned_to ? 'Reassign Technician' : 'Assign Technician'}
-                            </button>
-                          )}
-                          <button className="w-full h-12 bg-white text-on-surface border border-outline-variant/30 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-surface transition-colors">
+                          <button onClick={() => setShowAssignModal(true)} disabled={selected.status === 'completed'} className="w-full h-12 primary-gradient text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-primary active:scale-95 transition-all disabled:opacity-50">
+                            <span className="material-symbols-outlined text-sm">person_add</span>
+                            {selected.assigned_to ? 'Reassign Vendor' : 'Assign Vendor'}
+                          </button>
+                          <button className="w-full h-12 bg-surface-container text-on-surface border border-outline-variant/30 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-surface-container-high transition-colors">
                             <span className="material-symbols-outlined text-sm">chat_bubble</span>
                             Message Tenant
                           </button>
                           <button
                             onClick={handleMarkCompleted}
                             disabled={selected.status === 'completed'}
-                            className="w-full h-12 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                            className="w-full h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                           >
                             <span className="material-symbols-outlined text-sm">check_circle</span>
                             {selected.status === 'completed' ? 'Completed' : 'Mark Completed'}
@@ -347,6 +375,45 @@ export default function MaintenancePage() {
           </div>
         )}
       </div>
+
+      {/* Assign Vendor Modal */}
+      <Modal open={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Vendor" size="md">
+        {vendors.length === 0 ? (
+          <div className="text-center py-10 text-on-surface-variant">
+            <span className="material-symbols-outlined text-4xl mb-2 block">handyman</span>
+            <p className="font-semibold text-on-surface">No vendors yet</p>
+            <p className="text-sm mt-1">Add vendors in the People page first.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {vendors.map(v => (
+              <button
+                key={v.id}
+                onClick={() => handleAssign(v)}
+                disabled={assigning}
+                className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-container-low transition-colors text-left disabled:opacity-50"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-sm flex-shrink-0">
+                  {v.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-on-surface text-sm">{v.name}</p>
+                  <p className="text-xs text-on-surface-variant truncate">{v.company}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="badge bg-surface-container text-on-surface-variant capitalize text-[10px]">{v.specialty}</span>
+                  {v.rating > 0 && (
+                    <span className="flex items-center gap-0.5 text-xs font-semibold text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm text-yellow-500 material-symbols-filled">star</span>
+                      {v.rating}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       {/* FAB */}
       <button

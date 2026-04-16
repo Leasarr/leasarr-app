@@ -38,6 +38,8 @@ export default function TenantMaintenancePage() {
   useEffect(() => {
     if (!profile) return
     setLoading(true)
+    let tenantId: string | null = null
+
     async function fetchData() {
       const { data: tenantData } = await supabase
         .from('tenants')
@@ -46,6 +48,7 @@ export default function TenantMaintenancePage() {
         .maybeSingle()
       if (!tenantData) { setLoading(false); return }
       setTenant(tenantData as TenantInfo)
+      tenantId = tenantData.id
       const { data } = await supabase
         .from('maintenance_requests')
         .select('id, title, description, category, priority, status, assigned_to, created_at')
@@ -54,7 +57,24 @@ export default function TenantMaintenancePage() {
       setRequests((data as MaintenanceRow[]) ?? [])
       setLoading(false)
     }
+
     fetchData()
+
+    const channel = supabase
+      .channel('tenant-maintenance-updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'maintenance_requests' },
+        (payload) => {
+          const updated = payload.new as MaintenanceRow
+          if (updated.id && tenantId) {
+            setRequests(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [profile])
 
   async function handleCancel(id: string) {
