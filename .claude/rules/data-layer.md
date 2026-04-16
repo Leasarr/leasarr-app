@@ -10,9 +10,9 @@ paths:
 
 ## Mock data (`src/data/mock.ts`)
 
-All pages currently read from mock data. Exports: PROPERTIES (3), TENANTS (5), LEASES (5), PAYMENTS (5), MAINTENANCE_REQUESTS (5), CONVERSATIONS (3), DASHBOARD_STATS, REPORT_DATA, PAYMENT_SUMMARY.
+Mock data is retained as a fallback. Exports: PROPERTIES, TENANTS, LEASES, PAYMENTS, MAINTENANCE_REQUESTS, CONVERSATIONS, DASHBOARD_STATS, REPORT_DATA, PAYMENT_SUMMARY.
 
-When adding a new data-driven feature, add mock records here first.
+Pages still using mock data: `/communication`, `/reports`. Dashboard falls back to mock automatically when Supabase env vars are absent. All other pages query real Supabase data directly.
 
 ## Types (`src/types/index.ts`)
 
