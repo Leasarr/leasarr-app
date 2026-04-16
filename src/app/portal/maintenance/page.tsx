@@ -65,7 +65,7 @@ export default function TenantMaintenancePage() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'maintenance_requests' },
-        (payload) => {
+        (payload: { new: unknown }) => {
           const updated = payload.new as MaintenanceRow
           if (updated.id && tenantId) {
             setRequests(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
