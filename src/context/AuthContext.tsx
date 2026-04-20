@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signOut() {
     if (MOCK_AUTH) {
       document.cookie = 'mock_role=; path=/; max-age=0'
-      window.location.href = '/auth/login'
+      window.location.href = '/'
       return
     }
     await supabase.auth.signOut()
