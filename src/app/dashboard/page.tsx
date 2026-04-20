@@ -219,7 +219,7 @@ export default function DashboardPage() {
           <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-4">
               <span className="material-symbols-outlined text-primary text-2xl">payments</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container">Collected</span>
+              <span className="badge bg-secondary-container text-on-secondary-container">Collected</span>
             </div>
             <p className="text-xs text-on-surface-variant mb-1">Total Rent Collected</p>
             <p className="text-2xl font-headline font-bold text-on-surface">{formatCurrency(stats.totalCollected)}</p>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
           <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-4">
               <span className="material-symbols-outlined text-error text-2xl">pending_actions</span>
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded', stats.overdueCount > 0 ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container')}>
+              <span className={cn('badge', stats.overdueCount > 0 ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container')}>
                 {stats.overdueCount > 0 ? 'Critical' : 'Clear'}
               </span>
             </div>
@@ -243,7 +243,7 @@ export default function DashboardPage() {
           <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
             <div className="flex items-center justify-between mb-4">
               <span className="material-symbols-outlined text-tertiary text-2xl">domain</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed-variant">
+              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed-variant">
                 {stats.occupiedUnits}/{stats.totalUnits} units
               </span>
             </div>

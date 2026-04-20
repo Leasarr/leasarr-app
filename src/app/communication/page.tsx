@@ -189,7 +189,7 @@ export default function CommunicationPage() {
                 <div key={ann.id} className="bg-surface-container-lowest rounded-2xl p-4 hover:bg-surface-container-low transition-colors cursor-pointer">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <p className="font-bold text-on-surface text-sm leading-tight">{ann.title}</p>
-                    <span className={cn('badge text-[10px] flex-shrink-0', ANN_STATUS_STYLE[ann.status])}>{ann.status}</span>
+                    <span className={cn('badge flex-shrink-0', ANN_STATUS_STYLE[ann.status])}>{ann.status}</span>
                   </div>
                   <p className="text-xs text-on-surface-variant line-clamp-2 mb-3">{ann.message}</p>
                   <div className="flex items-center justify-between">

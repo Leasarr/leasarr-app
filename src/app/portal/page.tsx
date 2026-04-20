@@ -220,12 +220,12 @@ export default function TenantPortalPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-sm text-on-surface">{formatCurrency(tx.amount)}</p>
-                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full',
+                    <span className={cn('badge',
                       tx.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
                       tx.status === 'overdue' ? 'bg-error-container text-error' :
                       'bg-surface-container-high text-on-surface-variant'
                     )}>
-                      {tx.status.toUpperCase()}
+                      {tx.status}
                     </span>
                   </div>
                 </div>

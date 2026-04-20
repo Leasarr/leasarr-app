@@ -58,12 +58,12 @@ type PersonType = 'tenant' | 'team_member' | 'vendor'
 // ── Specialty styles ───────────────────────────────────────────────────────────
 
 const SPECIALTY_STYLE: Record<string, { icon: string; label: string; bg: string; text: string }> = {
-  plumbing:    { icon: 'plumbing',            label: 'Plumbing',    bg: 'bg-blue-100',                  text: 'text-blue-700' },
-  electrical:  { icon: 'electrical_services', label: 'Electrical',  bg: 'bg-yellow-100',                text: 'text-yellow-700' },
-  hvac:        { icon: 'ac_unit',             label: 'HVAC',        bg: 'bg-cyan-100',                  text: 'text-cyan-700' },
-  landscaping: { icon: 'yard',                label: 'Landscaping', bg: 'bg-green-100',                 text: 'text-green-700' },
-  general:     { icon: 'handyman',            label: 'General',     bg: 'bg-surface-container-high',    text: 'text-on-surface-variant' },
-  cleaning:    { icon: 'cleaning_services',   label: 'Cleaning',    bg: 'bg-purple-100',                text: 'text-purple-700' },
+  plumbing:    { icon: 'plumbing',            label: 'Plumbing',    bg: 'bg-primary-container/30',             text: 'text-primary' },
+  electrical:  { icon: 'electrical_services', label: 'Electrical',  bg: 'bg-tertiary-fixed',                   text: 'text-on-tertiary-fixed-variant' },
+  hvac:        { icon: 'ac_unit',             label: 'HVAC',        bg: 'bg-secondary-container/60',           text: 'text-on-secondary-container' },
+  landscaping: { icon: 'yard',                label: 'Landscaping', bg: 'bg-secondary-container',              text: 'text-on-secondary-container' },
+  general:     { icon: 'handyman',            label: 'General',     bg: 'bg-surface-container-high',           text: 'text-on-surface-variant' },
+  cleaning:    { icon: 'cleaning_services',   label: 'Cleaning',    bg: 'bg-error-container/30',               text: 'text-error' },
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -335,9 +335,9 @@ export default function PeoplePage() {
             <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-1">People</h1>
             <p className="text-on-surface-variant font-medium">Manage everyone connected to your portfolio</p>
             <div className="flex gap-2 mt-3">
-              <span className="badge text-[10px] bg-secondary-container text-on-secondary-container">{tenants.length} Tenants</span>
-              <span className="badge text-[10px] bg-primary-container/30 text-primary">{teamMembers.length} Team</span>
-              <span className="badge text-[10px] bg-tertiary-container/20 text-on-tertiary-fixed-variant">{vendors.length} Vendors</span>
+              <span className="badge bg-secondary-container text-on-secondary-container">{tenants.length} Tenants</span>
+              <span className="badge bg-primary-container/30 text-primary">{teamMembers.length} Team</span>
+              <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant">{vendors.length} Vendors</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -394,7 +394,7 @@ export default function PeoplePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <p className="font-bold text-sm text-on-surface truncate">{t.first_name} {t.last_name}</p>
-                        <span className="badge bg-secondary-container text-on-secondary-container text-[10px] flex-shrink-0">Tenant</span>
+                        <span className="badge bg-secondary-container text-on-secondary-container flex-shrink-0">Tenant</span>
                       </div>
                       <p className="text-xs text-on-surface-variant truncate">{t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}</p>
                     </div>
@@ -411,7 +411,7 @@ export default function PeoplePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <p className="font-bold text-sm text-on-surface truncate">{m.name}</p>
-                        <span className="badge bg-primary-container/30 text-primary text-[10px] flex-shrink-0">Team</span>
+                        <span className="badge bg-primary-container/30 text-primary flex-shrink-0">Team</span>
                       </div>
                       <p className="text-xs text-on-surface-variant truncate">{m.role} · {m.email}</p>
                     </div>
@@ -430,8 +430,8 @@ export default function PeoplePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
                           <p className="font-bold text-sm text-on-surface truncate">{v.name}</p>
-                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant text-[10px] flex-shrink-0">Vendor</span>
-                          <span className={cn('badge text-[10px] flex-shrink-0', sp.bg, sp.text)}>{sp.label}</span>
+                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant flex-shrink-0">Vendor</span>
+                          <span className={cn('badge flex-shrink-0', sp.bg, sp.text)}>{sp.label}</span>
                         </div>
                         <p className="text-xs text-on-surface-variant truncate">{v.company} · {v.email}</p>
                       </div>
@@ -599,7 +599,7 @@ export default function PeoplePage() {
                 <div key={member.id} className="bg-surface-container-lowest rounded-2xl p-6 shadow-card hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-14 h-14 rounded-2xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xl">{getInitials(member.name)}</div>
-                    <span className={cn('badge text-[10px]', member.status === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant')}>{member.status}</span>
+                    <span className={cn('badge', member.status === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant')}>{member.status}</span>
                   </div>
                   <h3 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h3>
                   <p className="text-xs font-semibold text-primary mb-4">{member.role}</p>
@@ -639,7 +639,7 @@ export default function PeoplePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-bold text-on-surface">{vendor.name}</h3>
-                        <span className={cn('badge text-[10px]', sp.bg, sp.text)}>{sp.label}</span>
+                        <span className={cn('badge', sp.bg, sp.text)}>{sp.label}</span>
                       </div>
                       <p className="text-xs font-semibold text-on-surface-variant mb-2">{vendor.company}</p>
                       <StarRating rating={vendor.rating} />

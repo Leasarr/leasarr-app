@@ -31,7 +31,7 @@ export default function ReportsPage() {
               <div className="text-4xl font-headline font-extrabold text-primary mt-1">{formatCurrency(data.monthly_income)}</div>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+              <span className="badge bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <span className="material-symbols-outlined text-xs">trending_up</span>
                 +{data.income_growth}%
               </span>

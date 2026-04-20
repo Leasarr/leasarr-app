@@ -152,7 +152,7 @@ export default function TenantMaintenancePage() {
                 <p className="font-bold text-on-surface mb-1">{req.title}</p>
                 <p className="text-sm text-on-surface-variant mb-3 line-clamp-2">{req.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className={cn('badge text-[10px]', getStatusColor(req.status))}>{req.status.replace('_', ' ')}</span>
+                  <span className={cn('badge', getStatusColor(req.status))}>{req.status.replace('_', ' ')}</span>
                   <div className="flex items-center gap-2">
                     {req.assigned_to && <p className="text-xs text-on-surface-variant">Assigned to {req.assigned_to}</p>}
                     {req.status === 'open' && (
