@@ -19,6 +19,9 @@ Thumbs.db
 # Local documents
 /documents/
 
+# Superpowers planning docs
+/docs/superpowers/
+
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
