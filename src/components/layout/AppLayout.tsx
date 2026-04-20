@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
+import ProfileSettingsModal from '@/components/profile/ProfileSettingsModal'
 
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light' },
@@ -134,6 +135,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -252,6 +254,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 sideOffset={8}
                 align="start"
               >
+                <DropdownMenu.Item
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer outline-none transition-colors"
+                  onSelect={() => setProfileSettingsOpen(true)}
+                >
+                  <span className="material-symbols-outlined text-base">manage_accounts</span>
+                  Profile & Settings
+                </DropdownMenu.Item>
                 <DropdownMenu.Item
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-error hover:bg-error-container cursor-pointer outline-none transition-colors"
                   onSelect={handleLogout}
@@ -379,6 +388,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      <ProfileSettingsModal
+        open={profileSettingsOpen}
+        onClose={() => setProfileSettingsOpen(false)}
+        onSignOut={handleLogout}
+      />
     </div>
   )
 }
