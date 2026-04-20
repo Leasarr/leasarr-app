@@ -22,6 +22,9 @@ Thumbs.db
 # Superpowers planning docs
 /docs/superpowers/
 
+# Git worktrees
+.worktrees/
+
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
