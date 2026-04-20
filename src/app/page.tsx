@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MarketingLayout } from '@/components/marketing/layout'
 import { Hero } from '@/components/marketing/sections/hero'
+import { ProofBar } from '@/components/marketing/sections/proof-bar'
 
 const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -19,6 +20,7 @@ export default async function RootPage() {
   return (
     <MarketingLayout>
       <Hero />
+      <ProofBar />
     </MarketingLayout>
   )
 }
