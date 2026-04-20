@@ -134,6 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
   const [profileSettingsOpen, setProfileSettingsOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -179,9 +180,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
   const baseBottomNav = isTenant ? TENANT_BOTTOM_NAV : MANAGER_BOTTOM_NAV
+  const moreNavItems = navItems.filter(item => !baseBottomNav.some(b => b.href === item.href))
   const bottomNav = [
     ...baseBottomNav,
-    { icon: 'person', label: 'Profile', action: () => setProfileSettingsOpen(true) },
+    { icon: 'grid_view', label: 'More', action: () => setMoreOpen(true) },
   ]
 
   const displayName = profile?.name ?? profile?.email ?? '...'
@@ -375,7 +377,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex justify-around items-center h-20 px-2 pb-safe">
           {bottomNav.map(item => {
             const isActive = item.action
-              ? profileSettingsOpen
+              ? moreOpen
               : item.exact
                 ? pathname === item.href
                 : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
@@ -412,6 +414,70 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      {/* ── Mobile More Sheet ── */}
+      {moreOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60] flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="relative bg-surface-container-lowest rounded-t-3xl shadow-modal pb-safe">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-outline-variant/40" />
+            </div>
+
+            {/* User info */}
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/10">
+              <div className="w-10 h-10 rounded-full primary-gradient flex items-center justify-center shrink-0">
+                <span className="text-on-primary text-sm font-bold">{initials}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-on-surface">{displayName}</p>
+                <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>
+              </div>
+            </div>
+
+            {/* Nav grid */}
+            <div className="grid grid-cols-3 gap-2 px-4 py-4">
+              {moreNavItems.map(item => {
+                if (!item.href) return null
+                const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl transition-colors',
+                      isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                    )}
+                  >
+                    <span className={cn('material-symbols-outlined text-2xl', isActive && 'material-symbols-filled')}>{item.icon}</span>
+                    <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Actions */}
+            <div className="px-4 pb-6 space-y-1 border-t border-outline-variant/10 pt-3">
+              <button
+                onClick={() => { setMoreOpen(false); setProfileSettingsOpen(true) }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">manage_accounts</span>
+                Profile &amp; Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-error hover:bg-error-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">logout</span>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ProfileSettingsModal
         open={profileSettingsOpen}
