@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/', '/auth/login', '/auth/register', '/auth/callback']
+const ALWAYS_ALLOW = ['/auth/callback']
 
 const MANAGER_ROUTES = [
   '/dashboard', '/tenants', '/people', '/payments', '/maintenance',
@@ -15,6 +16,8 @@ function handleMockAuth(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
   const mockRole = request.cookies.get('mock_role')?.value
+
+  if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return NextResponse.next()
 
   if (isPublic) {
     // Already "logged in" via mock cookie → redirect to role home
@@ -82,6 +85,9 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
+
+  // Callback must always run — never redirect mid-OAuth
+  if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return response
 
   // Already logged in and hitting a public route → redirect to role home
   if (isPublic) {
