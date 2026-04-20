@@ -202,8 +202,9 @@ export default function PaymentsPage() {
             <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Payments</h1>
             <p className="text-sm text-on-surface-variant font-medium mt-1">Track rent collection across your portfolio</p>
           </div>
-          <button onClick={openRecord} className="btn-primary h-12 px-6">
-            <span className="material-symbols-outlined">add</span> Record Payment
+          <button onClick={openRecord} className="btn-primary h-11 w-11 md:w-auto md:px-5 flex items-center justify-center gap-2 flex-shrink-0">
+            <span className="material-symbols-outlined text-xl">add</span>
+            <span className="hidden md:inline">Record Payment</span>
           </button>
         </div>
 
