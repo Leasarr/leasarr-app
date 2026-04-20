@@ -14,7 +14,7 @@ const TENANT_ROUTES = ['/portal']
 // ─── Mock auth (used when NEXT_PUBLIC_MOCK_AUTH=true) ────────────────────────
 function handleMockAuth(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
+  const isPublic = PUBLIC_ROUTES.some(r => r === '/' ? pathname === '/' : pathname.startsWith(r))
   const mockRole = request.cookies.get('mock_role')?.value
 
   if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return NextResponse.next()
@@ -84,7 +84,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
+  const isPublic = PUBLIC_ROUTES.some(r => r === '/' ? pathname === '/' : pathname.startsWith(r))
 
   // Callback must always run — never redirect mid-OAuth
   if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return response
