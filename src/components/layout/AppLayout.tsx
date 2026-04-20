@@ -212,11 +212,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
-            const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
+            const isActive = item.exact
+              ? pathname === item.href
+              : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
+            if (!item.href) return null
             return (
               <Link
                 key={item.href}
-                href={item.href!}
+                href={item.href}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
                   isActive
