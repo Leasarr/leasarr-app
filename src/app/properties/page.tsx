@@ -324,7 +324,7 @@ export default function PropertiesPage() {
                   key={property.id}
                   onClick={() => { setSelected(property); setDetailTab('units') }}
                   className={cn(
-                    'w-full bg-surface-container-lowest rounded-xl p-3 group cursor-pointer hover:bg-white transition-all text-left',
+                    'w-full bg-surface-container-lowest rounded-xl p-3 group cursor-pointer hover:bg-surface-container-low transition-all text-left',
                     selected.id === property.id && 'ring-2 ring-primary/30 shadow-md'
                   )}
                 >
