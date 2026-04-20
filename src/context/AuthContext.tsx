@@ -11,6 +11,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signOut: () => Promise<void>
+  updateProfile: (data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   loading: true,
   signOut: async () => {},
+  updateProfile: async () => {},
 })
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -95,8 +97,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }
 
+  async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>>) {
+    if (MOCK_AUTH) {
+      setProfile(prev => (prev ? { ...prev, ...data } : prev))
+      return
+    }
+    if (!user) throw new Error('Not authenticated')
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id)
+      .select()
+      .single()
+    if (error) throw error
+    if (updated) setProfile(updated as Profile)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, session, loading, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

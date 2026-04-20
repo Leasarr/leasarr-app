@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
+import ProfileSettingsModal from '@/components/profile/ProfileSettingsModal'
 
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light' },
@@ -91,7 +92,7 @@ function NotificationContent({ notifications, onMarkAllRead, allHref }: Notifica
   )
 }
 
-type NavItem = { href: string; icon: string; label: string; exact?: boolean }
+type NavItem = { href?: string; icon: string; label: string; exact?: boolean; action?: () => void }
 
 const MANAGER_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
@@ -134,6 +135,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -178,7 +180,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
-  const bottomNav = isTenant ? TENANT_BOTTOM_NAV : MANAGER_BOTTOM_NAV
+  const baseBottomNav = isTenant ? TENANT_BOTTOM_NAV : MANAGER_BOTTOM_NAV
+  const bottomNav = [
+    ...baseBottomNav,
+    { icon: 'person', label: 'Profile', action: () => setProfileSettingsOpen(true) },
+  ]
 
   const displayName = profile?.name ?? profile?.email ?? '...'
   const initials = profile?.name ? getInitials(profile.name) : '?'
@@ -206,7 +212,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Nav Items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
-            const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))
+            const isActive = item.exact
+              ? pathname === item.href
+              : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
+            if (!item.href) return null
             return (
               <Link
                 key={item.href}
@@ -252,6 +261,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 sideOffset={8}
                 align="start"
               >
+                <DropdownMenu.Item
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer outline-none transition-colors"
+                  onSelect={() => setProfileSettingsOpen(true)}
+                >
+                  <span className="material-symbols-outlined text-base">manage_accounts</span>
+                  Profile & Settings
+                </DropdownMenu.Item>
                 <DropdownMenu.Item
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-error hover:bg-error-container cursor-pointer outline-none transition-colors"
                   onSelect={handleLogout}
@@ -360,25 +376,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 rounded-t-3xl shadow-nav">
         <div className="flex justify-around items-center h-20 px-2 pb-safe">
           {bottomNav.map(item => {
-            const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-150 active:scale-90',
-                  isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:text-on-surface'
-                )}
-              >
+            const isActive = item.action
+              ? profileSettingsOpen
+              : item.exact
+                ? pathname === item.href
+                : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
+
+            const className = cn(
+              'flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-150 active:scale-90',
+              isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:text-on-surface'
+            )
+
+            const content = (
+              <>
                 <span className={cn('material-symbols-outlined text-[22px]', isActive && 'material-symbols-filled')}>
                   {item.icon}
                 </span>
                 <span className="font-headline font-semibold text-[10px] tracking-wide">{item.label}</span>
+              </>
+            )
+
+            if (item.action) {
+              return (
+                <button key={item.label} onClick={item.action} className={className}>
+                  {content}
+                </button>
+              )
+            }
+
+            if (!item.href) return null
+
+            return (
+              <Link key={item.href} href={item.href} className={className}>
+                {content}
               </Link>
             )
           })}
         </div>
       </nav>
+
+      <ProfileSettingsModal
+        open={profileSettingsOpen}
+        onClose={() => setProfileSettingsOpen(false)}
+        onSignOut={handleLogout}
+      />
     </div>
   )
 }
