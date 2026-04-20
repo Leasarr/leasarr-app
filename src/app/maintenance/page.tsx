@@ -211,7 +211,7 @@ export default function MaintenancePage() {
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Operations</p>
-            <h2 className="text-4xl font-headline font-extrabold tracking-tight">Maintenance</h2>
+            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
           </div>
           <div className="flex gap-3 items-center">
             <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-xl">
@@ -238,7 +238,7 @@ export default function MaintenancePage() {
 
             {/* Left: List */}
             <section className="lg:col-span-5 flex flex-col gap-4">
-              <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-tight px-1">
+              <h3 className="text-xs font-bold text-outline uppercase tracking-widest px-1">
                 {view === 'active' ? 'Open' : 'Completed'} Requests ({displayed.length})
               </h3>
 
@@ -264,7 +264,7 @@ export default function MaintenancePage() {
                       </span>
                       <span className="text-xs text-on-surface-variant font-medium">{formatDate(req.created_at, 'MMM d')}</span>
                     </div>
-                    <h4 className="text-lg font-bold font-headline mb-1 leading-tight group-hover:text-primary transition-colors line-clamp-1">
+                    <h4 className="text-sm font-bold text-on-surface mb-1 leading-tight group-hover:text-primary transition-colors line-clamp-1">
                       {req.title}
                     </h4>
                     <p className="text-sm text-on-surface-variant mb-4 line-clamp-2">{req.description}</p>

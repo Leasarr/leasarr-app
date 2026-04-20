@@ -200,7 +200,7 @@ export default function PaymentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Payments</h1>
-            <p className="text-on-surface-variant mt-1">Track rent collection across your portfolio</p>
+            <p className="text-sm text-on-surface-variant font-medium mt-1">Track rent collection across your portfolio</p>
           </div>
           <button onClick={openRecord} className="btn-primary h-12 px-6">
             <span className="material-symbols-outlined">add</span> Record Payment
@@ -230,7 +230,7 @@ export default function PaymentsPage() {
           <div className="space-y-4">
             <div className="bg-surface-container-low rounded-xl p-6 flex items-center justify-between shadow-card">
               <div>
-                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest font-headline">Pending</p>
+                <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Pending</p>
                 <p className="text-2xl font-bold font-headline text-on-surface">{formatCurrency(outstanding)}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary">
@@ -239,7 +239,7 @@ export default function PaymentsPage() {
             </div>
             <div className="bg-error-container/30 rounded-xl p-6 flex items-center justify-between shadow-card">
               <div>
-                <p className="text-xs font-bold text-error uppercase tracking-widest font-headline">Overdue</p>
+                <p className="text-[10px] font-bold text-error uppercase tracking-wider">Overdue</p>
                 <p className="text-2xl font-bold font-headline text-error">{formatCurrency(overdue)}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-error">
@@ -251,7 +251,7 @@ export default function PaymentsPage() {
 
         {/* Payment History */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold font-headline px-1">Payment History</h2>
+          <h2 className="text-lg font-bold text-on-surface px-1">Payment History</h2>
 
           <div className="flex gap-2 flex-wrap">
             {(['all', 'paid', 'pending', 'overdue'] as const).map(f => (

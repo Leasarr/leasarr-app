@@ -221,7 +221,7 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-primary text-2xl">payments</span>
               <span className="badge bg-secondary-container text-on-secondary-container">Collected</span>
             </div>
-            <p className="text-xs text-on-surface-variant mb-1">Total Rent Collected</p>
+            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Total Rent Collected</p>
             <p className="text-2xl font-headline font-bold text-on-surface">{formatCurrency(stats.totalCollected)}</p>
             <div className="mt-4 h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
               <div className="h-full bg-primary rounded-full" style={{ width: stats.totalCollected > 0 ? '85%' : '0%' }} />
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                 {stats.overdueCount > 0 ? 'Critical' : 'Clear'}
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant mb-1">Outstanding Balance</p>
+            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Outstanding Balance</p>
             <p className={cn('text-2xl font-headline font-bold', stats.outstanding > 0 ? 'text-error' : 'text-on-surface')}>{formatCurrency(stats.outstanding)}</p>
             <p className="mt-2 text-[10px] text-on-surface-variant">{stats.overdueCount} {stats.overdueCount === 1 ? 'tenant' : 'tenants'} currently overdue</p>
           </div>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 {stats.occupiedUnits}/{stats.totalUnits} units
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant mb-1">Portfolio Occupancy</p>
+            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Portfolio Occupancy</p>
             <p className="text-2xl font-headline font-bold text-on-surface">{stats.occupancyRate}%</p>
             <div className="mt-4 h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
               <div className="h-full bg-tertiary-container rounded-full" style={{ width: `${stats.occupancyRate}%` }} />
@@ -258,7 +258,7 @@ export default function DashboardPage() {
         {/* Upcoming Expirations */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-headline font-bold">Upcoming Lease Expirations</h3>
+            <h3 className="text-lg font-bold text-on-surface">Upcoming Lease Expirations</h3>
             <a href="/leases" className="text-[10px] font-bold text-primary hover:underline">View All</a>
           </div>
 
@@ -305,7 +305,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <section className="space-y-4">
-          <h3 className="text-sm font-headline font-bold px-1">Quick Actions</h3>
+          <h3 className="text-lg font-bold text-on-surface px-1">Quick Actions</h3>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {[
               { icon: 'add_home', label: 'New Lease', href: '/leases' },
@@ -327,7 +327,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <section className="bg-surface-container-low rounded-xl p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-headline font-bold">Recent Activity</h3>
+            <h3 className="text-lg font-bold text-on-surface">Recent Activity</h3>
           </div>
 
           {activity.length === 0 ? (

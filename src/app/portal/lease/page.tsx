@@ -115,7 +115,7 @@ export default function TenantLeasePage() {
 
         {/* Rent */}
         <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-card space-y-4">
-          <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Financials</h2>
+          <h2 className="text-xs font-bold text-outline uppercase tracking-widest">Financials</h2>
           <div className="flex items-center justify-between">
             <p className="text-sm text-on-surface-variant">Monthly Rent</p>
             <p className="font-bold text-on-surface">{formatCurrency(lease.rent_amount)}</p>
@@ -130,7 +130,7 @@ export default function TenantLeasePage() {
 
         {/* Dates */}
         <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-card space-y-4">
-          <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Lease Term</h2>
+          <h2 className="text-xs font-bold text-outline uppercase tracking-widest">Lease Term</h2>
           <div className="flex items-center justify-between">
             <p className="text-sm text-on-surface-variant">Start Date</p>
             <p className="font-semibold text-on-surface">{formatDate(lease.start_date)}</p>

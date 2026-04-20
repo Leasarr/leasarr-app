@@ -116,7 +116,7 @@ export default function NotificationsPage() {
         <div className="mb-8 flex items-end justify-between">
           <div>
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Activity</p>
-            <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Notifications</h1>
+            <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Notifications</h1>
           </div>
           {unreadCount > 0 && (
             <button onClick={handleMarkAllRead} className="btn-secondary h-10 px-4 text-sm">
@@ -138,13 +138,13 @@ export default function NotificationsPage() {
             <section className={cn('flex flex-col gap-6', selected ? 'lg:col-span-5' : 'lg:col-span-12')}>
               {unread.length > 0 && (
                 <div>
-                  <h2 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3 px-1">New ({unread.length})</h2>
+                  <h2 className="text-xs font-bold text-outline uppercase tracking-widest mb-3 px-1">New ({unread.length})</h2>
                   {renderList(unread)}
                 </div>
               )}
               {read.length > 0 && (
                 <div>
-                  <h2 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3 px-1">Earlier</h2>
+                  <h2 className="text-xs font-bold text-outline uppercase tracking-widest mb-3 px-1">Earlier</h2>
                   {renderList(read)}
                 </div>
               )}

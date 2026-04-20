@@ -27,7 +27,7 @@ export default function ReportsPage() {
           {/* Monthly Income - Spans full */}
           <div className="col-span-2 bg-surface-container-lowest p-6 rounded-xl shadow-card flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Monthly Income</span>
+              <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Monthly Income</span>
               <div className="text-4xl font-headline font-extrabold text-primary mt-1">{formatCurrency(data.monthly_income)}</div>
             </div>
             <div className="mt-4 flex items-center gap-2">
@@ -55,7 +55,7 @@ export default function ReportsPage() {
 
           {/* Occupancy */}
           <div className="bg-surface-container-low p-5 rounded-xl flex flex-col gap-2 shadow-card">
-            <span className="text-xs font-bold text-on-surface-variant">Occupancy</span>
+            <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Occupancy</span>
             <div className="text-2xl font-bold font-headline text-on-surface">{data.occupancy_rate}%</div>
             <div className="w-full bg-outline-variant/30 h-1.5 rounded-full mt-2">
               <div className="bg-primary h-full rounded-full" style={{ width: `${data.occupancy_rate}%` }} />
@@ -64,7 +64,7 @@ export default function ReportsPage() {
 
           {/* Yield */}
           <div className="bg-surface-container-low p-5 rounded-xl flex flex-col gap-2 shadow-card">
-            <span className="text-xs font-bold text-on-surface-variant">Yield</span>
+            <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Yield</span>
             <div className="text-2xl font-bold font-headline text-on-surface">{data.portfolio_yield}%</div>
             <div className="flex items-center gap-1 mt-auto">
               <span className="material-symbols-outlined text-sm text-primary material-symbols-filled">stars</span>
@@ -74,14 +74,14 @@ export default function ReportsPage() {
 
           {/* NOI */}
           <div className="bg-surface-container-low p-5 rounded-xl flex flex-col gap-2 shadow-card">
-            <span className="text-xs font-bold text-on-surface-variant">Net Operating Income</span>
+            <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Net Operating Income</span>
             <div className="text-2xl font-bold font-headline text-on-surface">{formatCurrency(data.net_operating_income)}</div>
             <span className="text-[10px] text-emerald-600 font-semibold">After {formatCurrency(data.maintenance_costs)} expenses</span>
           </div>
 
           {/* Vacancy */}
           <div className="bg-surface-container-low p-5 rounded-xl flex flex-col gap-2 shadow-card">
-            <span className="text-xs font-bold text-on-surface-variant">Vacant Units</span>
+            <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Vacant Units</span>
             <div className="text-2xl font-bold font-headline text-on-surface">{data.vacant_units}</div>
             <span className="text-[10px] text-on-surface-variant">of {data.total_units} total units</span>
           </div>

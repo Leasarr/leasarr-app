@@ -290,7 +290,7 @@ export default function PropertiesPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
+            <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {properties.length} active real estate assets</p>
             <div className="flex gap-2 mt-2 flex-wrap">
               {propertyTypes.map(type => (
@@ -344,7 +344,7 @@ export default function PropertiesPage() {
                     </div>
                     <div className="flex-grow flex flex-col justify-center py-1">
                       <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-lg text-on-surface leading-tight">{property.name}</h3>
+                        <h3 className="font-bold text-sm text-on-surface leading-tight">{property.name}</h3>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           <span className={cn(
                             'badge',
@@ -412,8 +412,8 @@ export default function PropertiesPage() {
                   { label: 'Occupied', value: String(selectedStats.occupied) },
                 ].map(stat => (
                   <div key={stat.label} className="bg-surface-container-lowest p-4 rounded-2xl shadow-sm">
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">{stat.label}</p>
-                    <p className="text-xl font-extrabold text-primary">{stat.value}</p>
+                    <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">{stat.label}</p>
+                    <p className="text-xl font-extrabold text-on-surface">{stat.value}</p>
                   </div>
                 ))}
               </div>
