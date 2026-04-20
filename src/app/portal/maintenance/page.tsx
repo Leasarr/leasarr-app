@@ -126,7 +126,7 @@ export default function TenantMaintenancePage() {
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
             <p className="text-on-surface-variant mt-1 text-sm">Your repair requests</p>
           </div>
           <button onClick={() => { setShowForm(true); setFormError('') }} className="btn-primary h-11 px-5">

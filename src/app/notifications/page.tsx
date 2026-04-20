@@ -116,7 +116,7 @@ export default function NotificationsPage() {
         <div className="mb-8 flex items-end justify-between">
           <div>
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Activity</p>
-            <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Notifications</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">Notifications</h1>
           </div>
           {unreadCount > 0 && (
             <button onClick={handleMarkAllRead} className="btn-secondary h-10 px-4 text-sm">

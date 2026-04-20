@@ -115,7 +115,7 @@ export default function TenantNotificationsPage() {
 
         <div className="mb-8 flex items-end justify-between">
           <div>
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Notifications</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Notifications</h1>
             <p className="text-on-surface-variant mt-1 text-sm">Updates on your requests and lease</p>
           </div>
           {unreadCount > 0 && (

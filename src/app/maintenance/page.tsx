@@ -211,7 +211,7 @@ export default function MaintenancePage() {
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Operations</p>
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
           </div>
           <div className="flex gap-3 items-center">
             <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-xl">

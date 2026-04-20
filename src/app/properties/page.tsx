@@ -290,7 +290,7 @@ export default function PropertiesPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {properties.length} active real estate assets</p>
             <div className="flex gap-2 mt-2 flex-wrap">
               {propertyTypes.map(type => (
@@ -450,7 +450,7 @@ export default function PropertiesPage() {
               {detailTab === 'units' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-on-surface">Units Portfolio</h3>
+                    <h3 className="text-base md:text-lg font-bold text-on-surface">Units Portfolio</h3>
                     <button
                       onClick={() => setShowAddUnit(true)}
                       className="flex items-center gap-1.5 px-4 py-2 primary-gradient text-on-primary rounded-xl text-sm font-bold"
@@ -519,7 +519,7 @@ export default function PropertiesPage() {
               {detailTab === 'applications' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-on-surface">Rental Applications</h3>
+                    <h3 className="text-base md:text-lg font-bold text-on-surface">Rental Applications</h3>
                     <button className="flex items-center gap-1.5 px-4 py-2 primary-gradient text-on-primary rounded-xl text-sm font-bold">
                       <span className="material-symbols-outlined text-base">add</span>
                       New Application

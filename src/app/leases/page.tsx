@@ -132,7 +132,7 @@ export default function LeasesPage() {
 
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Lease Management</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Lease Management</h1>
             <p className="text-sm text-on-surface-variant font-medium">Review expiring contracts and renewal insights.</p>
           </div>
           <button onClick={openCreate} className="btn-primary h-12 px-6 w-fit">
@@ -149,7 +149,7 @@ export default function LeasesPage() {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold text-on-surface">Active Leases</h2>
+              <h2 className="text-base md:text-lg font-bold text-on-surface">Active Leases</h2>
               <span className="text-sm text-primary font-semibold">{leases.length} Total Leases</span>
             </div>
 

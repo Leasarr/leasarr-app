@@ -332,7 +332,7 @@ export default function PeoplePage() {
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex-1">
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-1">People</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-1">People</h1>
             <p className="text-on-surface-variant font-medium">Manage everyone connected to your portfolio</p>
             <div className="flex gap-2 mt-3">
               <span className="badge bg-secondary-container text-on-secondary-container">{tenants.length} Tenants</span>

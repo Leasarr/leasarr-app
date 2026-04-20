@@ -15,7 +15,7 @@ export default function ReportsPage() {
         {/* Header */}
         <header className="mb-2">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Performance</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Performance</h1>
             <span className="text-sm font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">{data.period}</span>
           </div>
           <p className="text-on-surface-variant text-sm">Detailed portfolio yield and occupancy insights.</p>
@@ -89,7 +89,7 @@ export default function ReportsPage() {
 
         {/* Revenue vs Expenses Trend */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-on-surface">Revenue & Expense Trends</h2>
+          <h2 className="text-base md:text-lg font-bold mb-4 text-on-surface">Revenue & Expense Trends</h2>
           <div className="bg-surface-container-lowest p-6 rounded-xl shadow-card">
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
@@ -119,7 +119,7 @@ export default function ReportsPage() {
 
         {/* Revenue by Property */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-on-surface">Revenue by Property</h2>
+          <h2 className="text-base md:text-lg font-bold mb-4 text-on-surface">Revenue by Property</h2>
           <div className="bg-surface-container-lowest p-6 rounded-xl shadow-card">
             <div className="flex flex-col md:flex-row gap-6 items-center">
               <div className="h-48 w-full md:w-48 flex-shrink-0">
@@ -158,7 +158,7 @@ export default function ReportsPage() {
 
         {/* Key Insights */}
         <section>
-          <h2 className="text-lg font-bold mb-4 text-on-surface">Key Insights</h2>
+          <h2 className="text-base md:text-lg font-bold mb-4 text-on-surface">Key Insights</h2>
           <div className="space-y-4">
             {data.key_insights.map((insight, i) => (
               <div key={i} className={cn(

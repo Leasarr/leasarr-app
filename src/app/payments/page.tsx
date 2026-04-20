@@ -199,7 +199,7 @@ export default function PaymentsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Payments</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Payments</h1>
             <p className="text-sm text-on-surface-variant font-medium mt-1">Track rent collection across your portfolio</p>
           </div>
           <button onClick={openRecord} className="btn-primary h-12 px-6">
@@ -251,7 +251,7 @@ export default function PaymentsPage() {
 
         {/* Payment History */}
         <section className="space-y-4">
-          <h2 className="text-lg font-bold text-on-surface px-1">Payment History</h2>
+          <h2 className="text-base md:text-lg font-bold text-on-surface px-1">Payment History</h2>
 
           <div className="flex gap-2 flex-wrap">
             {(['all', 'paid', 'pending', 'overdue'] as const).map(f => (

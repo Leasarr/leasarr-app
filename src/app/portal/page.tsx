@@ -115,7 +115,7 @@ export default function TenantPortalPage() {
         {/* Welcome */}
         <section className="space-y-1">
           <p className="text-on-surface-variant font-medium text-sm">Welcome back, {tenant.first_name}</p>
-          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">
+          <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">
             {tenant.property?.name ?? 'Your Home'}{tenant.unit ? `, ${tenant.unit.unit_number}` : ''}
           </h1>
         </section>
@@ -204,7 +204,7 @@ export default function TenantPortalPage() {
 
         {/* Recent Transactions */}
         <section>
-          <h2 className="text-lg font-bold text-on-surface mb-4">Recent Transactions</h2>
+          <h2 className="text-base md:text-lg font-bold text-on-surface mb-4">Recent Transactions</h2>
           {payments.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl p-8 text-center text-on-surface-variant shadow-card">
               <span className="material-symbols-outlined text-3xl mb-2 block">receipt_long</span>

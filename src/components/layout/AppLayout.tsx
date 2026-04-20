@@ -115,10 +115,8 @@ const TENANT_NAV_ITEMS: NavItem[] = [
 
 const MANAGER_BOTTOM_NAV: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { href: '/properties', icon: 'domain', label: 'Properties' },
-  { href: '/people', icon: 'group', label: 'People' },
   { href: '/payments', icon: 'payments', label: 'Payments' },
-  { href: '/maintenance', icon: 'build', label: 'More' },
+  { href: '/maintenance', icon: 'build', label: 'Maintenance' },
 ]
 
 const TENANT_BOTTOM_NAV: NavItem[] = [

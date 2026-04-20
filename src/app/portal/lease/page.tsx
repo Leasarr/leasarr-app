@@ -67,7 +67,7 @@ export default function TenantLeasePage() {
       <AppLayout>
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
             <p className="text-on-surface-variant mt-1 text-sm">Your lease details</p>
           </div>
           <div className="flex flex-col items-center justify-center py-20 text-center text-on-surface-variant">
@@ -88,7 +88,7 @@ export default function TenantLeasePage() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
 
         <div>
-          <h1 className="text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
+          <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
           <p className="text-on-surface-variant mt-1 text-sm">Your lease details</p>
         </div>
 

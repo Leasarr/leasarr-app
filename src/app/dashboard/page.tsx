@@ -211,7 +211,7 @@ export default function DashboardPage() {
         {/* Welcome */}
         <section className="space-y-1">
           <p className="text-sm text-on-surface-variant font-medium">Good day, {profile?.name?.split(' ')[0] ?? 'there'}</p>
-          <h1 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">Portfolio Summary</h1>
+          <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">Portfolio Summary</h1>
         </section>
 
         {/* Stats Grid */}
@@ -258,7 +258,7 @@ export default function DashboardPage() {
         {/* Upcoming Expirations */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-bold text-on-surface">Upcoming Lease Expirations</h3>
+            <h3 className="text-base md:text-lg font-bold text-on-surface">Upcoming Lease Expirations</h3>
             <a href="/leases" className="text-[10px] font-bold text-primary hover:underline">View All</a>
           </div>
 
@@ -305,7 +305,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <section className="space-y-4">
-          <h3 className="text-lg font-bold text-on-surface px-1">Quick Actions</h3>
+          <h3 className="text-base md:text-lg font-bold text-on-surface px-1">Quick Actions</h3>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {[
               { icon: 'add_home', label: 'New Lease', href: '/leases' },
@@ -327,7 +327,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <section className="bg-surface-container-low rounded-xl p-6">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-bold text-on-surface">Recent Activity</h3>
+            <h3 className="text-base md:text-lg font-bold text-on-surface">Recent Activity</h3>
           </div>
 
           {activity.length === 0 ? (
