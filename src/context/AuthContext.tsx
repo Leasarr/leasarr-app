@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(prev => (prev ? { ...prev, ...data } : prev))
       return
     }
-    if (!user) return
+    if (!user) throw new Error('Not authenticated')
     const { data: updated, error } = await supabase
       .from('profiles')
       .update(data)
