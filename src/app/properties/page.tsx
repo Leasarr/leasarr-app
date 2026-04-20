@@ -281,8 +281,7 @@ export default function PropertiesPage() {
   }
 
   const selectedStats = getStats(selected)
-  const residentialCount = properties.filter(p => p.type !== 'commercial').length
-  const commercialCount = properties.filter(p => p.type === 'commercial').length
+  const propertyTypes = Array.from(new Set(properties.map(p => p.type)))
 
   return (
     <AppLayout>
@@ -293,9 +292,15 @@ export default function PropertiesPage() {
           <div>
             <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {properties.length} active real estate assets</p>
-            <div className="flex gap-2 mt-2">
-              <span className="badge bg-surface-container-high text-on-surface-variant">Residential</span>
-              <span className="badge bg-primary-container/30 text-primary">Commercial</span>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {propertyTypes.map(type => (
+                <span key={type} className={cn(
+                  'badge capitalize',
+                  type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
+                )}>
+                  {type}
+                </span>
+              ))}
             </div>
           </div>
           <div className="flex gap-3">
