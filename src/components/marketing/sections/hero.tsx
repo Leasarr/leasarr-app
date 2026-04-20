@@ -53,13 +53,15 @@ export function Hero() {
           {/* Composite mockup */}
           <div className="w-full max-w-5xl mt-4 relative">
             <MockupPanel
+              imageSrc="/mockups/dashboard.png"
               imageAlt="Leasarr dashboard overview"
               className="w-full"
             />
             {/* Overlapping detail panel */}
             <div className="absolute -bottom-4 -right-4 w-2/5 hidden lg:block">
               <MockupPanel
-                imageAlt="Property detail"
+                imageSrc="/mockups/properties.png"
+                imageAlt="Property detail panel"
                 className="w-full"
               />
             </div>

@@ -37,6 +37,8 @@ export default async function RootPage() {
           'Outstanding maintenance at a glance',
           'Full property and unit detail in one click',
         ]}
+        imageSrc="/mockups/properties.png"
+        imageAlt="Leasarr portfolio and properties view"
         side="left"
         background="surface-container-low"
       />
@@ -50,6 +52,8 @@ export default async function RootPage() {
           'Real-time status visible to everyone',
           'Full job history per unit',
         ]}
+        imageSrc="/mockups/maintenance.png"
+        imageAlt="Leasarr maintenance request tracking"
         side="right"
         background="surface"
       />
@@ -63,6 +67,8 @@ export default async function RootPage() {
           'Outstanding balance visible per tenant',
           'Mark payments as paid with one action',
         ]}
+        imageSrc="/mockups/payments.png"
+        imageAlt="Leasarr payments and rent tracking"
         side="left"
         background="surface-container-low"
       />
