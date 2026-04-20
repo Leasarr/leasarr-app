@@ -404,8 +404,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               )
             }
 
+            if (!item.href) return null
+
             return (
-              <Link key={item.href} href={item.href!} className={className}>
+              <Link key={item.href} href={item.href} className={className}>
                 {content}
               </Link>
             )
