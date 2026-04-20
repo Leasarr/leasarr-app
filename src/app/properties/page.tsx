@@ -294,13 +294,8 @@ export default function PropertiesPage() {
             <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {properties.length} active real estate assets</p>
             <div className="flex gap-2 mt-2">
-              <span className="badge bg-surface-container-high text-on-surface-variant text-[10px]">
-                {residentialCount} Residential
-              </span>
-              <span className="badge bg-primary-container/30 text-primary text-[10px]">
-                <span className="material-symbols-outlined text-[10px] mr-0.5">business</span>
-                {commercialCount} Commercial
-              </span>
+              <span className="badge bg-surface-container-high text-on-surface-variant">Residential</span>
+              <span className="badge bg-primary-container/30 text-primary">Commercial</span>
             </div>
           </div>
           <div className="flex gap-3">
@@ -356,12 +351,7 @@ export default function PropertiesPage() {
                             'badge capitalize',
                             property.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
                           )}>
-                            {property.type === 'commercial' ? (
-                              <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[10px]">business</span>
-                                Commercial
-                              </span>
-                            ) : property.type}
+                            {property.type}
                           </span>
                         </div>
                       </div>
@@ -392,9 +382,6 @@ export default function PropertiesPage() {
                       'badge capitalize',
                       selected.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
                     )}>
-                      {selected.type === 'commercial' && (
-                        <span className="material-symbols-outlined text-[10px] mr-0.5">business</span>
-                      )}
                       {selected.type}
                     </span>
                   </div>
