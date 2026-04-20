@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -38,6 +38,16 @@ export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props
   const supabase = createClient()
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setSaveState('idle')
+      setSaveError('')
+    }
+  }, [open])
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -56,13 +66,18 @@ export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props
     try {
       await updateProfile({ name: data.name, email: data.email, phone: data.phone || undefined })
 
+      if (!MOCK_AUTH && data.email !== profile?.email) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: data.email })
+        if (emailError) throw emailError
+      }
+
       if (!MOCK_AUTH && data.newPassword) {
         const { error } = await supabase.auth.updateUser({ password: data.newPassword })
         if (error) throw error
       }
 
       setSaveState('saved')
-      setTimeout(() => setSaveState('idle'), 2000)
+      timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Something went wrong')
       setSaveState('error')
