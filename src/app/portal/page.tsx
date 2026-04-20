@@ -196,7 +196,7 @@ export default function TenantPortalPage() {
               <h4 className="font-bold text-sm text-on-surface">Property Manager</h4>
               <p className="text-xs text-on-surface-variant">{manager.name} • Available</p>
             </div>
-            <button className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center active:scale-90 transition-transform hover:bg-primary-fixed">
+            <button className="w-10 h-10 rounded-full bg-primary-container/20 text-primary flex items-center justify-center active:scale-90 transition-all hover:bg-primary-fixed hover:text-on-primary-fixed">
               <span className="material-symbols-outlined text-sm material-symbols-filled">chat_bubble</span>
             </button>
           </section>
@@ -221,7 +221,7 @@ export default function TenantPortalPage() {
                   <div className="text-right">
                     <p className="font-bold text-sm text-on-surface">{formatCurrency(tx.amount)}</p>
                     <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full',
-                      tx.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                      tx.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
                       tx.status === 'overdue' ? 'bg-error-container text-error' :
                       'bg-surface-container-high text-on-surface-variant'
                     )}>

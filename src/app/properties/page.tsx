@@ -402,10 +402,10 @@ export default function PropertiesPage() {
                   <p className="text-on-surface-variant">{selected.address}, {selected.city}, {selected.state} {selected.zip}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={openEditProperty} className="w-12 h-12 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-white transition-colors shadow-sm">
+                  <button onClick={openEditProperty} className="w-12 h-12 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors shadow-sm">
                     <span className="material-symbols-outlined">edit</span>
                   </button>
-                  <button className="w-12 h-12 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-white transition-colors shadow-sm">
+                  <button className="w-12 h-12 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors shadow-sm">
                     <span className="material-symbols-outlined">share</span>
                   </button>
                 </div>

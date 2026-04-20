@@ -308,7 +308,7 @@ export default function PaymentsPage() {
                           <button
                             onClick={() => handleMarkPaid(payment.id)}
                             disabled={markingPaid === payment.id}
-                            className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                            className="px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold hover:bg-emerald-500/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
                           >
                             <span className="material-symbols-outlined text-sm">check_circle</span>
                             {markingPaid === payment.id ? 'Saving...' : 'Mark Paid'}

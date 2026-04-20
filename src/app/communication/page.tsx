@@ -186,7 +186,7 @@ export default function CommunicationPage() {
             <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 space-y-3">
               <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest px-1 mb-3">Sent & Scheduled</p>
               {ANNOUNCEMENTS.map(ann => (
-                <div key={ann.id} className="bg-surface-container-lowest rounded-2xl p-4 hover:bg-white transition-colors cursor-pointer">
+                <div key={ann.id} className="bg-surface-container-lowest rounded-2xl p-4 hover:bg-surface-container-low transition-colors cursor-pointer">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <p className="font-bold text-on-surface text-sm leading-tight">{ann.title}</p>
                     <span className={cn('badge text-[10px] flex-shrink-0', ANN_STATUS_STYLE[ann.status])}>{ann.status}</span>
