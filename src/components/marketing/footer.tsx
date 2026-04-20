@@ -37,7 +37,7 @@ export function Footer() {
                 aria-label="Twitter"
                 className="text-white/40 hover:text-primary transition-colors"
               >
-                <span className="material-symbols-rounded text-xl">alternate_email</span>
+                <span className="material-symbols-outlined text-xl">alternate_email</span>
               </a>
               <a
                 href="https://linkedin.com/company/leasarr"
@@ -46,7 +46,7 @@ export function Footer() {
                 aria-label="LinkedIn"
                 className="text-white/40 hover:text-primary transition-colors"
               >
-                <span className="material-symbols-rounded text-xl">work</span>
+                <span className="material-symbols-outlined text-xl">work</span>
               </a>
             </div>
           </div>

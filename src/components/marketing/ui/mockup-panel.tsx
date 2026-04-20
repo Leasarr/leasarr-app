@@ -34,7 +34,7 @@ export function MockupPanel({
       ) : (
         <div className="w-full aspect-video bg-surface-container flex items-center justify-center">
           <div className="text-center">
-            <span className="material-symbols-rounded text-4xl text-on-surface-variant/40">
+            <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">
               screenshot_monitor
             </span>
             <p className="text-sm text-on-surface-variant/40 mt-2">Screenshot coming soon</p>

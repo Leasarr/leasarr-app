@@ -48,7 +48,7 @@ export function Audience() {
             <FadeIn key={card.title} delay={i * 120}>
               <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/40 p-8 flex flex-col gap-6 hover:-translate-y-1 transition-all duration-200 hover:shadow-lg h-full">
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-rounded text-3xl text-primary">{card.icon}</span>
+                  <span className="material-symbols-outlined text-3xl text-primary">{card.icon}</span>
                   <h3 className="text-xl font-bold text-on-surface">{card.title}</h3>
                 </div>
                 <p className="text-base font-medium text-on-surface-variant leading-relaxed">
@@ -57,7 +57,7 @@ export function Audience() {
                 <ul className="flex flex-col gap-2.5 flex-1">
                   {card.painPoints.map((point) => (
                     <li key={point} className="flex items-start gap-2 text-sm text-on-surface-variant">
-                      <span className="material-symbols-rounded text-tertiary text-base mt-0.5 flex-shrink-0">
+                      <span className="material-symbols-outlined text-tertiary text-base mt-0.5 flex-shrink-0">
                         arrow_right
                       </span>
                       {point}

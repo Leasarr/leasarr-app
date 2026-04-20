@@ -1,8 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme, type Theme } from '@/context/ThemeContext'
 import { cn } from '@/lib/utils'
+
+const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
+  { value: 'light', icon: 'light_mode', label: 'Light' },
+  { value: 'dark', icon: 'dark_mode', label: 'Dark' },
+  { value: 'system', icon: 'brightness_auto', label: 'System' },
+]
 
 const FEATURES_ITEMS = [
   { name: 'Properties', href: '/#features', description: 'Manage your entire portfolio in one place' },
@@ -17,6 +25,7 @@ export function Nav() {
   const [featuresOpen, setFeaturesOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user, profile } = useAuth()
+  const { theme, setTheme } = useTheme()
 
   const dashboardHref = profile?.role === 'tenant' ? '/portal' : '/dashboard'
 
@@ -63,7 +72,7 @@ export function Nav() {
               >
                 <button className={cn(navLinkClass, 'flex items-center gap-0.5')}>
                   Features
-                  <span className="material-symbols-rounded text-[18px] leading-none">expand_more</span>
+                  <span className="material-symbols-outlined text-[18px] leading-none">expand_more</span>
                 </button>
                 {featuresOpen && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 w-72">
@@ -90,6 +99,48 @@ export function Nav() {
 
             {/* Desktop CTAs */}
             <div className="hidden lg:flex items-center gap-4">
+              {/* Theme toggle */}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button className={cn(
+                    'w-9 h-9 flex items-center justify-center rounded-full transition-colors',
+                    scrolled ? 'hover:bg-surface-container' : 'hover:bg-white/10'
+                  )}>
+                    <span className={cn(
+                      'material-symbols-outlined text-xl',
+                      scrolled ? 'text-on-surface-variant' : 'text-white/70'
+                    )}>
+                      {theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'brightness_auto'}
+                    </span>
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-44 z-50"
+                    sideOffset={8}
+                    align="end"
+                  >
+                    {THEME_OPTIONS.map(opt => (
+                      <DropdownMenu.Item
+                        key={opt.value}
+                        onSelect={() => setTheme(opt.value)}
+                        className={cn(
+                          'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer outline-none transition-colors',
+                          theme === opt.value
+                            ? 'bg-primary-fixed text-on-primary-fixed'
+                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                        )}
+                      >
+                        <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                        {opt.label}
+                        {theme === opt.value && (
+                          <span className="material-symbols-outlined text-sm ml-auto">check</span>
+                        )}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
               {user ? (
                 <Link href={dashboardHref} className="btn-primary text-sm py-2">
                   Dashboard →
@@ -125,7 +176,7 @@ export function Nav() {
             >
               <span
                 className={cn(
-                  'material-symbols-rounded text-2xl',
+                  'material-symbols-outlined text-2xl',
                   scrolled ? 'text-on-surface' : 'text-white'
                 )}
               >
@@ -142,10 +193,31 @@ export function Nav() {
           <div className="flex items-center justify-between h-16 px-6 border-b border-outline-variant/30">
             <span className="font-extrabold text-xl text-on-surface">Leasarr</span>
             <button onClick={() => setMobileOpen(false)} aria-label="Close menu">
-              <span className="material-symbols-rounded text-2xl text-on-surface">close</span>
+              <span className="material-symbols-outlined text-2xl text-on-surface">close</span>
             </button>
           </div>
           <nav className="p-6 flex flex-col gap-1">
+            {/* Theme row in mobile menu */}
+            <div className="flex items-center justify-between px-3 py-3 mb-2 border-b border-outline-variant/20">
+              <span className="text-sm font-medium text-on-surface-variant">Theme</span>
+              <div className="flex items-center gap-1">
+                {THEME_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTheme(opt.value)}
+                    className={cn(
+                      'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                      theme === opt.value
+                        ? 'bg-primary-fixed text-on-primary-fixed'
+                        : 'text-on-surface-variant hover:bg-surface-container'
+                    )}
+                    aria-label={opt.label}
+                  >
+                    <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             {FEATURES_ITEMS.map((item) => (
               <Link
                 key={item.name}

@@ -57,7 +57,7 @@ export function FeatureOverview() {
           {FEATURES.map((feature, i) => (
             <FadeIn key={feature.name} delay={i * 80}>
               <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/40 p-6 lg:p-8 hover:-translate-y-1 transition-all duration-200 hover:shadow-lg h-full">
-                <span className="material-symbols-rounded text-3xl text-primary mb-4 block">
+                <span className="material-symbols-outlined text-3xl text-primary mb-4 block">
                   {feature.icon}
                 </span>
                 <h3 className="text-lg font-semibold text-on-surface mb-2">{feature.name}</h3>

@@ -45,7 +45,7 @@ export function FeatureDeepDive({
               <ul className="flex flex-col gap-2">
                 {bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2 text-sm text-on-surface-variant">
-                    <span className="material-symbols-rounded text-primary text-base mt-0.5 flex-shrink-0">
+                    <span className="material-symbols-outlined text-primary text-base mt-0.5 flex-shrink-0">
                       check_circle
                     </span>
                     {bullet}
@@ -57,7 +57,7 @@ export function FeatureDeepDive({
                 className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:gap-2 transition-all"
               >
                 Learn more{' '}
-                <span className="material-symbols-rounded text-base">arrow_forward</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
               </Link>
             </div>
           </FadeIn>
