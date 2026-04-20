@@ -5,6 +5,9 @@ import { Hero } from '@/components/marketing/sections/hero'
 import { ProofBar } from '@/components/marketing/sections/proof-bar'
 import { FeatureOverview } from '@/components/marketing/sections/feature-overview'
 import { FeatureDeepDive } from '@/components/marketing/sections/feature-deepdive'
+import { Audience } from '@/components/marketing/sections/audience'
+import { Testimonials } from '@/components/marketing/sections/testimonials'
+import { FinalCTA } from '@/components/marketing/sections/final-cta'
 
 const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -63,6 +66,9 @@ export default async function RootPage() {
         side="left"
         background="surface-container-low"
       />
+      <Audience />
+      <Testimonials />
+      <FinalCTA />
     </MarketingLayout>
   )
 }
