@@ -26,7 +26,7 @@ export function SectionHeader({
         className
       )}
     >
-      {label && <LabelPill>{label}</LabelPill>}
+      {label && <LabelPill className={align === 'center' ? 'self-center' : undefined}>{label}</LabelPill>}
       <h2
         className={cn(
           'font-bold tracking-tight text-4xl md:text-[2.75rem] lg:text-5xl leading-tight',
