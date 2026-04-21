@@ -7,7 +7,7 @@ import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 
-type TenantOption = { id: string; first_name: string; last_name: string }
+type TenantOption = { id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }
 type PropertyOption = { id: string; name: string }
 type UnitOption = { id: string; unit_number: string; property_id: string; rent_amount: number; status: string }
 
@@ -77,12 +77,14 @@ export default function LeasesPage() {
   async function openCreate() {
     setShowCreate(true)
     setFormError('')
-    const [tenantsRes, propsRes, unitsRes] = await Promise.all([
-      supabase.from('tenants').select('id, first_name, last_name').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
+    const [tenantsRes, propsRes, unitsRes, activeLeasesRes] = await Promise.all([
+      supabase.from('tenants').select('id, first_name, last_name, unit_id, property_id').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
       supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
-      supabase.from('units').select('id, unit_number, property_id, rent_amount, status').order('unit_number'),
+      supabase.from('units').select('id, unit_number, property_id, rent_amount, status').eq('status', 'vacant').order('unit_number'),
+      supabase.from('leases').select('tenant_id').eq('status', 'active'),
     ])
-    setTenantOptions((tenantsRes.data ?? []) as TenantOption[])
+    const leasedTenantIds = new Set((activeLeasesRes.data ?? []).map((l: { tenant_id: string }) => l.tenant_id))
+    setTenantOptions(((tenantsRes.data ?? []) as TenantOption[]).filter(t => !leasedTenantIds.has(t.id)))
     setPropertyOptions((propsRes.data ?? []) as PropertyOption[])
     setUnitOptions((unitsRes.data ?? []) as UnitOption[])
   }
@@ -167,7 +169,52 @@ export default function LeasesPage() {
     closeCreate()
   }
 
+  const selectedTenant = tenantOptions.find(t => t.id === form.tenant_id) ?? null
+
+  const filteredProperties = selectedTenant?.property_id
+    ? propertyOptions.filter(p => p.id === selectedTenant.property_id)
+    : propertyOptions
+
   const filteredUnits = unitOptions.filter(u => !form.property_id || u.property_id === form.property_id)
+
+  const filteredTenants = (!form.tenant_id && form.property_id)
+    ? tenantOptions.filter(t => t.property_id === form.property_id)
+    : tenantOptions
+
+  function handleTenantChange(tenantId: string) {
+    const tenant = tenantOptions.find(t => t.id === tenantId) ?? null
+    const unit = tenant?.unit_id ? unitOptions.find(u => u.id === tenant.unit_id) ?? null : null
+    setForm(f => ({
+      ...f,
+      tenant_id: tenantId,
+      property_id: tenant?.property_id ?? '',
+      unit_id: tenant?.unit_id ?? '',
+      rent_amount: unit ? String(unit.rent_amount) : f.rent_amount,
+    }))
+  }
+
+  function handlePropertyChange(propertyId: string) {
+    const tenantStillValid = tenantOptions.find(t => t.id === form.tenant_id)?.property_id === propertyId
+    setForm(f => ({
+      ...f,
+      property_id: propertyId,
+      unit_id: '',
+      rent_amount: '',
+      tenant_id: tenantStillValid ? f.tenant_id : '',
+    }))
+  }
+
+  function handleUnitChange(unitId: string) {
+    const unit = unitOptions.find(u => u.id === unitId) ?? null
+    const linkedTenant = unitId ? (tenantOptions.find(t => t.unit_id === unitId) ?? null) : null
+    setForm(f => ({
+      ...f,
+      unit_id: unitId,
+      property_id: unit?.property_id ?? f.property_id,
+      tenant_id: linkedTenant ? linkedTenant.id : f.tenant_id,
+      rent_amount: unit ? String(unit.rent_amount) : f.rent_amount,
+    }))
+  }
 
   if (authLoading || loading) {
     return (
@@ -348,18 +395,18 @@ export default function LeasesPage() {
         <form onSubmit={handleCreateLease} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Tenant</label>
-            <select required className="input-base" value={form.tenant_id} onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))}>
+            <select required className="input-base" value={form.tenant_id} onChange={e => handleTenantChange(e.target.value)}>
               <option value="">— Select tenant —</option>
-              {tenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+              {filteredTenants.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
             </select>
             {tenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No active tenants. Add a tenant first.</p>}
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Property</label>
-            <select required className="input-base" value={form.property_id} onChange={e => setForm(f => ({ ...f, property_id: e.target.value, unit_id: '', rent_amount: '' }))}>
+            <select required className="input-base" value={form.property_id} onChange={e => handlePropertyChange(e.target.value)}>
               <option value="">— Select property —</option>
-              {propertyOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {filteredProperties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
 
@@ -370,10 +417,7 @@ export default function LeasesPage() {
               className="input-base"
               value={form.unit_id}
               disabled={!form.property_id}
-              onChange={e => {
-                const unit = unitOptions.find(u => u.id === e.target.value)
-                setForm(f => ({ ...f, unit_id: e.target.value, rent_amount: unit ? String(unit.rent_amount) : f.rent_amount }))
-              }}
+              onChange={e => handleUnitChange(e.target.value)}
             >
               <option value="">— Select unit —</option>
               {filteredUnits.map(u => (
