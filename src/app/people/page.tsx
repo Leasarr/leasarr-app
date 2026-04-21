@@ -356,13 +356,13 @@ export default function PeoplePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-8 border-b border-outline-variant/30">
+        <div className="flex gap-1 mb-8 border-b border-outline-variant/30 overflow-x-auto no-scrollbar">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => { setActiveTab(tab.key); setSearch('') }}
               className={cn(
-                'px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-px flex items-center gap-2',
+                'px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-px flex items-center gap-2 flex-shrink-0',
                 activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
               )}
             >
@@ -550,24 +550,26 @@ export default function PeoplePage() {
                       {tenantPayments.length === 0 ? (
                         <div className="text-center py-8"><span className="material-symbols-outlined text-3xl text-outline block mb-2">receipt_long</span><p className="text-on-surface-variant text-sm">No payment history yet.</p></div>
                       ) : (
-                        <table className="w-full text-left">
-                          <thead><tr className="border-b border-surface-container">
-                            <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest">Date</th>
-                            <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest">Description</th>
-                            <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Amount</th>
-                            <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Status</th>
-                          </tr></thead>
-                          <tbody className="divide-y divide-surface-container">
-                            {tenantPayments.map(p => (
-                              <tr key={p.id}>
-                                <td className="py-5 text-sm font-semibold">{formatDate(p.due_date)}</td>
-                                <td className="py-5 text-sm text-on-surface-variant">Monthly Rent</td>
-                                <td className="py-5 text-sm font-bold text-on-surface text-right">{formatCurrency(p.amount)}</td>
-                                <td className="py-5 text-right"><span className={cn('badge', getStatusColor(p.status))}>{p.status}</span></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left min-w-[320px]">
+                            <thead><tr className="border-b border-surface-container">
+                              <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest">Date</th>
+                              <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest hidden sm:table-cell">Description</th>
+                              <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Amount</th>
+                              <th className="pb-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Status</th>
+                            </tr></thead>
+                            <tbody className="divide-y divide-surface-container">
+                              {tenantPayments.map(p => (
+                                <tr key={p.id}>
+                                  <td className="py-5 text-sm font-semibold">{formatDate(p.due_date)}</td>
+                                  <td className="py-5 text-sm text-on-surface-variant hidden sm:table-cell">Monthly Rent</td>
+                                  <td className="py-5 text-sm font-bold text-on-surface text-right">{formatCurrency(p.amount)}</td>
+                                  <td className="py-5 text-right"><span className={cn('badge', getStatusColor(p.status))}>{p.status}</span></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
                     </div>
                   )}
