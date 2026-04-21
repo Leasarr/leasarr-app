@@ -14,19 +14,19 @@
 | `/properties` | manager | Asymmetric grid — list left, detail right; full create/edit for properties and units |
 | `/people` | manager | All/Tenants/Team/Vendors tabs; full create/edit flows; All tab navigates to relevant sub-tab on click |
 | `/payments` | manager | Full CRUD — record, edit, delete, mark paid; auto-fills from active lease |
-| `/maintenance` | manager | Active/history views; create, assign vendor, mark completed, delete; real-time updates |
+| `/maintenance` | manager | Active/history views; create, assign vendor, mark completed, delete; real-time INSERT/UPDATE/DELETE |
 | `/leases` | manager | Expiration warnings, renewal status; full create/edit wired — smart cross-field form (tenant ↔ property ↔ unit auto-population, excludes already-leased tenants and occupied units) |
 | `/communication` | manager | Manager ↔ tenant messages (mock data — not yet wired) |
 | `/reports` | manager | Financial analytics, recharts, monthly trends (mock data — not yet wired) |
-| `/notifications` | manager | Full notifications page — New/Earlier groups, split-view detail, mark as read |
+| `/notifications` | manager | New/Earlier groups; click navigates to related page; per-row delete on hover; mark all read; clear all; real-time |
 | `/portal` | tenant | Home: balance hero, quick actions, manager card, recent transactions |
-| `/portal/maintenance` | tenant | Submit and cancel maintenance requests; real-time status updates |
+| `/portal/maintenance` | tenant | Submit and cancel maintenance requests; real-time INSERT/UPDATE |
 | `/portal/lease` | tenant | Active lease details: rent, deposit, term dates, expiry warning |
-| `/portal/notifications` | tenant | Notifications page — same layout as manager version |
+| `/portal/notifications` | tenant | Same as manager notifications page |
 
 ## Key files
 
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar + top bar (theme switcher + live notification bell). Mobile: top bar + 4-tab bottom nav (3 primary items + "More" sheet). Manager bottom nav: Dashboard, Payments, Maintenance, More. Tenant bottom nav: Home, Maintenance, Lease, More. "More" sheet slides up and shows all remaining nav items plus profile/settings. Breakpoint at `lg` (1024px). Fetches notifications from Supabase with Realtime subscription per `profile_id`.
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar + top bar (theme switcher + live notification bell). Mobile: top bar + 4-tab bottom nav (3 primary items + "More" sheet). Manager bottom nav: Dashboard, Payments, Maintenance, More. Tenant bottom nav: Home, Maintenance, Lease, More. "More" sheet slides up and shows all remaining nav items plus profile/settings. Breakpoint at `lg` (1024px). Fetches notifications from Supabase with Realtime subscription (INSERT/UPDATE/DELETE) per `profile_id`. Notification bell popup shows **unread only** — read notifications drop off automatically.
 - `src/context/AuthContext.tsx` — Provides `user`, `profile`, `session`, `loading`, `signOut`. Use `useAuth()` hook.
 - `src/context/ThemeContext.tsx` — Provides `theme` (`'light' | 'dark' | 'system'`) and `setTheme`. Persists to localStorage. Use `useTheme()` hook. Theme applied via `dark` class on `<html>`.
 - `src/middleware.ts` — Route protection. Public: `/auth/*`. Manager routes: dashboard, people, payments, maintenance, leases, properties, communication, reports, notifications. Tenant routes: `/portal`.
@@ -37,7 +37,7 @@
 - `src/data/mock.ts` — Mock data fallback. Still used by Communication and Reports pages.
 - `supabase/migrations/001_complete_schema.sql` — Full DB schema with RLS.
 - `supabase/migrations/002_team_vendors.sql` — Team members, vendors tables; tenant → team member link.
-- `supabase/migrations/003_notifications.sql` — Notifications table, RLS, triggers, Realtime.
+- `supabase/migrations/003_notifications.sql` — Notifications table, RLS (SELECT/UPDATE/DELETE for owner), triggers, Realtime.
 
 ## Current state
 
