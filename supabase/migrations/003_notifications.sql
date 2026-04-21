@@ -22,6 +22,9 @@ CREATE POLICY "Users read own notifications"
 CREATE POLICY "Users update own notifications"
   ON notifications FOR UPDATE USING (auth.uid() = profile_id);
 
+CREATE POLICY "Users delete own notifications"
+  ON notifications FOR DELETE USING (auth.uid() = profile_id);
+
 -- ─── TRIGGER: tenant submits request → notify manager ─────────────────────────
 CREATE OR REPLACE FUNCTION notify_manager_new_request()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$

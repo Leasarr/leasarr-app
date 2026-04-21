@@ -64,6 +64,13 @@ export default function TenantMaintenancePage() {
       .channel('tenant-maintenance-updates')
       .on(
         'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'maintenance_requests', filter: `tenant_id=eq.${tenantId}` },
+        (payload: { new: MaintenanceRow }) => {
+          setRequests(prev => [payload.new, ...prev])
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'maintenance_requests' },
         (payload: { new: unknown }) => {
           const updated = payload.new as MaintenanceRow

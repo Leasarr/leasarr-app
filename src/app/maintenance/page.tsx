@@ -121,6 +121,14 @@ export default function MaintenancePage() {
           setSelected(prev => prev?.id === updated.id ? { ...prev, ...updated } : prev)
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'maintenance_requests' },
+        (payload: { old: { id: string } }) => {
+          setRequests(rs => rs.filter(r => r.id !== payload.old.id))
+          setSelected(prev => prev?.id === payload.old.id ? null : prev)
+        }
+      )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

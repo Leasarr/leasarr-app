@@ -38,7 +38,7 @@ type NotificationContentProps = {
 }
 
 function NotificationContent({ notifications, onMarkAllRead, allHref }: NotificationContentProps) {
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unread = notifications.filter(n => !n.read)
   return (
     <DropdownMenu.Content
       className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal w-80 z-50 overflow-hidden"
@@ -46,27 +46,24 @@ function NotificationContent({ notifications, onMarkAllRead, allHref }: Notifica
       align="end"
     >
       <div className="px-4 py-3 border-b border-outline-variant/10 flex items-center justify-between">
-        <p className="font-bold text-sm text-on-surface">Notifications</p>
-        {unreadCount > 0 && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-on-primary">{unreadCount} new</span>
+        <p className="font-bold text-sm text-on-surface">New</p>
+        {unread.length > 0 && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-on-primary">{unread.length} new</span>
         )}
       </div>
-      {notifications.length === 0 ? (
+      {unread.length === 0 ? (
         <div className="px-4 py-10 text-center text-on-surface-variant">
           <span className="material-symbols-outlined text-3xl mb-2 block">notifications_none</span>
-          <p className="text-sm font-semibold">No notifications yet</p>
+          <p className="text-sm font-semibold">You&apos;re all caught up</p>
         </div>
       ) : (
         <div className="divide-y divide-outline-variant/10 max-h-96 overflow-y-auto no-scrollbar">
-          {notifications.map(n => {
+          {unread.map(n => {
             const meta = TYPE_META[n.type] ?? TYPE_META.maintenance
             return (
               <DropdownMenu.Item
                 key={n.id}
-                className={cn(
-                  'flex items-start gap-3 px-4 py-3 cursor-pointer outline-none transition-colors hover:bg-surface-container-low',
-                  !n.read && 'bg-primary-fixed/30'
-                )}
+                className="flex items-start gap-3 px-4 py-3 cursor-pointer outline-none transition-colors bg-primary-fixed/10 hover:bg-primary-fixed/20"
               >
                 <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', meta.iconBg)}>
                   <span className={cn('material-symbols-outlined text-sm', meta.iconColor)}>{meta.icon}</span>
@@ -76,14 +73,14 @@ function NotificationContent({ notifications, onMarkAllRead, allHref }: Notifica
                   <p className="text-[11px] text-on-surface-variant mt-0.5 leading-tight truncate">{n.body}</p>
                   <p className="text-[10px] text-outline mt-1">{formatRelative(n.created_at)}</p>
                 </div>
-                {!n.read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
+                <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
               </DropdownMenu.Item>
             )
           })}
         </div>
       )}
       <div className="px-4 py-2.5 border-t border-outline-variant/10 flex items-center justify-between">
-        {unreadCount > 0 ? (
+        {unread.length > 0 ? (
           <button onClick={onMarkAllRead} className="text-xs font-bold text-primary hover:underline">Mark all as read</button>
         ) : <span />}
         <Link href={allHref} className="text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors">See all</Link>
@@ -158,6 +155,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
         (payload: { new: NotificationRow }) => {
           setNotifications(prev => [payload.new, ...prev])
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { new: NotificationRow }) => {
+          setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n))
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { old: { id: string } }) => {
+          setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
         }
       )
       .subscribe()
