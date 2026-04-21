@@ -28,6 +28,14 @@ type LeaseRow = {
   } | null
 }
 
+type EditForm = {
+  end_date: string
+  rent_amount: string
+  security_deposit: string
+  status: string
+  renewal_status: string
+}
+
 export default function LeasesPage() {
   const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
@@ -41,6 +49,11 @@ export default function LeasesPage() {
   const [form, setForm] = useState({ tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+
+  const [editingLease, setEditingLease] = useState<LeaseRow | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ end_date: '', rent_amount: '', security_deposit: '', status: '', renewal_status: '' })
+  const [editError, setEditError] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -79,6 +92,49 @@ export default function LeasesPage() {
     setFormError('')
     setSubmitting(false)
     setForm({ tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' })
+  }
+
+  function openEdit(lease: LeaseRow) {
+    setEditingLease(lease)
+    setEditForm({
+      end_date: lease.end_date,
+      rent_amount: String(lease.rent_amount),
+      security_deposit: String(lease.security_deposit),
+      status: lease.status,
+      renewal_status: lease.renewal_status ?? '',
+    })
+    setEditError('')
+  }
+
+  function closeEdit() {
+    setEditingLease(null)
+    setEditError('')
+    setEditSubmitting(false)
+  }
+
+  async function handleEditLease(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingLease) return
+    setEditSubmitting(true)
+    setEditError('')
+
+    const { error } = await supabase.from('leases').update({
+      end_date: editForm.end_date,
+      rent_amount: parseFloat(editForm.rent_amount),
+      security_deposit: parseFloat(editForm.security_deposit),
+      status: editForm.status,
+      renewal_status: editForm.renewal_status || null,
+    }).eq('id', editingLease.id)
+
+    if (error) { setEditError(error.message); setEditSubmitting(false); return }
+
+    const { data } = await supabase
+      .from('leases')
+      .select('id, rent_amount, security_deposit, start_date, end_date, status, renewal_status, tenant:tenants(first_name, last_name), property:properties(name)')
+      .in('status', ['active', 'expired'])
+      .order('end_date', { ascending: true })
+    setLeases((data as unknown as LeaseRow[]) ?? [])
+    closeEdit()
   }
 
   async function handleCreateLease(e: React.FormEvent) {
@@ -168,7 +224,7 @@ export default function LeasesPage() {
                 <div
                   key={lease.id}
                   className={cn(
-                    'bg-surface-container-lowest rounded-xl p-5 flex items-center justify-between group cursor-pointer hover:bg-surface-container-low transition-all',
+                    'bg-surface-container-lowest rounded-xl p-5 flex items-center justify-between group hover:bg-surface-container-low transition-all',
                     (isExpired || isUrgent) && 'border-l-4 border-error'
                   )}
                 >
@@ -185,16 +241,25 @@ export default function LeasesPage() {
                     <p className="text-sm text-on-surface-variant">Monthly Rent</p>
                     <p className="font-bold text-on-surface">{formatCurrency(lease.rent_amount)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-on-surface-variant">Expires</p>
-                    <p className={cn('font-bold', isExpired || isUrgent ? 'text-error' : 'text-on-surface')}>
-                      {formatDate(lease.end_date, 'MMM dd, yyyy')}
-                    </p>
-                    {(isExpired || isUrgent) && (
-                      <p className="text-[10px] text-error font-semibold mt-0.5">
-                        {isExpired ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-sm text-on-surface-variant">Expires</p>
+                      <p className={cn('font-bold', isExpired || isUrgent ? 'text-error' : 'text-on-surface')}>
+                        {formatDate(lease.end_date, 'MMM dd, yyyy')}
                       </p>
-                    )}
+                      {(isExpired || isUrgent) && (
+                        <p className="text-[10px] text-error font-semibold mt-0.5">
+                          {isExpired ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => openEdit(lease)}
+                      className="ml-2 w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                      title="Edit lease"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">edit</span>
+                    </button>
                   </div>
                 </div>
               )
@@ -222,6 +287,62 @@ export default function LeasesPage() {
         </div>
 
       </div>
+
+      <Modal open={!!editingLease} onClose={closeEdit} title="Edit Lease" size="md">
+        {editingLease && (
+          <form onSubmit={handleEditLease} className="space-y-4">
+            <div className="bg-surface-container-low rounded-xl p-3 mb-2">
+              <p className="text-sm font-semibold text-on-surface">
+                {editingLease.property?.name ?? '—'} — {editingLease.tenant ? `${editingLease.tenant.first_name} ${editingLease.tenant.last_name}` : 'Unknown Tenant'}
+              </p>
+              <p className="text-xs text-on-surface-variant mt-0.5">Started {formatDate(editingLease.start_date)}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">End Date</label>
+              <input required type="date" className="input-base" value={editForm.end_date} onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">Monthly Rent ($)</label>
+                <input required type="number" min="0" step="0.01" className="input-base" value={editForm.rent_amount} onChange={e => setEditForm(f => ({ ...f, rent_amount: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">Security Deposit ($)</label>
+                <input required type="number" min="0" step="0.01" className="input-base" value={editForm.security_deposit} onChange={e => setEditForm(f => ({ ...f, security_deposit: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+                <select required className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="expired">Expired</option>
+                  <option value="terminated">Terminated</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-on-surface mb-1.5">Renewal Status</label>
+                <select className="input-base" value={editForm.renewal_status} onChange={e => setEditForm(f => ({ ...f, renewal_status: e.target.value }))}>
+                  <option value="">— None —</option>
+                  <option value="offered">Offered</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+            </div>
+
+            {editError && <p className="text-sm text-error">{editError}</p>}
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={closeEdit} className="btn-secondary flex-1 h-11">Cancel</button>
+              <button type="submit" disabled={editSubmitting} className="btn-primary flex-1 h-11">{editSubmitting ? 'Saving...' : 'Save Changes'}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <Modal open={showCreate} onClose={closeCreate} title="Create Lease" size="md">
         <form onSubmit={handleCreateLease} className="space-y-4">
