@@ -22,6 +22,8 @@ function LoginForm() {
   const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
 
+  const message = searchParams.get('message')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -82,6 +84,13 @@ function LoginForm() {
         <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-modal">
           <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">Welcome back</h2>
           <p className="text-on-surface-variant text-sm mb-8">Sign in to your portfolio</p>
+
+          {message === 'password_updated' && (
+            <div className="mb-5 p-3 bg-primary-container rounded-xl flex items-center gap-2">
+              <span className="material-symbols-outlined text-on-primary-container text-base leading-none">check_circle</span>
+              <p className="text-on-primary-container text-sm font-medium">Password updated — sign in with your new password.</p>
+            </div>
+          )}
 
           {error && (
             <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
