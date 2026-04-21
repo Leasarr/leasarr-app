@@ -33,6 +33,7 @@ Always use these helpers — don't reimplement them:
 
 ## Forms
 
-- Use `react-hook-form` + `zod` for validation
+- Currently: plain `useState` + controlled inputs; submit via `onSubmit` + `e.preventDefault()`; inline error state via `useState`
+- **Pre-MVP plan**: migrate all forms to `react-hook-form` + `zod` validation (both packages are installed)
 - Inputs use `.input-base` class; no icons inside input fields
 - Labels above inputs; error messages below

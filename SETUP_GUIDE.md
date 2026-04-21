@@ -13,7 +13,7 @@
 | **Charts** | Recharts | Revenue trend + Reports charts |
 | **Icons** | Material Symbols (Google) | Exact icons from designs |
 | **Fonts** | Manrope + Inter | Exact fonts from designs |
-| **Forms** | React Hook Form + Zod | Validation across all create/edit modals |
+| **Forms** | React Hook Form + Zod | Installed; migration from plain useState planned pre-MVP |
 | **State** | Zustand (installed, unused) + React Context | AuthContext, ThemeContext |
 | **Toasts** | Sonner | Elegant notifications |
 
