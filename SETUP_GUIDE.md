@@ -1,63 +1,62 @@
-# PMSoft Web App — Setup Guide
+# Leasarr Web App — Setup Guide
 
-## 🏗 Tech Stack
+## Tech Stack
 
 | Layer | Technology | Why |
 |---|---|---|
-| **Framework** | Next.js 14 (App Router) | Best-in-class React framework, SSR, file-based routing |
-| **Language** | TypeScript | Full type safety across all 9 screens |
-| **Styling** | Tailwind CSS | Utility-first, exact Material You tokens from your designs |
-| **Database** | Supabase (PostgreSQL) | Real-time, auth, storage — all in one |
-| **Auth** | Supabase Auth | JWT sessions, email/password, social login |
-| **Real-time** | Supabase Realtime | Live chat in Communication screen |
+| **Framework** | Next.js 14 (App Router) | SSR, file-based routing |
+| **Language** | TypeScript | Full type safety |
+| **Styling** | Tailwind CSS + Material You tokens | Design-system-driven utilities |
+| **Database** | Supabase (PostgreSQL) | Real-time, auth, RLS — all in one |
+| **Auth** | Supabase Auth | JWT sessions, email/password |
+| **Real-time** | Supabase Realtime | Live maintenance updates + notifications |
 | **Charts** | Recharts | Revenue trend + Reports charts |
-| **Payments** | Stripe | ACH, credit card processing |
-| **Icons** | Material Symbols (Google) | Exact icons from your designs |
-| **Fonts** | Manrope + Inter | Exact fonts from your designs |
-| **Animations** | Framer Motion | Page transitions, micro-interactions |
-| **Forms** | React Hook Form + Zod | Tenant/Lease/Maintenance forms with validation |
-| **State** | Zustand + React Query | Lightweight global state + data fetching |
+| **Icons** | Material Symbols (Google) | Exact icons from designs |
+| **Fonts** | Manrope + Inter | Exact fonts from designs |
+| **Forms** | React Hook Form + Zod | Validation across all create/edit modals |
+| **State** | Zustand (installed, unused) + React Context | AuthContext, ThemeContext |
 | **Toasts** | Sonner | Elegant notifications |
 
 ---
 
-## 🚀 Quick Start (5 steps)
+## Quick Start (5 steps)
 
 ### Step 1 — Create your Supabase project (free)
 
 1. Go to [https://app.supabase.com](https://app.supabase.com)
-2. Click **New Project**
-3. Choose a name (e.g. `pmsoft`), set a strong database password, pick a region
-4. Wait ~2 minutes for provisioning
+2. Click **New Project**, set a name and database password, pick a region
+3. Wait ~2 minutes for provisioning
 
-### Step 2 — Run the database migration
+### Step 2 — Run the database migrations
 
-1. In your Supabase dashboard, go to **SQL Editor** → **New Query**
-2. Open `supabase/migrations/001_complete_schema.sql` from this project
-3. Paste the entire contents and click **Run**
-4. ✅ You'll see "Success. No rows returned"
+In your Supabase dashboard → **SQL Editor** → **New Query**, run each migration file in order:
+
+1. `supabase/migrations/001_complete_schema.sql` — Full DB schema + RLS policies
+2. `supabase/migrations/002_team_vendors.sql` — Team members + vendors tables
+3. `supabase/migrations/003_notifications.sql` — Notifications table, triggers, Realtime
 
 ### Step 3 — Get your API keys
 
-1. In Supabase dashboard → **Settings** → **API**
-2. Copy:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon/public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (keep secret, server-only)
+In Supabase dashboard → **Settings** → **API**, copy:
+- **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+- **anon/public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-only, keep secret)
 
 ### Step 4 — Configure environment
 
-Open `.env.local` and replace the placeholder values:
+Create `.env.local` in the project root:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Stripe (optional for payments — get from stripe.com/dashboard)
+# Stripe (V2 — not required for MVP)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_SECRET_KEY=sk_test_...
 ```
+
+> **Note:** The app runs without `.env.local` using mock-auth fallback. Demo credentials: `manager@demo.com` / `password` or `tenant@demo.com` / `password`
 
 ### Step 5 — Install & run
 
@@ -66,76 +65,84 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to the dashboard.
+Open [http://localhost:3000](http://localhost:3000) — unauthenticated users see the marketing homepage; authenticated users are redirected to `/dashboard`.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-PMSoft_Web/
-├── .env.local                    ← Your API keys (never commit this)
+leasarr-app/
+├── .env.local                        ← API keys (never commit)
 ├── next.config.js
-├── tailwind.config.ts            ← Material You color tokens
+├── tailwind.config.ts                ← Material You color tokens
 ├── supabase/
 │   └── migrations/
-│       └── 001_complete_schema.sql  ← Full DB schema + RLS policies
+│       ├── 001_complete_schema.sql   ← Full DB schema + RLS
+│       ├── 002_team_vendors.sql      ← Team & vendor tables
+│       └── 003_notifications.sql    ← Notifications + Realtime
 └── src/
     ├── app/
-    │   ├── layout.tsx            ← Root layout (fonts, toasts)
-    │   ├── page.tsx              ← Redirects to /dashboard
-    │   ├── globals.css           ← Tailwind + custom utilities
-    │   ├── auth/login/page.tsx   ← Login screen
-    │   ├── dashboard/page.tsx    ← Portfolio summary
-    │   ├── tenants/page.tsx      ← Tenant list + detail split view
-    │   ├── payments/page.tsx     ← Payments + record panel
-    │   ├── maintenance/page.tsx  ← Requests + detail + create modal
-    │   ├── leases/page.tsx       ← Lease list + AI predictor + detail
-    │   ├── properties/page.tsx   ← Property list + unit portfolio
-    │   ├── communication/page.tsx← Sidebar + live chat
-    │   ├── reports/page.tsx      ← Charts + insights (Recharts)
-    │   └── portal/page.tsx       ← Tenant self-service view
+    │   ├── layout.tsx                ← Root layout (fonts, toasts)
+    │   ├── page.tsx                  ← Marketing homepage (public)
+    │   ├── globals.css               ← Tailwind + custom utilities
+    │   ├── auth/
+    │   │   ├── login/page.tsx
+    │   │   ├── register/page.tsx
+    │   │   └── callback/page.tsx
+    │   ├── dashboard/page.tsx        ← KPIs, occupancy, activity feed
+    │   ├── properties/page.tsx       ← Asymmetric grid, full CRUD
+    │   ├── people/page.tsx           ← Tenants / Team / Vendors tabs
+    │   ├── payments/page.tsx         ← Full CRUD, auto-fill from lease
+    │   ├── maintenance/page.tsx      ← Active/history, vendor assign
+    │   ├── leases/page.tsx           ← Expiry warnings, renewal status
+    │   ├── communication/page.tsx    ← Mock — V2
+    │   ├── reports/page.tsx          ← Mock charts — V2
+    │   ├── notifications/page.tsx    ← New/Earlier groups, split-view
+    │   └── portal/
+    │       ├── page.tsx              ← Tenant home: balance, quick actions
+    │       ├── maintenance/page.tsx  ← Submit/cancel requests
+    │       ├── lease/page.tsx        ← Active lease details
+    │       └── notifications/page.tsx
     ├── components/
     │   └── layout/
-    │       └── AppLayout.tsx     ← Sidebar (desktop) + bottom nav (mobile)
+    │       └── AppLayout.tsx         ← Sidebar (desktop) + bottom nav (mobile)
+    ├── context/
+    │   ├── AuthContext.tsx           ← user, profile, session, signOut
+    │   └── ThemeContext.tsx          ← light/dark/system theme
     ├── data/
-    │   └── mock.ts               ← Realistic mock data (all 9 screens)
+    │   └── mock.ts                   ← Fallback data (Communication + Reports)
     ├── lib/
     │   ├── supabase/
-    │   │   ├── client.ts         ← Browser Supabase client
-    │   │   └── server.ts         ← Server-side Supabase client
-    │   └── utils.ts              ← formatCurrency, formatDate, cn(), etc.
+    │   │   ├── client.ts
+    │   │   └── server.ts
+    │   └── utils.ts                  ← formatCurrency, formatDate, cn(), etc.
     └── types/
-        └── index.ts              ← All TypeScript interfaces
+        └── index.ts                  ← All TypeScript interfaces
 ```
 
 ---
 
-## 🔌 Switching from Mock Data to Real Supabase
+## Data Layer Status
 
-Currently all pages use mock data from `src/data/mock.ts`. To connect to Supabase:
+All core pages are wired to **real Supabase data**. Two pages still use mock data (deferred to V2):
 
-1. Replace mock imports with Supabase queries. Example for the dashboard:
-
-```ts
-// BEFORE (mock)
-import { DASHBOARD_STATS } from '@/data/mock'
-
-// AFTER (Supabase)
-import { createClient } from '@/lib/supabase/server'
-const supabase = createClient()
-const { data: payments } = await supabase
-  .from('payments')
-  .select('amount, status')
-  .eq('property_id', propertyId)
-```
-
-2. Add loading states with React Suspense or `useState`
-3. Use `useEffect` + Supabase's `.subscribe()` for real-time features (chat)
+| Page | Status |
+|---|---|
+| Dashboard | ✅ Live Supabase — KPIs, occupancy, activity feed |
+| Properties | ✅ Live Supabase — full CRUD with RLS |
+| People (Tenants/Team/Vendors) | ✅ Live Supabase — full CRUD |
+| Payments | ✅ Live Supabase — full CRUD, auto-fill from active lease |
+| Maintenance | ✅ Live Supabase — full CRUD, real-time updates |
+| Leases | ✅ Live Supabase — list + expiry warnings (create/edit is V2) |
+| Tenant Portal | ✅ Live Supabase — all sub-pages |
+| Notifications | ✅ Live Supabase — real-time delivery |
+| Communication | 🔶 Mock data — V2 |
+| Reports | 🔶 Mock charts — V2 |
 
 ---
 
-## 🗄 Database Tables
+## Database Tables
 
 | Table | Purpose |
 |---|---|
@@ -147,14 +154,17 @@ const { data: payments } = await supabase
 | `lease_documents` | PDF attachments |
 | `payments` | Rent payment records |
 | `maintenance_requests` | Repair tickets |
-| `conversations` | Chat threads |
-| `messages` | Individual chat messages |
+| `team_members` | Property manager team |
+| `vendors` | Maintenance vendors |
+| `notifications` | In-app notification feed |
+| `conversations` | Chat threads (V2) |
+| `messages` | Individual chat messages (V2) |
 
-All tables have Row Level Security (RLS) — managers only see their own data.
+All tables use Row Level Security (RLS) — managers only see their own data; tenants only see their own records.
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Vercel (recommended — free tier)
 
@@ -165,26 +175,10 @@ vercel
 
 Add your `.env.local` values as Environment Variables in the Vercel dashboard.
 
-### Other platforms
-Next.js works on Netlify, Railway, Render, AWS Amplify, and more.
-
 ---
 
-## 📱 Mobile Responsive
+## Mobile Responsive
 
 The app is fully responsive:
-- **Desktop (lg+)**: Sidebar navigation, split-view layouts, editorial canvas
-- **Tablet (md)**: Collapsed sidebar, stacked grids
-- **Mobile (< md)**: Bottom navigation bar, single-column layouts, FAB button
-
----
-
-## 💳 Stripe Integration (Payments)
-
-To enable real payments:
-
-1. Create a Stripe account at [stripe.com](https://stripe.com)
-2. Add publishable + secret keys to `.env.local`
-3. Create a webhook endpoint at `/api/stripe/webhook`
-4. Use `stripe.paymentIntents.create()` for ACH/card payments
-5. The `payments.stripe_payment_intent_id` column is already in the schema
+- **Desktop (lg+)**: Fixed sidebar, top bar with theme switcher + notification bell
+- **Mobile (< lg)**: Top bar + 4-tab bottom nav (3 primary items + "More" sheet for all other nav items and profile/settings)
