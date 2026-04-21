@@ -128,13 +128,17 @@
 
   * { box-sizing: border-box; }
 
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
 
   body {
     font-family: var(--font-inter);
     background-color: rgb(var(--color-surface));
     color: rgb(var(--color-on-surface));
     min-height: 100dvh;
+    overflow-x: hidden;
   }
 
   .font-headline, h1, h2, h3 {
