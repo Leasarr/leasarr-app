@@ -26,7 +26,7 @@
 
 ## Key files
 
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar + top bar (theme switcher + live notification bell). Mobile: top bar + bottom nav. Breakpoint at `lg` (1024px). Fetches notifications from Supabase with Realtime subscription per `profile_id`.
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar + top bar (theme switcher + live notification bell). Mobile: top bar + 4-tab bottom nav (3 primary items + "More" sheet). Manager bottom nav: Dashboard, Payments, Maintenance, More. Tenant bottom nav: Home, Maintenance, Lease, More. "More" sheet slides up and shows all remaining nav items plus profile/settings. Breakpoint at `lg` (1024px). Fetches notifications from Supabase with Realtime subscription per `profile_id`.
 - `src/context/AuthContext.tsx` — Provides `user`, `profile`, `session`, `loading`, `signOut`. Use `useAuth()` hook.
 - `src/context/ThemeContext.tsx` — Provides `theme` (`'light' | 'dark' | 'system'`) and `setTheme`. Persists to localStorage. Use `useTheme()` hook. Theme applied via `dark` class on `<html>`.
 - `src/middleware.ts` — Route protection. Public: `/auth/*`. Manager routes: dashboard, people, payments, maintenance, leases, properties, communication, reports, notifications. Tenant routes: `/portal`.
