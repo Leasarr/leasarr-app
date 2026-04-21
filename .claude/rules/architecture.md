@@ -15,7 +15,7 @@
 | `/people` | manager | All/Tenants/Team/Vendors tabs; full create/edit flows; All tab navigates to relevant sub-tab on click |
 | `/payments` | manager | Full CRUD — record, edit, delete, mark paid; auto-fills from active lease |
 | `/maintenance` | manager | Active/history views; create, assign vendor, mark completed, delete; real-time updates |
-| `/leases` | manager | Expiration warnings, renewal status (create/edit not yet wired) |
+| `/leases` | manager | Expiration warnings, renewal status; full create/edit wired — smart cross-field form (tenant ↔ property ↔ unit auto-population, excludes already-leased tenants and occupied units) |
 | `/communication` | manager | Manager ↔ tenant messages (mock data — not yet wired) |
 | `/reports` | manager | Financial analytics, recharts, monthly trends (mock data — not yet wired) |
 | `/notifications` | manager | Full notifications page — New/Earlier groups, split-view detail, mark as read |

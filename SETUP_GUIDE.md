@@ -89,13 +89,15 @@ leasarr-app/
     │   ├── auth/
     │   │   ├── login/page.tsx
     │   │   ├── register/page.tsx
-    │   │   └── callback/page.tsx
+    │   │   ├── callback/page.tsx
+    │   │   ├── reset-password/page.tsx  ← sends reset email
+    │   │   └── update-password/page.tsx ← sets new password (from email link)
     │   ├── dashboard/page.tsx        ← KPIs, occupancy, activity feed
     │   ├── properties/page.tsx       ← Asymmetric grid, full CRUD
     │   ├── people/page.tsx           ← Tenants / Team / Vendors tabs
     │   ├── payments/page.tsx         ← Full CRUD, auto-fill from lease
     │   ├── maintenance/page.tsx      ← Active/history, vendor assign
-    │   ├── leases/page.tsx           ← Expiry warnings, renewal status
+    │   ├── leases/page.tsx           ← Full CRUD, smart create form
     │   ├── communication/page.tsx    ← Mock — V2
     │   ├── reports/page.tsx          ← Mock charts — V2
     │   ├── notifications/page.tsx    ← New/Earlier groups, split-view
@@ -134,7 +136,7 @@ All core pages are wired to **real Supabase data**. Two pages still use mock dat
 | People (Tenants/Team/Vendors) | ✅ Live Supabase — full CRUD |
 | Payments | ✅ Live Supabase — full CRUD, auto-fill from active lease |
 | Maintenance | ✅ Live Supabase — full CRUD, real-time updates |
-| Leases | ✅ Live Supabase — list + expiry warnings (create/edit is V2) |
+| Leases | ✅ Live Supabase — full CRUD; smart create form with cross-field auto-population |
 | Tenant Portal | ✅ Live Supabase — all sub-pages |
 | Notifications | ✅ Live Supabase — real-time delivery |
 | Communication | 🔶 Mock data — V2 |

@@ -27,8 +27,8 @@ const { user, profile, session, loading, signOut } = useAuth()
 
 ## Middleware route rules
 
-- **Public** (no auth required): `/auth/login`, `/auth/register`, `/auth/callback`
-- **Manager routes**: `/dashboard`, `/tenants`, `/payments`, `/maintenance`, `/leases`, `/properties`, `/communication`, `/reports`
+- **Public** (no auth required): `/auth/login`, `/auth/register`, `/auth/callback`, `/auth/reset-password`, `/auth/update-password`
+- **Manager routes**: `/dashboard`, `/people`, `/payments`, `/maintenance`, `/leases`, `/properties`, `/communication`, `/reports`, `/notifications`
 - **Tenant routes**: `/portal`
 - Unauthenticated → redirect to `/auth/login?redirectTo=<path>`
 - Wrong role → redirect to role's home page
