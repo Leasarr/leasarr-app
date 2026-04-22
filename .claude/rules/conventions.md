@@ -31,6 +31,13 @@ Always use these helpers — don't reimplement them:
 - Local UI state: `useState`. No global state needed yet (zustand is installed but unused).
 - Client-side filtering: `useState` + `.filter()` — no server calls for search/filter yet
 
+## Mobile patterns
+
+- **Tab bars**: use `grid grid-cols-N` — never `flex overflow-x-auto` with `flex-1` children (causes page-level overflow). Use `whitespace-nowrap` on tab buttons.
+- **Master-detail on mobile**: when a detail panel is open alongside a list (e.g. `lg:grid-cols-12`), hide the list on mobile with `hidden lg:block` and show a `lg:hidden` back button in the detail panel. See `/people` Tenants tab.
+- **Row text**: prefer wrapping over truncating — use `flex-wrap` on badge rows, no `truncate` on name/body text. Keep `flex-shrink-0` on avatars, badges, and chevrons.
+- **Never hardcode `bg-white`** for cards — use `bg-surface-container-lowest` so dark mode works.
+
 ## Forms
 
 - Currently: plain `useState` + controlled inputs; submit via `onSubmit` + `e.preventDefault()`; inline error state via `useState`

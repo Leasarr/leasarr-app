@@ -12,7 +12,7 @@
 | `/auth/callback` | public | Supabase OAuth exchange |
 | `/dashboard` | manager | Portfolio KPIs, occupancy, activity feed |
 | `/properties` | manager | Asymmetric grid — list left, detail right; full create/edit for properties and units |
-| `/people` | manager | All/Tenants/Team/Vendors tabs; full create/edit flows; All tab navigates to relevant sub-tab on click |
+| `/people` | manager | All/Tenants/Team/Vendors tabs (grid-cols-4 tab bar); full create/edit flows; All tab navigates to relevant sub-tab on click; Tenants tab: list hides on mobile when a tenant is selected, back button returns to list |
 | `/payments` | manager | Full CRUD — record, edit, delete, mark paid; auto-fills from active lease |
 | `/maintenance` | manager | Active/history views; create, assign vendor, mark completed, delete; real-time INSERT/UPDATE/DELETE |
 | `/leases` | manager | Expiration warnings, renewal status; full create/edit wired — smart cross-field form (tenant ↔ property ↔ unit auto-population, excludes already-leased tenants and occupied units) |
