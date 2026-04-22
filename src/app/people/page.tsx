@@ -319,7 +319,7 @@ export default function PeoplePage() {
   const filteredVendors = vendors.filter(v => matchesSearch(`${v.name} ${v.company} ${v.specialty}`))
 
   const TABS: { key: PeopleTab; label: string; count: number }[] = [
-    { key: 'all',     label: 'All People', count: tenants.length + teamMembers.length + vendors.length },
+    { key: 'all',     label: 'All', count: tenants.length + teamMembers.length + vendors.length },
     { key: 'tenants', label: 'Tenants',    count: tenants.length },
     { key: 'team',    label: 'Team',       count: teamMembers.length },
     { key: 'vendors', label: 'Vendors',    count: vendors.length },
@@ -356,13 +356,13 @@ export default function PeoplePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-8 border-b border-outline-variant/30 overflow-x-auto no-scrollbar">
+        <div className="grid grid-cols-4 mb-8 border-b border-outline-variant/30">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => { setActiveTab(tab.key); setSearch('') }}
               className={cn(
-                'px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-px flex items-center gap-2 flex-shrink-0',
+                'py-3 text-sm font-bold transition-all border-b-2 -mb-px flex items-center justify-center gap-1.5 whitespace-nowrap',
                 activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
               )}
             >
@@ -388,15 +388,15 @@ export default function PeoplePage() {
                   <button
                     key={t.id}
                     onClick={() => { setSelectedTenant(t); setActiveTab('tenants'); setTenantDetailTab('payments') }}
-                    className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                    className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
                   >
-                    <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(`${t.first_name} ${t.last_name}`)}</div>
+                    <div className="w-11 h-11 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(`${t.first_name} ${t.last_name}`)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <p className="font-bold text-sm text-on-surface truncate">{t.first_name} {t.last_name}</p>
-                        <span className="badge bg-secondary-container text-on-secondary-container flex-shrink-0">Tenant</span>
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <p className="font-bold text-sm text-on-surface">{t.first_name} {t.last_name}</p>
+                        <span className="badge bg-secondary-container text-on-secondary-container">Tenant</span>
                       </div>
-                      <p className="text-xs text-on-surface-variant truncate">{t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}</p>
+                      <p className="text-xs text-on-surface-variant">{t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}</p>
                     </div>
                     <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
                   </button>
@@ -405,15 +405,15 @@ export default function PeoplePage() {
                   <button
                     key={m.id}
                     onClick={() => setActiveTab('team')}
-                    className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                    className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(m.name)}</div>
+                    <div className="w-11 h-11 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(m.name)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <p className="font-bold text-sm text-on-surface truncate">{m.name}</p>
-                        <span className="badge bg-primary-container/30 text-primary flex-shrink-0">Team</span>
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <p className="font-bold text-sm text-on-surface">{m.name}</p>
+                        <span className="badge bg-primary-container/30 text-primary">Team</span>
                       </div>
-                      <p className="text-xs text-on-surface-variant truncate">{m.role} · {m.email}</p>
+                      <p className="text-xs text-on-surface-variant">{m.role} · {m.email}</p>
                     </div>
                     <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
                   </button>
@@ -424,16 +424,16 @@ export default function PeoplePage() {
                     <button
                       key={v.id}
                       onClick={() => setActiveTab('vendors')}
-                      className="w-full bg-surface-container-lowest rounded-2xl px-5 py-4 flex items-center gap-4 hover:shadow-card transition-all text-left"
+                      className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
                     >
-                      <div className="w-12 h-12 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-base flex-shrink-0">{getInitials(v.name)}</div>
+                      <div className="w-11 h-11 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(v.name)}</div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <p className="font-bold text-sm text-on-surface truncate">{v.name}</p>
-                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant flex-shrink-0">Vendor</span>
-                          <span className={cn('badge flex-shrink-0', sp.bg, sp.text)}>{sp.label}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <p className="font-bold text-sm text-on-surface">{v.name}</p>
+                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant">Vendor</span>
+                          <span className={cn('badge', sp.bg, sp.text)}>{sp.label}</span>
                         </div>
-                        <p className="text-xs text-on-surface-variant truncate">{v.company} · {v.email}</p>
+                        <p className="text-xs text-on-surface-variant">{v.company} · {v.email}</p>
                       </div>
                       <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
                     </button>
@@ -464,7 +464,7 @@ export default function PeoplePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-5 space-y-3">
+              <div className={cn('lg:col-span-5 space-y-3', selectedTenant && 'hidden lg:block')}>
                 <div className="flex items-center justify-between mb-3 px-1">
                   <span className="text-xs font-bold uppercase tracking-widest text-outline">{filteredTenants.length} tenants</span>
                 </div>
@@ -474,54 +474,58 @@ export default function PeoplePage() {
                     onClick={() => { setSelectedTenant(tenant); setTenantDetailTab('payments') }}
                     className={cn('w-full bg-surface-container-lowest p-5 rounded-2xl flex items-center justify-between transition-all text-left hover:shadow-xl hover:shadow-black/5', selectedTenant?.id === tenant.id && 'ring-2 ring-primary/20 shadow-md')}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>
-                      <div>
-                        <h3 className="font-bold text-on-surface text-sm">{tenant.first_name} {tenant.last_name}</h3>
-                        <p className="text-xs text-on-surface-variant font-medium">{tenant.email}</p>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg flex-shrink-0">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-on-surface text-sm truncate">{tenant.first_name} {tenant.last_name}</h3>
+                        <p className="text-xs text-on-surface-variant font-medium truncate">{tenant.email}</p>
                         {tenant.property && (
-                          <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[10px]">location_on</span>
-                            {tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}
+                          <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1 truncate">
+                            <span className="material-symbols-outlined text-[10px] flex-shrink-0">location_on</span>
+                            <span className="truncate">{tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}</span>
                           </p>
                         )}
                       </div>
                     </div>
-                    <span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>
+                    <span className={cn('badge flex-shrink-0', getStatusColor(tenant.status))}>{tenant.status}</span>
                   </button>
                 ))}
               </div>
 
               {selectedTenant && (
                 <div className="lg:col-span-7 space-y-5">
-                  <div className="bg-white rounded-3xl p-8 shadow-card">
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
-                      <div className="relative flex-shrink-0">
-                        <div className="w-32 h-32 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-4xl font-bold ring-4 ring-surface-container-low">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
-                        <div className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg">
-                          <span className="material-symbols-outlined text-sm material-symbols-filled">verified</span>
+                  <button
+                    className="lg:hidden flex items-center gap-1.5 text-primary text-sm font-semibold mb-2"
+                    onClick={() => setSelectedTenant(null)}
+                  >
+                    <span className="material-symbols-outlined text-base">arrow_back</span> All Tenants
+                  </button>
+                  <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-card">
+                    <div className="flex items-start justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="relative flex-shrink-0">
+                          <div className="w-16 h-16 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-2xl font-bold">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
+                          <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-lg">
+                            <span className="material-symbols-outlined text-xs material-symbols-filled">verified</span>
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="text-xl font-headline font-extrabold tracking-tight text-on-surface truncate">{selectedTenant.first_name} {selectedTenant.last_name}</h2>
+                          <p className="text-primary text-sm font-semibold flex items-center gap-1 mt-0.5 truncate">
+                            <span className="material-symbols-outlined text-xs flex-shrink-0">mail</span><span className="truncate">{selectedTenant.email}</span>
+                          </p>
+                          {selectedTenant.property && (
+                            <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5 truncate">
+                              <span className="material-symbols-outlined text-xs flex-shrink-0">apartment</span>
+                              <span className="truncate">{selectedTenant.property.name}{selectedTenant.unit ? ` · Unit ${selectedTenant.unit.unit_number}` : ''}</span>
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h2 className="text-3xl font-headline font-extrabold tracking-tight text-on-surface">{selectedTenant.first_name} {selectedTenant.last_name}</h2>
-                            <p className="text-primary font-bold flex items-center gap-1 mt-1">
-                              <span className="material-symbols-outlined text-sm">mail</span>{selectedTenant.email}
-                            </p>
-                            {selectedTenant.property && (
-                              <p className="text-sm text-on-surface-variant flex items-center gap-1 mt-1">
-                                <span className="material-symbols-outlined text-sm">apartment</span>
-                                {selectedTenant.property.name}{selectedTenant.unit ? ` · Unit ${selectedTenant.unit.unit_number}` : ''}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => openEditTenant(selectedTenant)} className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">edit</span></button>
-                            <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">mail</span></button>
-                            <button className="p-3 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined">call</span></button>
-                          </div>
-                        </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => openEditTenant(selectedTenant)} className="p-2.5 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined text-base">edit</span></button>
+                        <button className="p-2.5 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined text-base">mail</span></button>
+                        <button className="p-2.5 bg-surface-container-low rounded-xl text-primary hover:bg-surface-container-high transition-colors"><span className="material-symbols-outlined text-base">call</span></button>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
