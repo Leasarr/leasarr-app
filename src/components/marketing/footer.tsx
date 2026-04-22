@@ -31,7 +31,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3 mt-2">
               <a
-                href="https://x.com/leasarr"
+                href="https://x.com/ctrlthehype"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="X (formerly Twitter)"
