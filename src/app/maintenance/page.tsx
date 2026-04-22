@@ -5,6 +5,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { MasterDetail } from '@/components/layout/MasterDetail'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
@@ -240,10 +241,10 @@ export default function MaintenancePage() {
             size="panel"
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-            {/* Left: List */}
-            <section className="lg:col-span-5 flex flex-col gap-4">
+          <MasterDetail
+            align="start"
+            list={
+              <div className="flex flex-col gap-4">
               <h3 className="text-xs font-bold text-outline uppercase tracking-widest px-1">
                 {view === 'active' ? 'Open' : 'Completed'} Requests ({displayed.length})
               </h3>
@@ -286,11 +287,10 @@ export default function MaintenancePage() {
                   </button>
                 ))
               )}
-            </section>
-
-            {/* Right: Detail */}
-            {selected && (
-              <section className="lg:col-span-7 bg-surface-container-lowest rounded-2xl overflow-hidden min-h-[600px] flex flex-col shadow-card">
+              </div>
+            }
+            detail={selected && (
+              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden min-h-[600px] flex flex-col shadow-card">
                 <div className="p-8 bg-surface-container-low">
                   <div className="flex flex-wrap gap-3 mb-5">
                     <span className={cn('badge', getPriorityColor(selected.priority))}>{selected.priority.toUpperCase()}</span>
@@ -394,9 +394,9 @@ export default function MaintenancePage() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </div>
             )}
-          </div>
+          />
         )}
       </div>
 

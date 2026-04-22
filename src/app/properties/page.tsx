@@ -5,6 +5,8 @@ import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { MasterDetail } from '@/components/layout/MasterDetail'
+import { SectionHeader } from '@/components/layout/SectionHeader'
 import { StatusDot } from '@/components/ui/StatusDot'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
@@ -315,10 +317,9 @@ export default function PropertiesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-          {/* Left: Property List */}
-          <div className="lg:col-span-5 space-y-4">
+        <MasterDetail
+          list={
+            <div className="space-y-4">
             {properties.map(property => {
               const stats = getStats(property)
               return (
@@ -374,10 +375,9 @@ export default function PropertiesPage() {
                 </button>
               )
             })}
-          </div>
-
-          {/* Right: Detail Canvas */}
-          <div className="lg:col-span-7">
+            </div>
+          }
+          detail={
             <div className="bg-surface-container-low rounded-[2rem] p-8 min-h-[600px] flex flex-col">
 
               {/* Detail Header */}
@@ -434,16 +434,16 @@ export default function PropertiesPage() {
               {/* Units Tab */}
               {detailTab === 'units' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-base md:text-lg font-bold text-on-surface">Units Portfolio</h3>
-                    <button
-                      onClick={() => setShowAddUnit(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 primary-gradient text-on-primary rounded-xl text-sm font-bold"
-                    >
-                      <span className="material-symbols-outlined text-base">add</span>
-                      Add Unit
-                    </button>
-                  </div>
+                  <SectionHeader
+                    className="mb-6"
+                    title="Units Portfolio"
+                    action={
+                      <Button size="sm" onClick={() => setShowAddUnit(true)}>
+                        <span className="material-symbols-outlined text-base">add</span>
+                        Add Unit
+                      </Button>
+                    }
+                  />
                   {selected.units.length === 0 ? (
                     <EmptyState icon="apartment" title="No units added yet" description="Add the first unit to this property." size="inline" />
                   ) : (
@@ -494,20 +494,23 @@ export default function PropertiesPage() {
               {/* Applications Tab */}
               {detailTab === 'applications' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-base md:text-lg font-bold text-on-surface">Rental Applications</h3>
-                    <button className="flex items-center gap-1.5 px-4 py-2 primary-gradient text-on-primary rounded-xl text-sm font-bold">
-                      <span className="material-symbols-outlined text-base">add</span>
-                      New Application
-                    </button>
-                  </div>
+                  <SectionHeader
+                    className="mb-6"
+                    title="Rental Applications"
+                    action={
+                      <Button size="sm">
+                        <span className="material-symbols-outlined text-base">add</span>
+                        New Application
+                      </Button>
+                    }
+                  />
                   <EmptyState icon="assignment_ind" title="No applications yet" description="Applications for this property will appear here." size="inline" />
                 </div>
               )}
 
             </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
       {/* FAB */}
@@ -550,34 +553,28 @@ export default function PropertiesPage() {
       >
         <form onSubmit={handleEditUnit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit Number</label>
+            <FormField label="Unit Number" className="col-span-2">
               <input required className="input-base" value={editUnitForm.unit_number} onChange={e => setEditUnitForm(f => ({ ...f, unit_number: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Bedrooms</label>
+            </FormField>
+            <FormField label="Bedrooms">
               <input required type="number" min="0" className="input-base" value={editUnitForm.bedrooms} onChange={e => setEditUnitForm(f => ({ ...f, bedrooms: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Bathrooms</label>
+            </FormField>
+            <FormField label="Bathrooms">
               <input required type="number" min="0" step="0.5" className="input-base" value={editUnitForm.bathrooms} onChange={e => setEditUnitForm(f => ({ ...f, bathrooms: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Sqft <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Sqft" optional>
               <input type="number" min="0" className="input-base" value={editUnitForm.sqft} onChange={e => setEditUnitForm(f => ({ ...f, sqft: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Monthly Rent ($)</label>
+            </FormField>
+            <FormField label="Monthly Rent ($)">
               <input required type="number" min="0" step="0.01" className="input-base" value={editUnitForm.rent_amount} onChange={e => setEditUnitForm(f => ({ ...f, rent_amount: e.target.value }))} />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+            </FormField>
+            <FormField label="Status" className="col-span-2">
               <select className="input-base" value={editUnitForm.status} onChange={e => setEditUnitForm(f => ({ ...f, status: e.target.value as DbUnit['status'] }))}>
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
               </select>
-            </div>
+            </FormField>
           </div>
           {editUnitError && <p className="text-sm text-error">{editUnitError}</p>}
           <div className="flex gap-3 pt-2">

@@ -8,6 +8,8 @@ import { TabBar } from '@/components/ui/TabBar'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
 import { FormField } from '@/components/patterns/FormField'
+import { ListRow } from '@/components/patterns/ListRow'
+import { MasterDetail } from '@/components/layout/MasterDetail'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -376,58 +378,42 @@ export default function PeoplePage() {
             ) : (
               <>
                 {filteredTenants.map(t => (
-                  <button
+                  <ListRow
                     key={t.id}
+                    padding="sm"
+                    avatar={<div className="w-11 h-11 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-sm">{getInitials(`${t.first_name} ${t.last_name}`)}</div>}
+                    title={`${t.first_name} ${t.last_name}`}
+                    titleBadges={<span className="badge bg-secondary-container text-on-secondary-container">Tenant</span>}
+                    subtitle={t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}
+                    trailing={<span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>}
                     onClick={() => { setSelectedTenant(t); setActiveTab('tenants'); setTenantDetailTab('payments') }}
-                    className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(`${t.first_name} ${t.last_name}`)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <p className="font-bold text-sm text-on-surface">{t.first_name} {t.last_name}</p>
-                        <span className="badge bg-secondary-container text-on-secondary-container">Tenant</span>
-                      </div>
-                      <p className="text-xs text-on-surface-variant">{t.property ? `${t.property.name}${t.unit ? ` · Unit ${t.unit.unit_number}` : ''}` : t.email}</p>
-                    </div>
-                    <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
-                  </button>
+                  />
                 ))}
                 {filteredTeam.map(m => (
-                  <button
+                  <ListRow
                     key={m.id}
+                    padding="sm"
+                    avatar={<div className="w-11 h-11 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-sm">{getInitials(m.name)}</div>}
+                    title={m.name}
+                    titleBadges={<span className="badge bg-primary-container/30 text-primary">Team</span>}
+                    subtitle={`${m.role} · ${m.email}`}
+                    trailing={<span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>}
                     onClick={() => setActiveTab('team')}
-                    className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-primary-container/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(m.name)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <p className="font-bold text-sm text-on-surface">{m.name}</p>
-                        <span className="badge bg-primary-container/30 text-primary">Team</span>
-                      </div>
-                      <p className="text-xs text-on-surface-variant">{m.role} · {m.email}</p>
-                    </div>
-                    <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
-                  </button>
+                  />
                 ))}
                 {filteredVendors.map(v => {
                   const sp = SPECIALTY_STYLE[v.specialty]
                   return (
-                    <button
+                    <ListRow
                       key={v.id}
+                      padding="sm"
+                      avatar={<div className="w-11 h-11 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-sm">{getInitials(v.name)}</div>}
+                      title={v.name}
+                      titleBadges={<><span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant">Vendor</span><span className={cn('badge', sp.bg, sp.text)}>{sp.label}</span></>}
+                      subtitle={`${v.company} · ${v.email}`}
+                      trailing={<span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>}
                       onClick={() => setActiveTab('vendors')}
-                      className="w-full bg-surface-container-lowest rounded-2xl px-4 py-4 flex items-center gap-3 hover:shadow-card transition-all text-left"
-                    >
-                      <div className="w-11 h-11 rounded-full bg-tertiary-container/20 text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-sm flex-shrink-0">{getInitials(v.name)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <p className="font-bold text-sm text-on-surface">{v.name}</p>
-                          <span className="badge bg-tertiary-container/20 text-on-tertiary-fixed-variant">Vendor</span>
-                          <span className={cn('badge', sp.bg, sp.text)}>{sp.label}</span>
-                        </div>
-                        <p className="text-xs text-on-surface-variant">{v.company} · {v.email}</p>
-                      </div>
-                      <span className="material-symbols-outlined text-outline-variant text-lg flex-shrink-0">chevron_right</span>
-                    </button>
+                    />
                   )
                 })}
                 {filteredTenants.length + filteredTeam.length + filteredVendors.length === 0 && (
@@ -454,43 +440,35 @@ export default function PeoplePage() {
               action={!search ? <Button onClick={openAddPerson} size="sm">Add First Tenant</Button> : undefined}
             />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className={cn('lg:col-span-5 space-y-3', selectedTenant && 'hidden lg:block')}>
+            <MasterDetail
+              mobileBackLabel="All Tenants"
+              onBack={() => setSelectedTenant(null)}
+              list={
+                <div className="space-y-3">
                 <div className="flex items-center justify-between mb-3 px-1">
                   <span className="text-xs font-bold uppercase tracking-widest text-outline">{filteredTenants.length} tenants</span>
                 </div>
                 {filteredTenants.map(tenant => (
-                  <button
+                  <ListRow
                     key={tenant.id}
+                    avatar={<div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>}
+                    title={`${tenant.first_name} ${tenant.last_name}`}
+                    subtitle={tenant.email}
+                    meta={tenant.property && (
+                      <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1 truncate">
+                        <span className="material-symbols-outlined text-[10px] flex-shrink-0">location_on</span>
+                        <span className="truncate">{tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}</span>
+                      </p>
+                    )}
+                    trailing={<span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>}
+                    selected={selectedTenant?.id === tenant.id}
                     onClick={() => { setSelectedTenant(tenant); setTenantDetailTab('payments') }}
-                    className={cn('w-full bg-surface-container-lowest p-5 rounded-2xl flex items-center justify-between transition-all text-left hover:shadow-xl hover:shadow-black/5', selectedTenant?.id === tenant.id && 'ring-2 ring-primary/20 shadow-md')}
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg flex-shrink-0">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-on-surface text-sm truncate">{tenant.first_name} {tenant.last_name}</h3>
-                        <p className="text-xs text-on-surface-variant font-medium truncate">{tenant.email}</p>
-                        {tenant.property && (
-                          <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1 truncate">
-                            <span className="material-symbols-outlined text-[10px] flex-shrink-0">location_on</span>
-                            <span className="truncate">{tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <span className={cn('badge flex-shrink-0', getStatusColor(tenant.status))}>{tenant.status}</span>
-                  </button>
+                  />
                 ))}
-              </div>
-
-              {selectedTenant && (
-                <div className="lg:col-span-7 space-y-5">
-                  <button
-                    className="lg:hidden flex items-center gap-1.5 text-primary text-sm font-semibold mb-2"
-                    onClick={() => setSelectedTenant(null)}
-                  >
-                    <span className="material-symbols-outlined text-base">arrow_back</span> All Tenants
-                  </button>
+                </div>
+              }
+              detail={selectedTenant && (
+                <div className="space-y-5">
                   <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-card">
                     <div className="flex items-start justify-between gap-4 mb-6">
                       <div className="flex items-center gap-4 min-w-0">
@@ -576,7 +554,7 @@ export default function PeoplePage() {
                   )}
                 </div>
               )}
-            </div>
+            />
           )
         )}
 

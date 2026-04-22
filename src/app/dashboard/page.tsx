@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { LoadingState } from '@/components/patterns/LoadingState'
 import { StatCard } from '@/components/patterns/StatCard'
+import { SectionHeader } from '@/components/layout/SectionHeader'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -246,10 +247,11 @@ export default function DashboardPage() {
 
         {/* Upcoming Expirations */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-base md:text-lg font-bold text-on-surface">Upcoming Lease Expirations</h3>
-            <a href="/leases" className="text-[10px] font-bold text-primary hover:underline">View All</a>
-          </div>
+          <SectionHeader
+            className="px-1"
+            title="Upcoming Lease Expirations"
+            action={<a href="/leases" className="text-[10px] font-bold text-primary hover:underline">View All</a>}
+          />
 
           {expirations.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-xl p-6 text-center text-on-surface-variant">
@@ -294,7 +296,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <section className="space-y-4">
-          <h3 className="text-base md:text-lg font-bold text-on-surface px-1">Quick Actions</h3>
+          <SectionHeader className="px-1" title="Quick Actions" />
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {[
               { icon: 'add_home', label: 'New Lease', href: '/leases' },
@@ -315,9 +317,7 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <section className="bg-surface-container-low rounded-xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-base md:text-lg font-bold text-on-surface">Recent Activity</h3>
-          </div>
+          <SectionHeader className="mb-5" title="Recent Activity" />
 
           {activity.length === 0 ? (
             <div className="text-center py-6 text-on-surface-variant">

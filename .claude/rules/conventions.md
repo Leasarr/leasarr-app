@@ -52,6 +52,7 @@ A shared component library lives under `src/components/`. Always use these — d
 | `<TabBar>` | `@/components/ui/TabBar` | Page-level navigation tabs with underline indicator. Props: `tabs` (`{ key, label, count? }[]`), `value`, `onChange`, `className?`. |
 | `<StatusDot>` | `@/components/ui/StatusDot` | Semantic status indicator dot using design tokens. Props: `status` (`'occupied' \| 'vacant' \| 'maintenance'`), `className?`. |
 | `<ConfirmModal>` | `@/components/ui/ConfirmModal` | Confirmation dialog for destructive actions. Props: `open`, `onClose`, `title`, `body?`, `confirmLabel?`, `onConfirm`, `loading?`, `destructive?`. |
+| `<Card>` | `@/components/ui/Card` | Surface container. Props: `padding` (`sm`=p-4, `md`=p-6 default, `lg`=p-8), `radius` (`sm`=rounded-xl default, `md`=rounded-2xl), `surface` (`lowest` default, `low`), `shadow` (default true). |
 
 ### `src/components/patterns/` — molecules
 
@@ -59,12 +60,17 @@ A shared component library lives under `src/components/`. Always use these — d
 |---|---|---|
 | `<EmptyState>` | `@/components/patterns/EmptyState` | No-data states. Props: `icon` (Material Symbol name), `title`, `description?`, `action?` (JSX), `size` (`page` = min-h-[60vh], `panel` = min-h-[40vh], `inline` = py-12). |
 | `<LoadingState>` | `@/components/patterns/LoadingState` | Data-loading placeholder. Props: `label?`, `size` (`page` default, `panel`). Uses `progress_activity` + `animate-spin`. |
+| `<FormField>` | `@/components/patterns/FormField` | Label + input/select/textarea wrapper. Props: `label`, `hint?`, `error?`, `optional?`, `className?`, `children`. Pass `className="col-span-2"` for full-width grid fields. |
+| `<StatCard>` | `@/components/patterns/StatCard` | KPI metric card. Props: `icon`, `iconColor?`, `label`, `value`, `valueColor?`, `badge?`, `subtitle?`, `progress?` (`{ value, color? }`). |
+| `<ListRow>` | `@/components/patterns/ListRow` | Avatar + title + subtitle row button. Props: `avatar` (JSX), `title`, `subtitle?`, `meta?` (JSX for third line), `titleBadges?` (JSX), `trailing?` (JSX), `selected?`, `onClick?`, `padding?` (`sm`=px-4 py-4, `md`=p-5 default). |
 
 ### `src/components/layout/` — organisms
 
 | Component | Import | When to use |
 |---|---|---|
 | `<PageHeader>` | `@/components/layout/PageHeader` | Page-level titles. Props: `title`, `eyebrow?`, `subtitle?`, `action?` (JSX for right-side button/control). |
+| `<SectionHeader>` | `@/components/layout/SectionHeader` | Section-level title with optional right action. Props: `title`, `action?` (JSX), `className?`. |
+| `<MasterDetail>` | `@/components/layout/MasterDetail` | Two-panel `lg:grid-cols-12` split (5/7). Props: `list` (JSX), `detail?` (JSX), `mobileBackLabel?` (activates mobile hide + back button), `onBack?`, `align?` (`stretch` default, `start`). |
 
 ### Shared constants
 

@@ -36,6 +36,12 @@
 - `src/components/ui/ConfirmModal.tsx` — Confirmation dialog for destructive actions. Props: `open`, `onClose`, `title`, `body?`, `confirmLabel?`, `onConfirm`, `loading?`, `destructive?`.
 - `src/components/patterns/EmptyState.tsx` — No-data UI. Props: `icon`, `title`, `description?`, `action?`, `size` (`page`/`panel`/`inline`).
 - `src/components/patterns/LoadingState.tsx` — Loading placeholder. Props: `label?`, `size` (`page`/`panel`). Uses `progress_activity` + `animate-spin`.
+- `src/components/patterns/FormField.tsx` — Label + input wrapper. Props: `label`, `hint?`, `error?`, `optional?`, `className?`, `children`. Layout wrapper only — doesn't control the input.
+- `src/components/patterns/StatCard.tsx` — KPI metric card used on dashboard. Props: `icon`, `label`, `value`, `badge?`, `progress?`, `subtitle?`.
+- `src/components/patterns/ListRow.tsx` — Reusable avatar+title+subtitle list item. Props: `avatar`, `title`, `subtitle?`, `meta?`, `titleBadges?`, `trailing?`, `selected?`, `onClick?`, `padding?`.
+- `src/components/ui/Card.tsx` — Surface container with padding/radius/shadow variants.
+- `src/components/layout/SectionHeader.tsx` — Section title + optional right action. Props: `title`, `action?`, `className?`.
+- `src/components/layout/MasterDetail.tsx` — Two-panel responsive grid. Props: `list`, `detail?`, `mobileBackLabel?` (activates mobile list-hide + back button), `onBack?`, `align?`. Used on `/properties`, `/people` (tenants tab), `/maintenance`.
 - `src/lib/notificationMeta.ts` — `NOTIFICATION_TYPE_META` single source of truth for notification icon/color/href per type. Used by `AppLayout` and both notifications pages.
 - `src/context/AuthContext.tsx` — Provides `user`, `profile`, `session`, `loading`, `signOut`. Use `useAuth()` hook.
 - `src/context/ThemeContext.tsx` — Provides `theme` (`'light' | 'dark' | 'system'`) and `setTheme`. Persists to localStorage. Use `useTheme()` hook. Theme applied via `dark` class on `<html>`.
