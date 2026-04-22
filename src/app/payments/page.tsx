@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { FormField } from '@/components/patterns/FormField'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatDate, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -182,12 +189,7 @@ export default function PaymentsPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">payments</span>
-            <p className="text-on-surface-variant mt-2">Loading payments...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading payments..." />
       </AppLayout>
     )
   }
@@ -196,17 +198,16 @@ export default function PaymentsPage() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Payments</h1>
-            <p className="text-sm text-on-surface-variant font-medium mt-1">Track rent collection across your portfolio</p>
-          </div>
-          <button onClick={openRecord} className="btn-primary h-11 w-11 md:w-auto md:px-5 flex items-center justify-center gap-2 flex-shrink-0">
-            <span className="material-symbols-outlined text-xl">add</span>
-            <span className="hidden md:inline">Record Payment</span>
-          </button>
-        </div>
+        <PageHeader
+          title="Payments"
+          subtitle="Track rent collection across your portfolio"
+          action={
+            <button onClick={openRecord} className="btn-primary h-11 w-11 md:w-auto md:px-5 flex items-center justify-center gap-2 flex-shrink-0">
+              <span className="material-symbols-outlined text-xl">add</span>
+              <span className="hidden md:inline">Record Payment</span>
+            </button>
+          }
+        />
 
         {/* Hero Stats */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -219,7 +220,7 @@ export default function PaymentsPage() {
             </div>
             <div className="flex items-center gap-6 mt-8 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-sm font-medium text-on-surface-variant">{collectionRate}% collection rate</span>
               </div>
               <a href="/reports" className="flex items-center gap-1 text-primary font-semibold text-sm hover:underline">
@@ -270,12 +271,12 @@ export default function PaymentsPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant text-center">
-              <span className="material-symbols-outlined text-5xl mb-3">receipt_long</span>
-              <p className="font-bold text-on-surface">No payments yet</p>
-              <p className="text-sm mt-1">Record a payment to get started.</p>
-              <button onClick={openRecord} className="btn-primary mt-4">Record Payment</button>
-            </div>
+            <EmptyState
+              icon="receipt_long"
+              title="No payments yet"
+              description="Record a payment to get started."
+              action={<Button onClick={openRecord}>Record Payment</Button>}
+            />
           ) : (
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-card">
               <div className="divide-y divide-surface-container-high/50">
@@ -284,7 +285,6 @@ export default function PaymentsPage() {
                     ? `${payment.tenant.first_name} ${payment.tenant.last_name}`
                     : 'Unknown Tenant'
                   const icon = methodIcon[payment.method ?? ''] ?? 'payments'
-                  const isConfirmingDelete = confirmDelete === payment.id
                   return (
                     <div key={payment.id} className="p-5 flex items-center justify-between hover:bg-surface-container-low/30 transition-colors group">
                       <div className="flex items-center gap-4">
@@ -309,7 +309,7 @@ export default function PaymentsPage() {
                           <button
                             onClick={() => handleMarkPaid(payment.id)}
                             disabled={markingPaid === payment.id}
-                            className="px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold hover:bg-emerald-500/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                            className="px-4 py-2 rounded-xl bg-success-container/30 text-on-success-container border border-success-container text-xs font-bold hover:bg-success-container/50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
                           >
                             <span className="material-symbols-outlined text-sm">check_circle</span>
                             {markingPaid === payment.id ? 'Saving...' : 'Mark Paid'}
@@ -318,7 +318,7 @@ export default function PaymentsPage() {
                         <div className="text-right">
                           <p className="font-bold text-on-surface">{formatCurrency(payment.amount)}</p>
                           {payment.late_fee && <p className="text-xs text-error">+{formatCurrency(payment.late_fee)} late fee</p>}
-                          <span className={cn('badge mt-1', getStatusColor(payment.status))}>{payment.status}</span>
+                          <Badge className={cn('mt-1', getStatusColor(payment.status))}>{payment.status}</Badge>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -327,30 +327,12 @@ export default function PaymentsPage() {
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
-                          {isConfirmingDelete ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleDelete(payment.id)}
-                                disabled={deleting}
-                                className="px-2 py-1 rounded-lg bg-error text-on-error text-xs font-bold"
-                              >
-                                {deleting ? '...' : 'Delete'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmDelete(null)}
-                                className="px-2 py-1 rounded-lg bg-surface-container text-on-surface-variant text-xs font-bold"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmDelete(payment.id)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error transition-all"
-                            >
-                              <span className="material-symbols-outlined text-sm">delete</span>
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setConfirmDelete(payment.id)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error transition-all"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -366,8 +348,7 @@ export default function PaymentsPage() {
       {/* Record Payment Modal */}
       <Modal open={showRecord} onClose={() => setShowRecord(false)} title="Record Payment" size="md">
         <form onSubmit={handleRecord} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Tenant</label>
+          <FormField label="Tenant" hint={leaseOptions.length === 0 ? 'No active leases found.' : undefined}>
             <select required className="input-base" value={form.tenant_id} onChange={e => {
               const lease = leaseOptions.find(l => l.tenant_id === e.target.value)
               setForm(f => ({ ...f, tenant_id: e.target.value, amount: lease ? String(lease.rent_amount) : f.amount }))
@@ -379,21 +360,17 @@ export default function PaymentsPage() {
                 </option>
               ))}
             </select>
-            {leaseOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No active leases found.</p>}
-          </div>
+          </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Amount ($)</label>
+            <FormField label="Amount ($)">
               <input required type="number" min="0" step="0.01" className="input-base" placeholder="2500" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Due Date</label>
+            </FormField>
+            <FormField label="Due Date">
               <input required type="date" className="input-base" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
-            </div>
+            </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+            <FormField label="Status">
               <select className="input-base" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as PaymentRow['status'] }))}>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
@@ -401,9 +378,8 @@ export default function PaymentsPage() {
                 <option value="partial">Partial</option>
                 <option value="failed">Failed</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Method <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Method" optional>
               <select className="input-base" value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}>
                 <option value="">— None —</option>
                 <option value="ach">ACH</option>
@@ -412,40 +388,47 @@ export default function PaymentsPage() {
                 <option value="cash">Cash</option>
                 <option value="wire">Wire</option>
               </select>
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Late Fee ($) <span className="text-on-surface-variant font-normal">(optional)</span></label>
+          <FormField label="Late Fee ($)" optional>
             <input type="number" min="0" step="0.01" className="input-base" placeholder="0" value={form.late_fee} onChange={e => setForm(f => ({ ...f, late_fee: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Notes <span className="text-on-surface-variant font-normal">(optional)</span></label>
+          </FormField>
+          <FormField label="Notes" optional>
             <input type="text" className="input-base" placeholder="e.g. Paid via bank transfer" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
-          </div>
+          </FormField>
           {formError && <p className="text-sm text-error">{formError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowRecord(false)} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Saving...' : 'Record Payment'}</button>
+            <Button variant="secondary" type="button" onClick={() => setShowRecord(false)} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Saving...' : 'Record Payment'}</Button>
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete Payment"
+        body="This will permanently remove the payment record. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => confirmDelete && handleDelete(confirmDelete)}
+        loading={deleting}
+        destructive
+      />
 
       {/* Edit Payment Modal */}
       <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Payment" size="md">
         <form onSubmit={handleEdit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Amount ($)</label>
+            <FormField label="Amount ($)">
               <input required type="number" min="0" step="0.01" className="input-base" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Due Date</label>
+            </FormField>
+            <FormField label="Due Date">
               <input required type="date" className="input-base" value={editForm.due_date} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))} />
-            </div>
+            </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+            <FormField label="Status">
               <select className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as PaymentRow['status'] }))}>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
@@ -453,9 +436,8 @@ export default function PaymentsPage() {
                 <option value="partial">Partial</option>
                 <option value="failed">Failed</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Method</label>
+            </FormField>
+            <FormField label="Method">
               <select className="input-base" value={editForm.method} onChange={e => setEditForm(f => ({ ...f, method: e.target.value }))}>
                 <option value="">— None —</option>
                 <option value="ach">ACH</option>
@@ -464,20 +446,18 @@ export default function PaymentsPage() {
                 <option value="cash">Cash</option>
                 <option value="wire">Wire</option>
               </select>
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Late Fee ($)</label>
+          <FormField label="Late Fee ($)">
             <input type="number" min="0" step="0.01" className="input-base" placeholder="0" value={editForm.late_fee} onChange={e => setEditForm(f => ({ ...f, late_fee: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Notes</label>
+          </FormField>
+          <FormField label="Notes">
             <input type="text" className="input-base" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
-          </div>
+          </FormField>
           {editError && <p className="text-sm text-error">{editError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowEdit(false)} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={editSubmitting} className="btn-primary flex-1 h-11">{editSubmitting ? 'Saving...' : 'Save Changes'}</button>
+            <Button variant="secondary" type="button" onClick={() => setShowEdit(false)} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>

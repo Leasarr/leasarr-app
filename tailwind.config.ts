@@ -46,6 +46,16 @@ const config: Config = {
         'error-container': v('error-container'),
         'on-error-container': v('on-error-container'),
 
+        success: v('success'),
+        'on-success': v('on-success'),
+        'success-container': v('success-container'),
+        'on-success-container': v('on-success-container'),
+
+        warning: v('warning'),
+        'on-warning': v('on-warning'),
+        'warning-container': v('warning-container'),
+        'on-warning-container': v('on-warning-container'),
+
         background: v('background'),
         'on-background': v('on-background'),
         surface: v('surface'),

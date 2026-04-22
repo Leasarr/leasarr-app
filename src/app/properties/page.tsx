@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { StatusDot } from '@/components/ui/StatusDot'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { FormField } from '@/components/patterns/FormField'
 import { formatCurrency, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -243,12 +249,7 @@ export default function PropertiesPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">domain</span>
-            <p className="text-on-surface-variant mt-2">Loading properties...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading properties..." />
       </AppLayout>
     )
   }
@@ -256,16 +257,17 @@ export default function PropertiesPage() {
   if (!selected) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="w-20 h-20 bg-surface-container rounded-3xl flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-4xl text-outline">domain_add</span>
-          </div>
-          <h2 className="text-2xl font-headline font-bold text-on-surface">No properties yet</h2>
-          <p className="text-on-surface-variant mt-2">Add your first property to get started.</p>
-          <button onClick={() => setShowAddProperty(true)} className="btn-primary mt-6 px-8 h-12">
-            <span className="material-symbols-outlined">add</span> Add Property
-          </button>
-        </div>
+        <EmptyState
+          icon="domain_add"
+          title="No properties yet"
+          description="Add your first property to get started."
+          size="page"
+          action={
+            <Button onClick={() => setShowAddProperty(true)}>
+              <span className="material-symbols-outlined text-base">add</span> Add Property
+            </Button>
+          }
+        />
 
         <AddPropertyModal
           open={showAddProperty}
@@ -419,32 +421,15 @@ export default function PropertiesPage() {
               </div>
 
               {/* Tab Switcher */}
-              <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit mb-6">
-                <button
-                  onClick={() => setDetailTab('units')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all',
-                    detailTab === 'units'
-                      ? 'bg-surface-container-lowest text-primary shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  )}
-                >
-                  <span className="material-symbols-outlined text-base">apartment</span>
-                  Units
-                </button>
-                <button
-                  onClick={() => setDetailTab('applications')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all',
-                    detailTab === 'applications'
-                      ? 'bg-surface-container-lowest text-primary shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface'
-                  )}
-                >
-                  <span className="material-symbols-outlined text-base">assignment_ind</span>
-                  Applications
-                </button>
-              </div>
+              <SegmentedControl
+                options={[
+                  { key: 'units', label: 'Units', icon: 'apartment' },
+                  { key: 'applications', label: 'Applications', icon: 'assignment_ind' },
+                ]}
+                value={detailTab}
+                onChange={v => setDetailTab(v as 'units' | 'applications')}
+                className="w-fit mb-6"
+              />
 
               {/* Units Tab */}
               {detailTab === 'units' && (
@@ -460,13 +445,7 @@ export default function PropertiesPage() {
                     </button>
                   </div>
                   {selected.units.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-3xl text-outline">apartment</span>
-                      </div>
-                      <p className="font-bold text-on-surface">No units added yet</p>
-                      <p className="text-sm text-on-surface-variant mt-1">Add the first unit to this property.</p>
-                    </div>
+                    <EmptyState icon="apartment" title="No units added yet" description="Add the first unit to this property." size="inline" />
                   ) : (
                     <div className="space-y-2">
                       {selected.units.map(unit => (
@@ -494,10 +473,7 @@ export default function PropertiesPage() {
                             <div className="text-right">
                               <p className="font-bold text-on-surface text-sm">{formatCurrency(unit.rent_amount)}</p>
                               <span className="text-[10px] font-bold text-secondary flex items-center justify-end gap-1">
-                                <span className={cn(
-                                  'w-1.5 h-1.5 rounded-full',
-                                  unit.status === 'occupied' ? 'bg-emerald-500' : unit.status === 'maintenance' ? 'bg-amber-500' : 'bg-outline'
-                                )} />
+                                <StatusDot status={unit.status} />
                                 {unit.status === 'occupied' ? 'Occupied' : unit.status === 'maintenance' ? 'Maintenance' : 'Vacant'}
                               </span>
                             </div>
@@ -525,13 +501,7 @@ export default function PropertiesPage() {
                       New Application
                     </button>
                   </div>
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mb-4">
-                      <span className="material-symbols-outlined text-3xl text-outline">assignment_ind</span>
-                    </div>
-                    <p className="font-bold text-on-surface">No applications yet</p>
-                    <p className="text-sm text-on-surface-variant mt-1">Applications for this property will appear here.</p>
-                  </div>
+                  <EmptyState icon="assignment_ind" title="No applications yet" description="Applications for this property will appear here." size="inline" />
                 </div>
               )}
 
@@ -611,8 +581,8 @@ export default function PropertiesPage() {
           </div>
           {editUnitError && <p className="text-sm text-error">{editUnitError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowEditUnit(false)} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={editUnitSubmitting} className="btn-primary flex-1 h-11">{editUnitSubmitting ? 'Saving...' : 'Save Changes'}</button>
+            <Button type="button" variant="secondary" onClick={() => setShowEditUnit(false)} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={editUnitSubmitting} className="flex-1">{editUnitSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
@@ -625,8 +595,7 @@ export default function PropertiesPage() {
       >
         <form onSubmit={handleAddUnit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit Number</label>
+            <FormField label="Unit Number" className="col-span-2">
               <input
                 required
                 className="input-base"
@@ -634,9 +603,8 @@ export default function PropertiesPage() {
                 value={unitForm.unit_number}
                 onChange={e => setUnitForm(f => ({ ...f, unit_number: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Bedrooms</label>
+            </FormField>
+            <FormField label="Bedrooms">
               <input
                 required
                 type="number"
@@ -645,9 +613,8 @@ export default function PropertiesPage() {
                 value={unitForm.bedrooms}
                 onChange={e => setUnitForm(f => ({ ...f, bedrooms: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Bathrooms</label>
+            </FormField>
+            <FormField label="Bathrooms">
               <input
                 required
                 type="number"
@@ -657,9 +624,8 @@ export default function PropertiesPage() {
                 value={unitForm.bathrooms}
                 onChange={e => setUnitForm(f => ({ ...f, bathrooms: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Sqft <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Sqft" optional>
               <input
                 type="number"
                 min="0"
@@ -668,9 +634,8 @@ export default function PropertiesPage() {
                 value={unitForm.sqft}
                 onChange={e => setUnitForm(f => ({ ...f, sqft: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Monthly Rent ($)</label>
+            </FormField>
+            <FormField label="Monthly Rent ($)">
               <input
                 required
                 type="number"
@@ -681,9 +646,8 @@ export default function PropertiesPage() {
                 value={unitForm.rent_amount}
                 onChange={e => setUnitForm(f => ({ ...f, rent_amount: e.target.value }))}
               />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+            </FormField>
+            <FormField label="Status" className="col-span-2">
               <select
                 className="input-base"
                 value={unitForm.status}
@@ -693,16 +657,12 @@ export default function PropertiesPage() {
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
               </select>
-            </div>
+            </FormField>
           </div>
           {unitError && <p className="text-sm text-error">{unitError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => { setShowAddUnit(false); setUnitError('') }} className="btn-secondary flex-1 h-11">
-              Cancel
-            </button>
-            <button type="submit" disabled={unitSubmitting} className="btn-primary flex-1 h-11">
-              {unitSubmitting ? 'Adding...' : 'Add Unit'}
-            </button>
+            <Button type="button" variant="secondary" onClick={() => { setShowAddUnit(false); setUnitError('') }} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={unitSubmitting} className="flex-1">{unitSubmitting ? 'Adding...' : 'Add Unit'}</Button>
           </div>
         </form>
       </Modal>
@@ -730,8 +690,7 @@ function AddPropertyModal({
   return (
     <Modal open={open} onClose={onClose} title={title} size="lg">
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-on-surface mb-1.5">Property Name</label>
+        <FormField label="Property Name">
           <input
             required
             className="input-base"
@@ -739,9 +698,8 @@ function AddPropertyModal({
             value={form.name}
             onChange={e => onChange(f => ({ ...f, name: e.target.value }))}
           />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-on-surface mb-1.5">Street Address</label>
+        </FormField>
+        <FormField label="Street Address">
           <input
             required
             className="input-base"
@@ -749,10 +707,9 @@ function AddPropertyModal({
             value={form.address}
             onChange={e => onChange(f => ({ ...f, address: e.target.value }))}
           />
-        </div>
+        </FormField>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">City</label>
+          <FormField label="City">
             <input
               required
               className="input-base"
@@ -760,9 +717,8 @@ function AddPropertyModal({
               value={form.city}
               onChange={e => onChange(f => ({ ...f, city: e.target.value }))}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">State</label>
+          </FormField>
+          <FormField label="State">
             <input
               required
               className="input-base"
@@ -771,11 +727,10 @@ function AddPropertyModal({
               value={form.state}
               onChange={e => onChange(f => ({ ...f, state: e.target.value.toUpperCase() }))}
             />
-          </div>
+          </FormField>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">ZIP Code</label>
+          <FormField label="ZIP Code">
             <input
               required
               className="input-base"
@@ -783,9 +738,8 @@ function AddPropertyModal({
               value={form.zip}
               onChange={e => onChange(f => ({ ...f, zip: e.target.value }))}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Type</label>
+          </FormField>
+          <FormField label="Type">
             <select
               className="input-base"
               value={form.type}
@@ -796,25 +750,20 @@ function AddPropertyModal({
               <option value="condo">Condo</option>
               <option value="commercial">Commercial</option>
             </select>
-          </div>
+          </FormField>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-on-surface mb-1.5">Image URL <span className="text-on-surface-variant font-normal">(optional)</span></label>
+        <FormField label="Image URL" optional>
           <input
             className="input-base"
             placeholder="https://..."
             value={form.image_url}
             onChange={e => onChange(f => ({ ...f, image_url: e.target.value }))}
           />
-        </div>
+        </FormField>
         {error && <p className="text-sm text-error">{error}</p>}
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary flex-1 h-11">
-            Cancel
-          </button>
-          <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">
-            {submitting ? 'Saving...' : submitLabel}
-          </button>
+          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Saving...' : submitLabel}</Button>
         </div>
       </form>
     </Modal>

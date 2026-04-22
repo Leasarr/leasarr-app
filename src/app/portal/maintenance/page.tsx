@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatDate, getPriorityColor, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -117,12 +121,7 @@ export default function TenantMaintenancePage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">build</span>
-            <p className="text-on-surface-variant mt-2">Loading...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading..." />
       </AppLayout>
     )
   }
@@ -131,23 +130,24 @@ export default function TenantMaintenancePage() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
-            <p className="text-on-surface-variant mt-1 text-sm">Your repair requests</p>
-          </div>
-          <button onClick={() => { setShowForm(true); setFormError('') }} className="btn-primary h-11 px-5">
-            <span className="material-symbols-outlined">add</span> New Request
-          </button>
-        </div>
+        <PageHeader
+          title="Maintenance"
+          subtitle="Your repair requests"
+          action={
+            <Button onClick={() => { setShowForm(true); setFormError('') }} size="sm">
+              <span className="material-symbols-outlined text-base">add</span> New Request
+            </Button>
+          }
+        />
 
         {requests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-5xl mb-3">build</span>
-            <p className="font-bold text-on-surface text-lg">No requests yet</p>
-            <p className="text-sm mt-1">Submit a request and your manager will be notified.</p>
-            <button onClick={() => setShowForm(true)} className="btn-primary mt-4">Submit Request</button>
-          </div>
+          <EmptyState
+            icon="build"
+            title="No requests yet"
+            description="Submit a request and your manager will be notified."
+            size="page"
+            action={<Button onClick={() => setShowForm(true)} size="sm">Submit Request</Button>}
+          />
         ) : (
           <div className="space-y-3">
             {requests.map(req => (
@@ -219,8 +219,8 @@ export default function TenantMaintenancePage() {
           </div>
           {formError && <p className="text-sm text-error">{formError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Submitting...' : 'Submit Request'}</button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </form>
       </Modal>

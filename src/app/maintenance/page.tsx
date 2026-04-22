@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { FormField } from '@/components/patterns/FormField'
 import { formatDate, formatCurrency, getPriorityColor, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -201,12 +207,7 @@ export default function MaintenancePage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">build</span>
-            <p className="text-on-surface-variant mt-2">Loading maintenance requests...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading maintenance requests..." />
       </AppLayout>
     )
   }
@@ -221,26 +222,23 @@ export default function MaintenancePage() {
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Operations</p>
             <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Maintenance</h1>
           </div>
-          <div className="flex gap-3 items-center">
-            <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-xl">
-              <button
-                onClick={() => setView('active')}
-                className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-colors', view === 'active' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high')}
-              >Active</button>
-              <button
-                onClick={() => setView('history')}
-                className={cn('px-4 py-2 text-sm font-semibold rounded-lg transition-colors', view === 'history' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high')}
-              >History</button>
-            </div>
-          </div>
+          <SegmentedControl
+            options={[
+              { key: 'active', label: 'Active' },
+              { key: 'history', label: 'History' },
+            ]}
+            value={view}
+            onChange={v => setView(v as 'active' | 'history')}
+          />
         </div>
 
         {requests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-5xl mb-3">build</span>
-            <p className="font-bold text-on-surface text-lg">No maintenance requests yet</p>
-            <p className="text-sm mt-1">Requests submitted by tenants will appear here.</p>
-          </div>
+          <EmptyState
+            icon="build"
+            title="No maintenance requests yet"
+            description="Requests submitted by tenants will appear here."
+            size="panel"
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
@@ -374,24 +372,19 @@ export default function MaintenancePage() {
                             <span className="material-symbols-outlined text-sm">person_add</span>
                             {selected.assigned_to ? 'Reassign Vendor' : 'Assign Vendor'}
                           </button>
-                          {confirmDelete ? (
-                            <div className="flex items-center justify-between px-4 h-12 bg-error-container/30 rounded-xl border border-error/20">
-                              <span className="text-sm font-semibold text-error">Delete this request?</span>
-                              <div className="flex gap-3">
-                                <button onClick={handleDelete} disabled={deleting} className="text-sm font-bold text-error hover:underline">{deleting ? '...' : 'Yes'}</button>
-                                <button onClick={() => setConfirmDelete(false)} className="text-sm font-bold text-on-surface-variant hover:underline">No</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button onClick={() => setConfirmDelete(true)} className="w-full h-12 bg-surface-container text-error border border-error/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-error-container/20 transition-colors">
-                              <span className="material-symbols-outlined text-sm">delete</span>
-                              Delete Request
-                            </button>
-                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setConfirmDelete(true)}
+                            className="w-full text-error border border-error/20 hover:bg-error-container/20"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                            Delete Request
+                          </Button>
                           <button
                             onClick={handleMarkCompleted}
                             disabled={selected.status === 'completed'}
-                            className="w-full h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                            className="w-full h-12 bg-success-container/30 text-on-success-container border border-success-container rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-success-container/50 transition-colors disabled:opacity-50"
                           >
                             <span className="material-symbols-outlined text-sm">check_circle</span>
                             {selected.status === 'completed' ? 'Completed' : 'Mark Completed'}
@@ -410,11 +403,7 @@ export default function MaintenancePage() {
       {/* Assign Vendor Modal */}
       <Modal open={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Vendor" size="md">
         {vendors.length === 0 ? (
-          <div className="text-center py-10 text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl mb-2 block">handyman</span>
-            <p className="font-semibold text-on-surface">No vendors yet</p>
-            <p className="text-sm mt-1">Add vendors in the People page first.</p>
-          </div>
+          <EmptyState icon="handyman" title="No vendors yet" description="Add vendors in the People page first." size="inline" />
         ) : (
           <div className="space-y-2">
             {vendors.map(v => (
@@ -454,98 +443,95 @@ export default function MaintenancePage() {
         <span className="material-symbols-outlined text-3xl">add</span>
       </button>
 
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete Request"
+        body="This will permanently remove the maintenance request. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        loading={deleting}
+        destructive
+      />
+
       {/* Create Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-surface rounded-3xl w-full max-w-xl shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center">
-              <h3 className="text-2xl font-headline font-extrabold">New Request</h3>
-              <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div className="p-8 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Tenant</label>
-                <select
-                  className="input-base"
-                  value={form.tenant_id}
-                  onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))}
+      <Modal open={showModal} onClose={() => { setShowModal(false); setFormError('') }} title="New Request" size="lg">
+        <div className="space-y-5">
+          <FormField label="Tenant">
+            <select
+              className="input-base"
+              value={form.tenant_id}
+              onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))}
+            >
+              <option value="">Select tenant...</option>
+              {tenants.map(t => (
+                <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Title">
+            <input
+              className="input-base"
+              placeholder="e.g. Leaking kitchen faucet"
+              value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            />
+          </FormField>
+          <FormField label="Category">
+            <div className="flex flex-wrap gap-2">
+              {['plumbing', 'electrical', 'hvac', 'structural', 'appliance', 'other'].map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, category: cat }))}
+                  className={cn(
+                    'px-4 py-2 rounded-full border text-sm font-semibold capitalize transition-colors',
+                    form.category === cat
+                      ? 'border-primary bg-primary-fixed text-on-primary-fixed'
+                      : 'border-outline-variant/30 text-on-surface-variant hover:border-primary hover:bg-primary-fixed hover:text-on-primary-fixed'
+                  )}
                 >
-                  <option value="">Select tenant...</option>
-                  {tenants.map(t => (
-                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Title</label>
-                <input
-                  className="input-base"
-                  placeholder="e.g. Leaking kitchen faucet"
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Category</label>
-                <div className="flex flex-wrap gap-2">
-                  {['plumbing', 'electrical', 'hvac', 'structural', 'appliance', 'other'].map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, category: cat }))}
-                      className={cn(
-                        'px-4 py-2 rounded-full border text-sm font-semibold capitalize transition-colors',
-                        form.category === cat
-                          ? 'border-primary bg-primary-fixed text-on-primary-fixed'
-                          : 'border-outline-variant/30 text-on-surface-variant hover:border-primary hover:bg-primary-fixed hover:text-on-primary-fixed'
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Priority</label>
-                <div className="flex gap-2">
-                  {['low', 'medium', 'high', 'emergency'].map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, priority: p }))}
-                      className={cn(
-                        'flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition-colors',
-                        form.priority === p
-                          ? 'border-primary bg-primary-fixed text-on-primary-fixed'
-                          : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">Description</label>
-                <textarea
-                  className="input-base resize-none"
-                  placeholder="Describe the issue in detail..."
-                  rows={4}
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                />
-              </div>
-              {formError && <p className="text-sm text-error">{formError}</p>}
-              <div className="pt-2 flex gap-4">
-                <button onClick={() => { setShowModal(false); setFormError('') }} className="flex-1 h-14 bg-surface-container-high rounded-xl font-bold transition-colors hover:bg-surface-container-highest">Cancel</button>
-                <button onClick={handleSubmit} disabled={submitting} className="flex-[2] h-14 primary-gradient text-on-primary rounded-xl font-bold shadow-primary disabled:opacity-60">{submitting ? 'Submitting...' : 'Submit Request'}</button>
-              </div>
+                  {cat}
+                </button>
+              ))}
             </div>
+          </FormField>
+          <FormField label="Priority">
+            <div className="flex gap-2">
+              {['low', 'medium', 'high', 'emergency'].map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, priority: p }))}
+                  className={cn(
+                    'flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition-colors',
+                    form.priority === p
+                      ? 'border-primary bg-primary-fixed text-on-primary-fixed'
+                      : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </FormField>
+          <FormField label="Description">
+            <textarea
+              className="input-base resize-none"
+              placeholder="Describe the issue in detail..."
+              rows={4}
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            />
+          </FormField>
+          {formError && <p className="text-sm text-error">{formError}</p>}
+          <div className="pt-2 flex gap-4">
+            <Button type="button" variant="secondary" onClick={() => { setShowModal(false); setFormError('') }} className="flex-1">Cancel</Button>
+            <Button type="button" onClick={handleSubmit} disabled={submitting} className="flex-[2]">{submitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </div>
-      )}
+      </Modal>
     </AppLayout>
   )
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
 import { formatCurrency, formatDate, getInitials, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -84,12 +86,7 @@ export default function TenantPortalPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">home</span>
-            <p className="text-on-surface-variant mt-2">Loading your portal...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading your portal..." />
       </AppLayout>
     )
   }
@@ -97,13 +94,12 @@ export default function TenantPortalPage() {
   if (!tenant) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
-          <div className="w-20 h-20 bg-surface-container rounded-3xl flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-4xl text-outline">person_off</span>
-          </div>
-          <h2 className="text-2xl font-headline font-bold text-on-surface">No tenant record found</h2>
-          <p className="text-on-surface-variant mt-2 text-sm">Your account hasn't been linked to a tenant record yet. Contact your property manager.</p>
-        </div>
+        <EmptyState
+          icon="person_off"
+          title="No tenant record found"
+          description="Your account hasn't been linked to a tenant record yet. Contact your property manager."
+          size="page"
+        />
       </AppLayout>
     )
   }
@@ -121,7 +117,7 @@ export default function TenantPortalPage() {
         </section>
 
         {/* Balance Hero */}
-        <section className="relative overflow-hidden rounded-[2rem] p-8 text-white shadow-2xl" style={{ background: 'linear-gradient(135deg, #003d9b 0%, #0052cc 100%)' }}>
+        <section className="primary-gradient relative overflow-hidden rounded-[2rem] p-8 text-white shadow-2xl">
           <div className="relative z-10">
             <p className="text-white/80 font-medium text-sm mb-1">
               {balance === 0 ? 'All Paid Up' : isOverdue ? 'Overdue Balance' : 'Current Balance'}
@@ -221,7 +217,7 @@ export default function TenantPortalPage() {
                   <div className="text-right">
                     <p className="font-bold text-sm text-on-surface">{formatCurrency(tx.amount)}</p>
                     <span className={cn('badge',
-                      tx.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                      tx.status === 'paid' ? 'bg-success-container text-on-success-container' :
                       tx.status === 'overdue' ? 'bg-error-container text-error' :
                       'bg-surface-container-high text-on-surface-variant'
                     )}>

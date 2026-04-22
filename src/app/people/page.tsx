@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { TabBar } from '@/components/ui/TabBar'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { FormField } from '@/components/patterns/FormField'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -70,7 +75,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} className={cn('material-symbols-outlined text-sm', i <= Math.round(rating) ? 'material-symbols-filled text-amber-400' : 'text-outline-variant')}>star</span>
+        <span key={i} className={cn('material-symbols-outlined text-sm', i <= Math.round(rating) ? 'material-symbols-filled text-warning' : 'text-outline-variant')}>star</span>
       ))}
       <span className="text-xs font-bold text-on-surface ml-1">{rating}</span>
     </div>
@@ -356,32 +361,18 @@ export default function PeoplePage() {
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-4 mb-8 border-b border-outline-variant/30">
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => { setActiveTab(tab.key); setSearch('') }}
-              className={cn(
-                'py-3 text-sm font-bold transition-all border-b-2 -mb-px flex items-center justify-center gap-1.5 whitespace-nowrap',
-                activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
-              )}
-            >
-              {tab.label}
-              <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full', activeTab === tab.key ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant')}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
+        <TabBar
+          tabs={TABS}
+          value={activeTab}
+          onChange={key => { setActiveTab(key as PeopleTab); setSearch('') }}
+          className="mb-8"
+        />
 
         {/* ── ALL TAB ── */}
         {activeTab === 'all' && (
           <div className="space-y-3">
             {(authLoading || loading) ? (
-              <div className="text-center py-8">
-                <span className="material-symbols-outlined text-3xl text-primary animate-pulse">group</span>
-                <p className="text-on-surface-variant mt-2 text-sm">Loading...</p>
-              </div>
+              <LoadingState label="Loading..." size="panel" />
             ) : (
               <>
                 {filteredTenants.map(t => (
@@ -440,10 +431,11 @@ export default function PeoplePage() {
                   )
                 })}
                 {filteredTenants.length + filteredTeam.length + filteredVendors.length === 0 && (
-                  <div className="text-center py-16 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-4xl mb-2 block">search_off</span>
-                    <p className="font-semibold">{search ? `No results for "${search}"` : 'No people added yet'}</p>
-                  </div>
+                  <EmptyState
+                    icon={search ? 'search_off' : 'group_add'}
+                    title={search ? `No results for "${search}"` : 'No people added yet'}
+                    size="panel"
+                  />
                 )}
               </>
             )}
@@ -453,15 +445,14 @@ export default function PeoplePage() {
         {/* ── TENANTS TAB ── */}
         {activeTab === 'tenants' && (
           loading ? (
-            <div className="flex items-center justify-center min-h-[40vh]">
-              <span className="material-symbols-outlined text-3xl text-primary animate-pulse">group</span>
-            </div>
+            <LoadingState size="panel" />
           ) : filteredTenants.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
-              <span className="material-symbols-outlined text-5xl mb-3">group_add</span>
-              <p className="font-semibold">{search ? `No tenants match "${search}"` : 'No tenants yet'}</p>
-              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add First Tenant</button>}
-            </div>
+            <EmptyState
+              icon="group_add"
+              title={search ? `No tenants match "${search}"` : 'No tenants yet'}
+              size="panel"
+              action={!search ? <Button onClick={openAddPerson} size="sm">Add First Tenant</Button> : undefined}
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className={cn('lg:col-span-5 space-y-3', selectedTenant && 'hidden lg:block')}>
@@ -592,13 +583,14 @@ export default function PeoplePage() {
         {/* ── TEAM TAB ── */}
         {activeTab === 'team' && (
           loading ? (
-            <div className="flex items-center justify-center min-h-[40vh]"><span className="material-symbols-outlined text-3xl text-primary animate-pulse">group</span></div>
+            <LoadingState size="panel" />
           ) : filteredTeam.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
-              <span className="material-symbols-outlined text-5xl mb-3">badge</span>
-              <p className="font-semibold">{search ? `No team members match "${search}"` : 'No team members yet'}</p>
-              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add Team Member</button>}
-            </div>
+            <EmptyState
+              icon="badge"
+              title={search ? `No team members match "${search}"` : 'No team members yet'}
+              size="panel"
+              action={!search ? <Button onClick={openAddPerson} size="sm">Add Team Member</Button> : undefined}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredTeam.map(member => (
@@ -626,13 +618,14 @@ export default function PeoplePage() {
         {/* ── VENDORS TAB ── */}
         {activeTab === 'vendors' && (
           loading ? (
-            <div className="flex items-center justify-center min-h-[40vh]"><span className="material-symbols-outlined text-3xl text-primary animate-pulse">handyman</span></div>
+            <LoadingState size="panel" />
           ) : filteredVendors.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] text-on-surface-variant text-center">
-              <span className="material-symbols-outlined text-5xl mb-3">handyman</span>
-              <p className="font-semibold">{search ? `No vendors match "${search}"` : 'No vendors yet'}</p>
-              {!search && <button onClick={openAddPerson} className="btn-primary mt-4">Add Vendor</button>}
-            </div>
+            <EmptyState
+              icon="handyman"
+              title={search ? `No vendors match "${search}"` : 'No vendors yet'}
+              size="panel"
+              action={!search ? <Button onClick={openAddPerson} size="sm">Add Vendor</Button> : undefined}
+            />
           ) : (
             <div className="space-y-4">
               {filteredVendors.map(vendor => {
@@ -669,32 +662,26 @@ export default function PeoplePage() {
       <Modal open={showEditTenant} onClose={() => setShowEditTenant(false)} title="Edit Tenant" size="md">
         <form onSubmit={handleEditTenant} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">First Name</label>
+            <FormField label="First Name">
               <input required className="input-base" value={editForm.first_name} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Last Name</label>
+            </FormField>
+            <FormField label="Last Name">
               <input required className="input-base" value={editForm.last_name} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+          <FormField label="Email">
             <input required type="email" className="input-base" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone</label>
+          </FormField>
+          <FormField label="Phone">
             <input className="input-base" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Property</label>
+          </FormField>
+          <FormField label="Property">
             <select className="input-base" value={editForm.property_id} onChange={e => setEditForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}>
               <option value="">— None —</option>
               {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit</label>
+          </FormField>
+          <FormField label="Unit">
             <select className="input-base" value={editForm.unit_id} onChange={e => {
               const unit = editUnits.find(u => u.id === e.target.value)
               setEditForm(f => ({ ...f, unit_id: e.target.value, property_id: unit?.property_id ?? f.property_id }))
@@ -704,26 +691,24 @@ export default function PeoplePage() {
                 <option key={u.id} value={u.id}>Unit {u.unit_number}{u.id === selectedTenant?.unit_id ? ' (current)' : ''}</option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Assign Team Member</label>
+          </FormField>
+          <FormField label="Assign Team Member">
             <select className="input-base" value={editForm.team_member_id} onChange={e => setEditForm(f => ({ ...f, team_member_id: e.target.value }))}>
               <option value="">— None —</option>
               {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+          </FormField>
+          <FormField label="Status">
             <select className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as TenantRow['status'] }))}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="pending">Pending</option>
             </select>
-          </div>
+          </FormField>
           {editError && <p className="text-sm text-error">{editError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowEditTenant(false)} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={editSubmitting} className="btn-primary flex-1 h-11">{editSubmitting ? 'Saving...' : 'Save Changes'}</button>
+            <Button type="button" variant="secondary" onClick={() => setShowEditTenant(false)} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
@@ -765,29 +750,23 @@ export default function PeoplePage() {
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">First Name</label>
+              <FormField label="First Name">
                 <input required className="input-base" placeholder="Jane" value={tenantForm.first_name} onChange={e => setTenantForm(f => ({ ...f, first_name: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Last Name</label>
+              </FormField>
+              <FormField label="Last Name">
                 <input required className="input-base" placeholder="Smith" value={tenantForm.last_name} onChange={e => setTenantForm(f => ({ ...f, last_name: e.target.value }))} />
-              </div>
+              </FormField>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+            <FormField label="Email">
               <input required type="email" className="input-base" placeholder="jane@email.com" value={tenantForm.email} onChange={e => setTenantForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone</label>
+            </FormField>
+            <FormField label="Phone">
               <input className="input-base" placeholder="+1 (555) 000-0000" value={tenantForm.phone} onChange={e => setTenantForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Move-in Date <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Move-in Date" optional>
               <input type="date" className="input-base" value={tenantForm.move_in_date} onChange={e => setTenantForm(f => ({ ...f, move_in_date: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Property <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Property" optional hint={properties.length === 0 ? 'No properties yet. Add a property first.' : undefined}>
               <select
                 className="input-base"
                 value={tenantForm.property_id}
@@ -796,10 +775,12 @@ export default function PeoplePage() {
                 <option value="">— Select property —</option>
                 {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              {properties.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No properties yet. Add a property first.</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField
+              label="Unit"
+              optional
+              hint={tenantForm.property_id && vacantUnits.filter(u => u.property_id === tenantForm.property_id).length === 0 ? 'No vacant units in this property.' : undefined}
+            >
               <select
                 className="input-base"
                 value={tenantForm.unit_id}
@@ -813,22 +794,17 @@ export default function PeoplePage() {
                   .filter(u => !tenantForm.property_id || u.property_id === tenantForm.property_id)
                   .map(u => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
               </select>
-              {tenantForm.property_id && vacantUnits.filter(u => u.property_id === tenantForm.property_id).length === 0 && (
-                <p className="text-xs text-on-surface-variant mt-1">No vacant units in this property.</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Assign Team Member <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Assign Team Member" optional hint={teamMembers.length === 0 ? 'No team members yet. Add a team member first.' : undefined}>
               <select className="input-base" value={tenantForm.team_member_id} onChange={e => setTenantForm(f => ({ ...f, team_member_id: e.target.value }))}>
                 <option value="">— None —</option>
                 {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
               </select>
-              {teamMembers.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No team members yet. Add a team member first.</p>}
-            </div>
+            </FormField>
             {formError && <p className="text-sm text-error">{formError}</p>}
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Tenant'}</button>
+              <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
+              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Tenant'}</Button>
             </div>
           </form>
         )}
@@ -839,26 +815,22 @@ export default function PeoplePage() {
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Full Name</label>
+            <FormField label="Full Name">
               <input required className="input-base" placeholder="Alex Johnson" value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Role</label>
+            </FormField>
+            <FormField label="Role">
               <input required className="input-base" placeholder="e.g. Property Manager, Leasing Agent" value={teamForm.role} onChange={e => setTeamForm(f => ({ ...f, role: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+            </FormField>
+            <FormField label="Email">
               <input required type="email" className="input-base" placeholder="alex@yourcompany.com" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Phone" optional>
               <input className="input-base" placeholder="+1 (555) 000-0000" value={teamForm.phone} onChange={e => setTeamForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
+            </FormField>
             {formError && <p className="text-sm text-error">{formError}</p>}
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Team Member'}</button>
+              <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
+              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Team Member'}</Button>
             </div>
           </form>
         )}
@@ -869,16 +841,13 @@ export default function PeoplePage() {
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Contact Name</label>
+            <FormField label="Contact Name">
               <input required className="input-base" placeholder="Mike Torres" value={vendorForm.name} onChange={e => setVendorForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Company</label>
+            </FormField>
+            <FormField label="Company">
               <input required className="input-base" placeholder="Torres HVAC & Plumbing" value={vendorForm.company} onChange={e => setVendorForm(f => ({ ...f, company: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Specialty</label>
+            </FormField>
+            <FormField label="Specialty">
               <select className="input-base" value={vendorForm.specialty} onChange={e => setVendorForm(f => ({ ...f, specialty: e.target.value as VendorRow['specialty'] }))}>
                 <option value="plumbing">Plumbing</option>
                 <option value="electrical">Electrical</option>
@@ -887,19 +856,17 @@ export default function PeoplePage() {
                 <option value="general">General</option>
                 <option value="cleaning">Cleaning</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Email</label>
+            </FormField>
+            <FormField label="Email">
               <input required type="email" className="input-base" placeholder="mike@company.com" value={vendorForm.email} onChange={e => setVendorForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Phone <span className="text-on-surface-variant font-normal">(optional)</span></label>
+            </FormField>
+            <FormField label="Phone" optional>
               <input className="input-base" placeholder="+1 (555) 000-0000" value={vendorForm.phone} onChange={e => setVendorForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
+            </FormField>
             {formError && <p className="text-sm text-error">{formError}</p>}
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={closeModal} className="btn-secondary flex-1 h-11">Cancel</button>
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Adding...' : 'Add Vendor'}</button>
+              <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
+              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Vendor'}</Button>
             </div>
           </form>
         )}

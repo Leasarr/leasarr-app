@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { FormField } from '@/components/patterns/FormField'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -219,12 +224,7 @@ export default function LeasesPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">description</span>
-            <p className="text-on-surface-variant mt-2">Loading leases...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading leases..." />
       </AppLayout>
     )
   }
@@ -233,22 +233,22 @@ export default function LeasesPage() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
 
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Lease Management</h1>
-            <p className="text-sm text-on-surface-variant font-medium">Review expiring contracts and renewal insights.</p>
-          </div>
-          <button onClick={openCreate} className="btn-primary h-12 px-6 w-fit">
-            <span className="material-symbols-outlined">add</span> New Lease
-          </button>
-        </div>
+        <PageHeader
+          title="Lease Management"
+          subtitle="Review expiring contracts and renewal insights."
+          action={
+            <Button onClick={openCreate} className="px-6 w-fit">
+              <span className="material-symbols-outlined">add</span> New Lease
+            </Button>
+          }
+        />
 
         {leases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-5xl mb-3">description</span>
-            <p className="font-bold text-on-surface text-lg">No leases yet</p>
-            <p className="text-sm mt-1">Active and expired leases will appear here.</p>
-          </div>
+          <EmptyState
+            icon="description"
+            title="No leases yet"
+            description="Active and expired leases will appear here."
+          />
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
@@ -345,47 +345,42 @@ export default function LeasesPage() {
               <p className="text-xs text-on-surface-variant mt-0.5">Started {formatDate(editingLease.start_date)}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">End Date</label>
+            <FormField label="End Date">
               <input required type="date" className="input-base" value={editForm.end_date} onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))} />
-            </div>
+            </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Monthly Rent ($)</label>
+              <FormField label="Monthly Rent ($)">
                 <input required type="number" min="0" step="0.01" className="input-base" value={editForm.rent_amount} onChange={e => setEditForm(f => ({ ...f, rent_amount: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Security Deposit ($)</label>
+              </FormField>
+              <FormField label="Security Deposit ($)">
                 <input required type="number" min="0" step="0.01" className="input-base" value={editForm.security_deposit} onChange={e => setEditForm(f => ({ ...f, security_deposit: e.target.value }))} />
-              </div>
+              </FormField>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Status</label>
+              <FormField label="Status">
                 <select required className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="expired">Expired</option>
                   <option value="terminated">Terminated</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Renewal Status</label>
+              </FormField>
+              <FormField label="Renewal Status">
                 <select className="input-base" value={editForm.renewal_status} onChange={e => setEditForm(f => ({ ...f, renewal_status: e.target.value }))}>
                   <option value="">— None —</option>
                   <option value="offered">Offered</option>
                   <option value="accepted">Accepted</option>
                   <option value="declined">Declined</option>
                 </select>
-              </div>
+              </FormField>
             </div>
 
             {editError && <p className="text-sm text-error">{editError}</p>}
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={closeEdit} className="btn-secondary flex-1 h-11">Cancel</button>
-              <button type="submit" disabled={editSubmitting} className="btn-primary flex-1 h-11">{editSubmitting ? 'Saving...' : 'Save Changes'}</button>
+              <Button variant="secondary" type="button" onClick={closeEdit} className="flex-1">Cancel</Button>
+              <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </form>
         )}
@@ -393,25 +388,21 @@ export default function LeasesPage() {
 
       <Modal open={showCreate} onClose={closeCreate} title="Create Lease" size="md">
         <form onSubmit={handleCreateLease} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Tenant</label>
+          <FormField label="Tenant" hint={tenantOptions.length === 0 ? 'No active tenants. Add a tenant first.' : undefined}>
             <select required className="input-base" value={form.tenant_id} onChange={e => handleTenantChange(e.target.value)}>
               <option value="">— Select tenant —</option>
               {filteredTenants.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
             </select>
-            {tenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No active tenants. Add a tenant first.</p>}
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Property</label>
+          <FormField label="Property">
             <select required className="input-base" value={form.property_id} onChange={e => handlePropertyChange(e.target.value)}>
               <option value="">— Select property —</option>
               {filteredProperties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1.5">Unit</label>
+          <FormField label="Unit" hint={form.property_id && filteredUnits.length === 0 ? 'No units in this property.' : undefined}>
             <select
               required
               className="input-base"
@@ -424,35 +415,30 @@ export default function LeasesPage() {
                 <option key={u.id} value={u.id}>Unit {u.unit_number} {u.status !== 'vacant' ? `(${u.status})` : ''}</option>
               ))}
             </select>
-            {form.property_id && filteredUnits.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No units in this property.</p>}
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Start Date</label>
+            <FormField label="Start Date">
               <input required type="date" className="input-base" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">End Date</label>
+            </FormField>
+            <FormField label="End Date">
               <input required type="date" className="input-base" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
-            </div>
+            </FormField>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Monthly Rent ($)</label>
+            <FormField label="Monthly Rent ($)">
               <input required type="number" min="0" step="0.01" className="input-base" placeholder="2500" value={form.rent_amount} onChange={e => setForm(f => ({ ...f, rent_amount: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-1.5">Security Deposit ($)</label>
+            </FormField>
+            <FormField label="Security Deposit ($)">
               <input required type="number" min="0" step="0.01" className="input-base" placeholder="5000" value={form.security_deposit} onChange={e => setForm(f => ({ ...f, security_deposit: e.target.value }))} />
-            </div>
+            </FormField>
           </div>
 
           {formError && <p className="text-sm text-error">{formError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={closeCreate} className="btn-secondary flex-1 h-11">Cancel</button>
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 h-11">{submitting ? 'Creating...' : 'Create Lease'}</button>
+            <Button variant="secondary" type="button" onClick={closeCreate} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Creating...' : 'Create Lease'}</Button>
           </div>
         </form>
       </Modal>

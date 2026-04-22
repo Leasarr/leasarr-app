@@ -1,12 +1,41 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { REPORT_DATA } from '@/data/mock'
 import { formatCurrency, cn } from '@/lib/utils'
+import { useTheme } from '@/context/ThemeContext'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function ReportsPage() {
   const data = REPORT_DATA
+  const { theme } = useTheme()
+
+  const [chartColors, setChartColors] = useState({
+    primary: '#003d9b',
+    primaryContainer: '#0052cc',
+    primaryFixed: '#dae2ff',
+    outlineVariant: '#c3c6d6',
+    onSurfaceVariant: '#434654',
+    surfaceContainerLowest: '#ffffff',
+    successContainer: '#d1fae5',
+    onSuccessContainer: '#047857',
+  })
+
+  useEffect(() => {
+    const s = getComputedStyle(document.documentElement)
+    const rgb = (name: string) => `rgb(${s.getPropertyValue(`--color-${name}`).trim()})`
+    setChartColors({
+      primary: rgb('primary'),
+      primaryContainer: rgb('primary-container'),
+      primaryFixed: rgb('primary-fixed'),
+      outlineVariant: rgb('outline-variant'),
+      onSurfaceVariant: rgb('on-surface-variant'),
+      surfaceContainerLowest: rgb('surface-container-lowest'),
+      successContainer: rgb('success-container'),
+      onSuccessContainer: rgb('on-success-container'),
+    })
+  }, [theme])
 
   return (
     <AppLayout>
@@ -31,7 +60,7 @@ export default function ReportsPage() {
               <div className="text-4xl font-headline font-extrabold text-primary mt-1">{formatCurrency(data.monthly_income)}</div>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className="badge bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span className="badge bg-success-container text-on-success-container flex items-center gap-1">
                 <span className="material-symbols-outlined text-xs">trending_up</span>
                 +{data.income_growth}%
               </span>
@@ -43,11 +72,11 @@ export default function ReportsPage() {
                 <AreaChart data={data.monthly_trend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#003d9b" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#003d9b" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="income" stroke="#003d9b" strokeWidth={2} fill="url(#incomeGrad)" dot={false}/>
+                  <Area type="monotone" dataKey="income" stroke={chartColors.primary} strokeWidth={2} fill="url(#incomeGrad)" dot={false}/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -76,7 +105,7 @@ export default function ReportsPage() {
           <div className="bg-surface-container-low p-5 rounded-xl flex flex-col gap-2 shadow-card">
             <span className="text-[10px] font-bold text-outline uppercase tracking-wider">Net Operating Income</span>
             <div className="text-2xl font-bold font-headline text-on-surface">{formatCurrency(data.net_operating_income)}</div>
-            <span className="text-[10px] text-emerald-600 font-semibold">After {formatCurrency(data.maintenance_costs)} expenses</span>
+            <span className="text-[10px] text-on-success-container font-semibold">After {formatCurrency(data.maintenance_costs)} expenses</span>
           </div>
 
           {/* Vacancy */}
@@ -94,15 +123,15 @@ export default function ReportsPage() {
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.monthly_trend} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e1e3e4" vertical={false}/>
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#737685' }} axisLine={false} tickLine={false}/>
-                  <YAxis tick={{ fontSize: 11, fill: '#737685' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`}/>
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.outlineVariant} vertical={false}/>
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: chartColors.onSurfaceVariant }} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{ fontSize: 11, fill: chartColors.onSurfaceVariant }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`}/>
                   <Tooltip
-                    contentStyle={{ background: '#fff', border: '1px solid #e1e3e4', borderRadius: 12, fontSize: 12 }}
+                    contentStyle={{ background: chartColors.surfaceContainerLowest, border: `1px solid ${chartColors.outlineVariant}`, borderRadius: 12, fontSize: 12 }}
                     formatter={(val: number) => [formatCurrency(val), '']}
                   />
-                  <Bar dataKey="income" fill="#003d9b" radius={[4,4,0,0]} name="Revenue"/>
-                  <Bar dataKey="expenses" fill="#dae2ff" radius={[4,4,0,0]} name="Expenses"/>
+                  <Bar dataKey="income" fill={chartColors.primary} radius={[4,4,0,0]} name="Revenue"/>
+                  <Bar dataKey="expenses" fill={chartColors.primaryFixed} radius={[4,4,0,0]} name="Expenses"/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -126,16 +155,18 @@ export default function ReportsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={data.revenue_by_property} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="amount" paddingAngle={2}>
-                      {data.revenue_by_property.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
+                      {data.revenue_by_property.map((_entry, i) => {
+                        const pieColors = [chartColors.primary, chartColors.primaryContainer, chartColors.primaryFixed]
+                        return <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                      })}
                     </Pie>
                     <Tooltip formatter={(val: number) => [formatCurrency(val), '']} contentStyle={{ borderRadius: 8, fontSize: 12 }}/>
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex-1 space-y-3 w-full">
-                {data.revenue_by_property.map(p => {
+                {data.revenue_by_property.map((p, i) => {
+                  const pieColors = [chartColors.primary, chartColors.primaryContainer, chartColors.primaryFixed]
                   const total = data.revenue_by_property.reduce((s, x) => s + x.amount, 0)
                   const pct = Math.round((p.amount / total) * 100)
                   return (
@@ -145,7 +176,7 @@ export default function ReportsPage() {
                         <span className="font-bold text-on-surface">{formatCurrency(p.amount)}</span>
                       </div>
                       <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: p.color }} />
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pieColors[i % pieColors.length] }} />
                       </div>
                       <span className="text-[10px] text-on-surface-variant">{pct}% of total</span>
                     </div>

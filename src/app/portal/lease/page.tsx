@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -52,12 +55,7 @@ export default function TenantLeasePage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">description</span>
-            <p className="text-on-surface-variant mt-2">Loading...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading..." />
       </AppLayout>
     )
   }
@@ -66,15 +64,13 @@ export default function TenantLeasePage() {
     return (
       <AppLayout>
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
-            <p className="text-on-surface-variant mt-1 text-sm">Your lease details</p>
-          </div>
-          <div className="flex flex-col items-center justify-center py-20 text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-5xl mb-3">description</span>
-            <p className="font-bold text-on-surface text-lg">No active lease</p>
-            <p className="text-sm mt-1">Contact your property manager for lease details.</p>
-          </div>
+          <PageHeader title="Lease" subtitle="Your lease details" />
+          <EmptyState
+            icon="description"
+            title="No active lease"
+            description="Contact your property manager for lease details."
+            size="page"
+          />
         </div>
       </AppLayout>
     )
@@ -87,10 +83,7 @@ export default function TenantLeasePage() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
 
-        <div>
-          <h1 className="text-2xl md:text-3xl font-headline font-extrabold text-on-surface tracking-tight">Lease</h1>
-          <p className="text-on-surface-variant mt-1 text-sm">Your lease details</p>
-        </div>
+        <PageHeader title="Lease" subtitle="Your lease details" />
 
         {/* Property header */}
         <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-card">
@@ -102,7 +95,7 @@ export default function TenantLeasePage() {
               <p className="font-bold text-on-surface">{lease.property?.name ?? 'Property'}</p>
               {lease.unit && <p className="text-sm text-on-surface-variant">Unit {lease.unit.unit_number}</p>}
             </div>
-            <span className="ml-auto badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">Active</span>
+            <span className="ml-auto badge bg-success-container text-on-success-container">Active</span>
           </div>
 
           {isExpiringSoon && (

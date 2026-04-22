@@ -31,10 +31,10 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3 mt-2">
               <a
-                href="https://twitter.com/leasarr"
+                href="https://x.com/leasarr"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Twitter"
+                aria-label="X (formerly Twitter)"
                 className="text-white/40 hover:text-primary transition-colors"
               >
                 <span className="material-symbols-outlined text-xl">alternate_email</span>

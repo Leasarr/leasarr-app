@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -157,12 +160,7 @@ export default function TenantsPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">group</span>
-            <p className="text-on-surface-variant mt-2">Loading tenants...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading tenants..." />
       </AppLayout>
     )
   }
@@ -196,13 +194,12 @@ export default function TenantsPage() {
         </div>
 
         {tenants.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-            <div className="w-20 h-20 bg-surface-container rounded-3xl flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-4xl text-outline">group_add</span>
-            </div>
-            <h2 className="text-2xl font-headline font-bold text-on-surface">No tenants yet</h2>
-            <p className="text-on-surface-variant mt-2">Add your first tenant to get started.</p>
-          </div>
+          <EmptyState
+            icon="group_add"
+            title="No tenants yet"
+            description="Add your first tenant to get started."
+            size="panel"
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
@@ -452,12 +449,8 @@ export default function TenantsPage() {
           </div>
           {tenantError && <p className="text-sm text-error">{tenantError}</p>}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => { setShowAddTenant(false); setTenantError('') }} className="btn-secondary flex-1 h-11">
-              Cancel
-            </button>
-            <button type="submit" disabled={tenantSubmitting} className="btn-primary flex-1 h-11">
-              {tenantSubmitting ? 'Adding...' : 'Add Tenant'}
-            </button>
+            <Button type="button" variant="secondary" onClick={() => { setShowAddTenant(false); setTenantError('') }} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={tenantSubmitting} className="flex-1">{tenantSubmitting ? 'Adding...' : 'Add Tenant'}</Button>
           </div>
         </form>
       </Modal>

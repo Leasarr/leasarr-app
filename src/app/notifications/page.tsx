@@ -3,9 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppLayout from '@/components/layout/AppLayout'
+import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { formatRelative, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { NOTIFICATION_TYPE_META } from '@/lib/notificationMeta'
 
 type NotificationRow = {
   id: string
@@ -16,14 +21,8 @@ type NotificationRow = {
   created_at: string
 }
 
-const TYPE_META: Record<string, { icon: string; iconBg: string; iconColor: string; label: string; href: string }> = {
-  maintenance: { icon: 'build', iconBg: 'bg-tertiary-container/20', iconColor: 'text-tertiary', label: 'Maintenance', href: '/maintenance' },
-  payment: { icon: 'payments', iconBg: 'bg-primary-container/20', iconColor: 'text-primary', label: 'Payments', href: '/payments' },
-  lease: { icon: 'description', iconBg: 'bg-error-container/20', iconColor: 'text-error', label: 'Leases', href: '/leases' },
-}
-
 function NotificationItem({ n, onSelect, onDelete }: { n: NotificationRow; onSelect: () => void; onDelete: () => void }) {
-  const meta = TYPE_META[n.type] ?? TYPE_META.maintenance
+  const meta = NOTIFICATION_TYPE_META[n.type] ?? NOTIFICATION_TYPE_META.maintenance
   return (
     <div className="group relative">
       <button
@@ -109,8 +108,8 @@ export default function NotificationsPage() {
       await supabase.from('notifications').update({ read: true }).eq('id', n.id)
       setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
     }
-    const meta = TYPE_META[n.type] ?? TYPE_META.maintenance
-    router.push(meta.href)
+    const meta = NOTIFICATION_TYPE_META[n.type] ?? NOTIFICATION_TYPE_META.maintenance
+    router.push(meta.managerHref)
   }
 
   async function handleDelete(id: string) {
@@ -137,12 +136,7 @@ export default function NotificationsPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">notifications</span>
-            <p className="text-on-surface-variant mt-2">Loading...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading notifications..." />
       </AppLayout>
     )
   }
@@ -159,31 +153,30 @@ export default function NotificationsPage() {
     <AppLayout>
       <div className="max-w-3xl mx-auto px-4 md:px-8 py-8">
 
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-1">Activity</p>
-            <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">Notifications</h1>
-          </div>
-          {notifications.length > 0 && (
+        <PageHeader
+          title="Notifications"
+          eyebrow="Activity"
+          action={notifications.length > 0 ? (
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
-                <button onClick={handleMarkAllRead} className="btn-secondary h-10 px-4 text-sm">
+                <Button variant="secondary" size="sm" onClick={handleMarkAllRead} className="text-sm">
                   Mark all as read
-                </button>
+                </Button>
               )}
-              <button onClick={handleClearAll} className="btn-secondary h-10 px-4 text-sm text-error hover:bg-error-container/20">
+              <Button variant="secondary" size="sm" onClick={handleClearAll} className="text-sm text-error hover:bg-error-container/20">
                 Clear all
-              </button>
+              </Button>
             </div>
-          )}
-        </div>
+          ) : undefined}
+        />
 
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-5xl mb-3">notifications_none</span>
-            <p className="font-bold text-on-surface text-lg">No notifications yet</p>
-            <p className="text-sm mt-1">Activity from tenants and requests will appear here.</p>
-          </div>
+          <EmptyState
+            icon="notifications_none"
+            title="No notifications yet"
+            description="Activity from tenants and requests will appear here."
+            size="page"
+          />
         ) : (
           <div className="flex flex-col gap-6">
             {unread.length > 0 && (

@@ -157,7 +157,7 @@ export default function CommunicationPage() {
                           {getInitials(`${tenant?.first_name} ${tenant?.last_name}`)}
                         </div>
                         {hasUnread && (
-                          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full" />
+                          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-success border-2 border-surface rounded-full" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -226,7 +226,7 @@ export default function CommunicationPage() {
                     <div>
                       <h2 className="text-sm font-bold text-on-surface">{tenant?.first_name} {tenant?.last_name}</h2>
                       <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        <span className="w-1.5 h-1.5 bg-success rounded-full" />
                         <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Active Now</span>
                       </div>
                     </div>

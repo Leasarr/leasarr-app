@@ -45,6 +45,16 @@
     --color-error-container: 255 218 214;
     --color-on-error-container: 147 0 10;
 
+    --color-success: 5 150 105;
+    --color-on-success: 255 255 255;
+    --color-success-container: 209 250 229;
+    --color-on-success-container: 4 120 87;
+
+    --color-warning: 217 119 6;
+    --color-on-warning: 255 255 255;
+    --color-warning-container: 255 239 194;
+    --color-on-warning-container: 122 92 0;
+
     --color-background: 248 249 250;
     --color-on-background: 25 28 29;
     --color-surface: 248 249 250;
@@ -104,6 +114,16 @@
     --color-on-error: 105 0 5;
     --color-error-container: 147 0 10;
     --color-on-error-container: 255 218 214;
+
+    --color-success: 110 231 183;
+    --color-on-success: 0 64 46;
+    --color-success-container: 0 56 38;
+    --color-on-success-container: 110 231 183;
+
+    --color-warning: 251 191 36;
+    --color-on-warning: 62 44 0;
+    --color-warning-container: 92 66 0;
+    --color-on-warning-container: 251 191 36;
 
     --color-background: 17 19 24;
     --color-on-background: 226 226 233;
@@ -190,6 +210,10 @@
     @apply hover:bg-surface-container-lowest hover:shadow-card transition-all duration-200 cursor-pointer;
   }
 
+  .label-base {
+    @apply block text-sm font-semibold text-on-surface mb-1.5;
+  }
+
   .input-base {
     @apply w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm text-on-surface
            placeholder:text-outline focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest
@@ -197,12 +221,12 @@
   }
 
   .btn-primary {
-    @apply primary-gradient text-on-primary font-bold rounded-xl px-6 py-3 text-sm
+    @apply primary-gradient text-on-primary font-bold rounded-xl px-6 py-3 text-sm min-h-[44px]
            shadow-primary active:scale-95 transition-all duration-150 flex items-center gap-2 justify-center;
   }
 
   .btn-secondary {
-    @apply bg-surface-container-high text-on-surface font-semibold rounded-xl px-6 py-3 text-sm
+    @apply bg-surface-container-high text-on-surface font-semibold rounded-xl px-6 py-3 text-sm min-h-[44px]
            hover:bg-surface-container-highest transition-colors duration-150 flex items-center gap-2 justify-center;
   }
 

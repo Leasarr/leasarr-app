@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
 import ProfileSettingsModal from '@/components/profile/ProfileSettingsModal'
+import { NOTIFICATION_TYPE_META } from '@/lib/notificationMeta'
 
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light' },
@@ -23,12 +24,6 @@ type NotificationRow = {
   body: string
   read: boolean
   created_at: string
-}
-
-const TYPE_META: Record<string, { icon: string; iconBg: string; iconColor: string }> = {
-  maintenance: { icon: 'build', iconBg: 'bg-tertiary-container/20', iconColor: 'text-tertiary' },
-  payment: { icon: 'payments', iconBg: 'bg-primary-container/20', iconColor: 'text-primary' },
-  lease: { icon: 'description', iconBg: 'bg-error-container/20', iconColor: 'text-error' },
 }
 
 type NotificationContentProps = {
@@ -59,7 +54,7 @@ function NotificationContent({ notifications, onMarkAllRead, allHref }: Notifica
       ) : (
         <div className="divide-y divide-outline-variant/10 max-h-96 overflow-y-auto no-scrollbar">
           {unread.map(n => {
-            const meta = TYPE_META[n.type] ?? TYPE_META.maintenance
+            const meta = NOTIFICATION_TYPE_META[n.type] ?? NOTIFICATION_TYPE_META.maintenance
             return (
               <DropdownMenu.Item
                 key={n.id}

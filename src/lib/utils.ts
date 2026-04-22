@@ -36,22 +36,22 @@ export function getInitials(name: string): string {
 
 export function getStatusColor(status: string): string {
   const map: Record<string, string> = {
-    paid: 'bg-emerald-100 text-emerald-700',
+    paid: 'bg-success-container text-on-success-container',
     active: 'bg-secondary-container text-on-secondary-container',
-    completed: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-[#ffefc2] text-[#7a5c00]',
+    completed: 'bg-success-container text-on-success-container',
+    pending: 'bg-warning-container text-on-warning-container',
     in_progress: 'bg-primary-fixed text-on-primary-fixed',
-    partial: 'bg-[#ffefc2] text-[#7a5c00]',
+    partial: 'bg-warning-container text-on-warning-container',
     overdue: 'bg-error-container text-on-error-container',
     expired: 'bg-error-container text-on-error-container',
     failed: 'bg-error-container text-on-error-container',
-    open: 'bg-[#ffefc2] text-[#7a5c00]',
-    vacant: 'bg-[#ffefc2] text-[#7a5c00]',
-    occupied: 'bg-emerald-100 text-emerald-700',
+    open: 'bg-warning-container text-on-warning-container',
+    vacant: 'bg-warning-container text-on-warning-container',
+    occupied: 'bg-success-container text-on-success-container',
     maintenance: 'bg-error-container text-on-error-container',
     inactive: 'bg-surface-container-high text-on-surface-variant',
-    current: 'bg-emerald-100 text-emerald-700',
-    notice: 'bg-[#ffdbcf] text-[#7b2600]',
+    current: 'bg-success-container text-on-success-container',
+    notice: 'bg-tertiary-fixed text-on-tertiary-fixed-variant',
     late: 'bg-error-container text-on-error-container',
   }
   return map[status] ?? 'bg-surface-container-high text-on-surface-variant'
@@ -59,8 +59,8 @@ export function getStatusColor(status: string): string {
 
 export function getPriorityColor(priority: string): string {
   const map: Record<string, string> = {
-    low: 'bg-emerald-100 text-emerald-700',
-    medium: 'bg-[#ffefc2] text-[#7a5c00]',
+    low: 'bg-success-container text-on-success-container',
+    medium: 'bg-warning-container text-on-warning-container',
     high: 'bg-error-container text-on-error-container',
     emergency: 'bg-error text-on-error',
   }
@@ -71,8 +71,8 @@ export function getPriorityBorderColor(priority: string): string {
   const map: Record<string, string> = {
     emergency: 'border-l-error',
     high: 'border-l-error',
-    medium: 'border-l-[#7a5c00]',
-    low: 'border-l-emerald-500',
+    medium: 'border-l-on-warning-container',
+    low: 'border-l-success',
   }
   return map[priority] ?? ''
 }

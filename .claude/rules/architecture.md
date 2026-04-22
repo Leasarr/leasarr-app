@@ -27,6 +27,16 @@
 ## Key files
 
 - `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: fixed sidebar + top bar (theme switcher + live notification bell). Mobile: top bar + 4-tab bottom nav (3 primary items + "More" sheet). Manager bottom nav: Dashboard, Payments, Maintenance, More. Tenant bottom nav: Home, Maintenance, Lease, More. "More" sheet slides up and shows all remaining nav items plus profile/settings. Breakpoint at `lg` (1024px). Fetches notifications from Supabase with Realtime subscription (INSERT/UPDATE/DELETE) per `profile_id`. Notification bell popup shows **unread only** — read notifications drop off automatically.
+- `src/components/layout/PageHeader.tsx` — Page-level title block. Props: `title`, `eyebrow?`, `subtitle?`, `action?` (right-side slot). Used on all data pages.
+- `src/components/ui/Button.tsx` — Unified button. Variants: `primary`, `secondary`, `ghost`, `chip`, `destructive`. Sizes: `sm`, `md`, `lg`. Enforces `min-h-[44px]` WCAG touch target (non-chip). See conventions rule for full usage guide.
+- `src/components/ui/Badge.tsx` — Semantic status pill. Variants: `primary`, `secondary`, `tertiary`, `neutral`, `success`, `warning`, `error`.
+- `src/components/ui/SegmentedControl.tsx` — Pill-container toggle for in-page view switching (e.g. Active/History, Units/Applications). Props: `options`, `value`, `onChange`, `className?`.
+- `src/components/ui/TabBar.tsx` — Underline-indicator tab navigation for page-level tabs (e.g. People page). Props: `tabs` (with optional `count`), `value`, `onChange`, `className?`.
+- `src/components/ui/StatusDot.tsx` — Semantic status dot using design tokens. Props: `status` (`occupied`/`vacant`/`maintenance`).
+- `src/components/ui/ConfirmModal.tsx` — Confirmation dialog for destructive actions. Props: `open`, `onClose`, `title`, `body?`, `confirmLabel?`, `onConfirm`, `loading?`, `destructive?`.
+- `src/components/patterns/EmptyState.tsx` — No-data UI. Props: `icon`, `title`, `description?`, `action?`, `size` (`page`/`panel`/`inline`).
+- `src/components/patterns/LoadingState.tsx` — Loading placeholder. Props: `label?`, `size` (`page`/`panel`). Uses `progress_activity` + `animate-spin`.
+- `src/lib/notificationMeta.ts` — `NOTIFICATION_TYPE_META` single source of truth for notification icon/color/href per type. Used by `AppLayout` and both notifications pages.
 - `src/context/AuthContext.tsx` — Provides `user`, `profile`, `session`, `loading`, `signOut`. Use `useAuth()` hook.
 - `src/context/ThemeContext.tsx` — Provides `theme` (`'light' | 'dark' | 'system'`) and `setTheme`. Persists to localStorage. Use `useTheme()` hook. Theme applied via `dark` class on `<html>`.
 - `src/middleware.ts` — Route protection. Public: `/auth/*`. Manager routes: dashboard, people, payments, maintenance, leases, properties, communication, reports, notifications. Tenant routes: `/portal`.

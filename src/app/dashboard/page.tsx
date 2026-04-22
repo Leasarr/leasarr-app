@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
+import { LoadingState } from '@/components/patterns/LoadingState'
+import { StatCard } from '@/components/patterns/StatCard'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -194,12 +196,7 @@ export default function DashboardPage() {
   if (authLoading || loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <span className="material-symbols-outlined text-4xl text-primary animate-pulse">dashboard</span>
-            <p className="text-on-surface-variant mt-2">Loading dashboard...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading dashboard..." />
       </AppLayout>
     )
   }
@@ -216,43 +213,35 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <span className="material-symbols-outlined text-primary text-2xl">payments</span>
-              <span className="badge bg-secondary-container text-on-secondary-container">Collected</span>
-            </div>
-            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Total Rent Collected</p>
-            <p className="text-2xl font-headline font-bold text-on-surface">{formatCurrency(stats.totalCollected)}</p>
-            <div className="mt-4 h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: stats.totalCollected > 0 ? '85%' : '0%' }} />
-            </div>
-          </div>
-
-          <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <span className="material-symbols-outlined text-error text-2xl">pending_actions</span>
+          <StatCard
+            icon="payments"
+            iconColor="text-primary"
+            label="Total Rent Collected"
+            value={formatCurrency(stats.totalCollected)}
+            badge={<span className="badge bg-secondary-container text-on-secondary-container">Collected</span>}
+            progress={{ value: stats.totalCollected > 0 ? 85 : 0, color: 'bg-primary' }}
+          />
+          <StatCard
+            icon="pending_actions"
+            iconColor="text-error"
+            label="Outstanding Balance"
+            value={formatCurrency(stats.outstanding)}
+            valueColor={stats.outstanding > 0 ? 'text-error' : 'text-on-surface'}
+            badge={
               <span className={cn('badge', stats.overdueCount > 0 ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container')}>
                 {stats.overdueCount > 0 ? 'Critical' : 'Clear'}
               </span>
-            </div>
-            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Outstanding Balance</p>
-            <p className={cn('text-2xl font-headline font-bold', stats.outstanding > 0 ? 'text-error' : 'text-on-surface')}>{formatCurrency(stats.outstanding)}</p>
-            <p className="mt-2 text-[10px] text-on-surface-variant">{stats.overdueCount} {stats.overdueCount === 1 ? 'tenant' : 'tenants'} currently overdue</p>
-          </div>
-
-          <div className="bg-surface-container-lowest rounded-xl p-6 shadow-card hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <span className="material-symbols-outlined text-tertiary text-2xl">domain</span>
-              <span className="badge bg-tertiary-fixed text-on-tertiary-fixed-variant">
-                {stats.occupiedUnits}/{stats.totalUnits} units
-              </span>
-            </div>
-            <p className="text-[10px] font-bold text-outline uppercase tracking-wider mb-1">Portfolio Occupancy</p>
-            <p className="text-2xl font-headline font-bold text-on-surface">{stats.occupancyRate}%</p>
-            <div className="mt-4 h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
-              <div className="h-full bg-tertiary-container rounded-full" style={{ width: `${stats.occupancyRate}%` }} />
-            </div>
-          </div>
+            }
+            subtitle={`${stats.overdueCount} ${stats.overdueCount === 1 ? 'tenant' : 'tenants'} currently overdue`}
+          />
+          <StatCard
+            icon="domain"
+            iconColor="text-tertiary"
+            label="Portfolio Occupancy"
+            value={`${stats.occupancyRate}%`}
+            badge={<span className="badge bg-tertiary-fixed text-on-tertiary-fixed-variant">{stats.occupiedUnits}/{stats.totalUnits} units</span>}
+            progress={{ value: stats.occupancyRate, color: 'bg-tertiary-container' }}
+          />
         </section>
 
         {/* Upcoming Expirations */}
