@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
-import { getInitials, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
+import { ImageUpload } from '@/components/ui/ImageUpload'
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -84,7 +85,6 @@ export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props
     }
   }
 
-  const initials = profile?.name ? getInitials(profile.name) : '?'
   const roleLabel = profile?.role === 'tenant' ? 'Tenant' : 'Property Manager'
 
   return (
@@ -92,13 +92,19 @@ export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
         {/* Avatar + identity */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-full primary-gradient flex items-center justify-center shrink-0">
-            <span className="text-on-primary font-bold text-base">{initials}</span>
-          </div>
+        <div className="flex items-center gap-4 mb-6">
+          <ImageUpload
+            value={profile?.avatar_url ?? null}
+            onChange={async url => { if (url) await updateProfile({ avatar_url: url }) }}
+            bucket="avatars"
+            path={profile?.id ?? 'uploads'}
+            shape="circle"
+            className="w-16 h-16 flex-shrink-0"
+          />
           <div>
             <p className="text-sm font-semibold text-on-surface">{profile?.name}</p>
             <p className="text-xs text-on-surface-variant">{roleLabel}</p>
+            <p className="text-xs text-primary mt-0.5 font-medium">Click photo to change</p>
           </div>
         </div>
 

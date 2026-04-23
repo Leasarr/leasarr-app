@@ -11,7 +11,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signOut: () => Promise<void>
-  updateProfile: (data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>>) => Promise<void>
+  updateProfile: (data: Partial<Pick<Profile, 'name' | 'email' | 'phone' | 'avatar_url'>>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }
 
-  async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>>) {
+  async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone' | 'avatar_url'>>) {
     if (MOCK_AUTH) {
       setProfile(prev => (prev ? { ...prev, ...data } : prev))
       return

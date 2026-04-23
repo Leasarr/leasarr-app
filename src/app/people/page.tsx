@@ -13,6 +13,7 @@ import { MasterDetail } from '@/components/layout/MasterDetail'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { ImageUpload } from '@/components/ui/ImageUpload'
 
 // ── DB row types ───────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ type TenantRow = {
   last_name: string
   email: string
   phone: string
+  avatar_url: string | null
   unit_id: string | null
   property_id: string | null
   team_member_id: string | null
@@ -104,7 +106,7 @@ export default function PeoplePage() {
   // ── Edit Tenant modal state
   const [showEditTenant, setShowEditTenant] = useState(false)
   const [editUnits, setEditUnits] = useState<VacantUnit[]>([])
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', phone: '', property_id: '', unit_id: '', team_member_id: '', status: 'active' as TenantRow['status'] })
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', phone: '', avatar_url: '' as string | null, property_id: '', unit_id: '', team_member_id: '', status: 'active' as TenantRow['status'] })
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -117,7 +119,7 @@ export default function PeoplePage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
 
-  const [tenantForm, setTenantForm] = useState({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
+  const [tenantForm, setTenantForm] = useState({ first_name: '', last_name: '', email: '', phone: '', avatar_url: null as string | null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
   const [teamForm, setTeamForm] = useState({ name: '', role: '', email: '', phone: '' })
   const [vendorForm, setVendorForm] = useState({ name: '', company: '', specialty: 'general' as VendorRow['specialty'], email: '', phone: '' })
 
@@ -185,7 +187,7 @@ export default function PeoplePage() {
     setPersonType(null)
     setFormError('')
     setSubmitting(false)
-    setTenantForm({ first_name: '', last_name: '', email: '', phone: '', move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
+    setTenantForm({ first_name: '', last_name: '', email: '', phone: '', avatar_url: null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
     setTeamForm({ name: '', role: '', email: '', phone: '' })
     setVendorForm({ name: '', company: '', specialty: 'general', email: '', phone: '' })
   }
@@ -197,6 +199,7 @@ export default function PeoplePage() {
       last_name: tenant.last_name,
       email: tenant.email,
       phone: tenant.phone ?? '',
+      avatar_url: tenant.avatar_url ?? null,
       property_id: tenant.property_id ?? '',
       unit_id: tenant.unit_id ?? '',
       team_member_id: tenant.team_member_id ?? '',
@@ -228,6 +231,7 @@ export default function PeoplePage() {
         last_name: editForm.last_name,
         email: editForm.email,
         phone: editForm.phone,
+        avatar_url: editForm.avatar_url || null,
         property_id: editForm.property_id || null,
         unit_id: nextUnitId,
         team_member_id: editForm.team_member_id || null,
@@ -265,6 +269,7 @@ export default function PeoplePage() {
       last_name: tenantForm.last_name,
       email: tenantForm.email,
       phone: tenantForm.phone,
+      avatar_url: tenantForm.avatar_url || null,
       move_in_date: tenantForm.move_in_date || null,
       unit_id: tenantForm.unit_id || null,
       property_id: tenantForm.property_id || null,
@@ -451,7 +456,11 @@ export default function PeoplePage() {
                 {filteredTenants.map(tenant => (
                   <ListRow
                     key={tenant.id}
-                    avatar={<div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>}
+                    avatar={
+                      tenant.avatar_url
+                        ? <img src={tenant.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                        : <div className="w-12 h-12 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg">{getInitials(`${tenant.first_name} ${tenant.last_name}`)}</div>
+                    }
                     title={`${tenant.first_name} ${tenant.last_name}`}
                     subtitle={tenant.email}
                     meta={tenant.property && (
@@ -473,7 +482,10 @@ export default function PeoplePage() {
                     <div className="flex items-start justify-between gap-4 mb-6">
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="relative flex-shrink-0">
-                          <div className="w-16 h-16 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-2xl font-bold">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
+                          {selectedTenant.avatar_url
+                            ? <img src={selectedTenant.avatar_url} alt="" className="w-16 h-16 rounded-2xl object-cover" />
+                            : <div className="w-16 h-16 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-2xl font-bold">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
+                          }
                           <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-lg">
                             <span className="material-symbols-outlined text-xs material-symbols-filled">verified</span>
                           </div>
@@ -639,6 +651,16 @@ export default function PeoplePage() {
       {/* ── Edit Tenant Modal ── */}
       <Modal open={showEditTenant} onClose={() => setShowEditTenant(false)} title="Edit Tenant" size="md">
         <form onSubmit={handleEditTenant} className="space-y-4">
+          <FormField label="Photo" optional>
+            <ImageUpload
+              value={editForm.avatar_url}
+              onChange={url => setEditForm(f => ({ ...f, avatar_url: url }))}
+              bucket="avatars"
+              path={`tenants/${profile?.id ?? 'uploads'}`}
+              shape="circle"
+              className="w-20 h-20"
+            />
+          </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="First Name">
               <input required className="input-base" value={editForm.first_name} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
@@ -727,6 +749,16 @@ export default function PeoplePage() {
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
+            <FormField label="Photo" optional>
+              <ImageUpload
+                value={tenantForm.avatar_url}
+                onChange={url => setTenantForm(f => ({ ...f, avatar_url: url }))}
+                bucket="avatars"
+                path={`tenants/${profile?.id ?? 'uploads'}`}
+                shape="circle"
+                className="w-20 h-20"
+              />
+            </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="First Name">
                 <input required className="input-base" placeholder="Jane" value={tenantForm.first_name} onChange={e => setTenantForm(f => ({ ...f, first_name: e.target.value }))} />

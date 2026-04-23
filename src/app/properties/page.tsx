@@ -14,6 +14,7 @@ import { FormField } from '@/components/patterns/FormField'
 import { formatCurrency, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { ImageUpload } from '@/components/ui/ImageUpload'
 
 type DbUnit = {
   id: string
@@ -749,12 +750,13 @@ function AddPropertyModal({
             </select>
           </FormField>
         </div>
-        <FormField label="Image URL" optional>
-          <input
-            className="input-base"
-            placeholder="https://..."
-            value={form.image_url}
-            onChange={e => onChange(f => ({ ...f, image_url: e.target.value }))}
+        <FormField label="Property Photo" optional>
+          <ImageUpload
+            value={form.image_url || null}
+            onChange={url => onChange(f => ({ ...f, image_url: url ?? '' }))}
+            bucket="property-images"
+            path="uploads"
+            height="h-40"
           />
         </FormField>
         {error && <p className="text-sm text-error">{error}</p>}

@@ -13,6 +13,7 @@ import { FormField } from '@/components/patterns/FormField'
 import { formatDate, formatCurrency, getPriorityColor, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { ImageUploadMultiple } from '@/components/ui/ImageUploadMultiple'
 
 type VendorRow = {
   id: string
@@ -32,6 +33,7 @@ type MaintenanceRow = {
   assigned_to: string | null
   estimated_cost: number | null
   actual_cost: number | null
+  images: string[] | null
   created_at: string
   tenant: { first_name: string; last_name: string } | null
   unit: { unit_number: string } | null
@@ -48,7 +50,7 @@ export default function MaintenancePage() {
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [tenants, setTenants] = useState<{ id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }[]>([])
-  const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
+  const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] as string[] })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [vendors, setVendors] = useState<VendorRow[]>([])
@@ -65,7 +67,7 @@ export default function MaintenancePage() {
         .from('maintenance_requests')
         .select(`
           id, title, description, category, priority, status,
-          assigned_to, estimated_cost, actual_cost, created_at,
+          assigned_to, estimated_cost, actual_cost, images, created_at,
           tenant:tenants(first_name, last_name),
           unit:units(unit_number)
         `)
@@ -114,7 +116,7 @@ export default function MaintenancePage() {
           // Refetch on new request so we get the joined tenant/unit data
           const { data } = await supabase
             .from('maintenance_requests')
-            .select(`id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)`)
+            .select(`id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, images, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)`)
             .order('created_at', { ascending: false })
           setRequests((data as unknown as MaintenanceRow[]) ?? [])
         }
@@ -155,18 +157,19 @@ export default function MaintenancePage() {
       category: form.category,
       priority: form.priority,
       description: form.description,
+      images: form.images.length > 0 ? form.images : null,
       status: 'open',
     })
     if (error) { setFormError(error.message); setSubmitting(false); return }
     const { data } = await supabase
       .from('maintenance_requests')
-      .select('id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)')
+      .select('id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, images, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)')
       .order('created_at', { ascending: false })
     const rows = (data as unknown as MaintenanceRow[]) ?? []
     setRequests(rows)
     if (rows.length > 0) setSelected(rows[0])
     setShowModal(false)
-    setForm({ tenant_id: '', title: '', category: '', priority: 'medium', description: '' })
+    setForm({ tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] })
     setSubmitting(false)
   }
 
@@ -317,6 +320,19 @@ export default function MaintenancePage() {
                     <div>
                       <h5 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Tenant Description</h5>
                       <p className="text-base text-on-surface leading-relaxed mb-6">{selected.description}</p>
+
+                      {selected.images && selected.images.length > 0 && (
+                        <div className="mb-6">
+                          <h5 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Photos</h5>
+                          <div className="grid grid-cols-3 gap-2">
+                            {selected.images.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden block bg-surface-container-high">
+                                <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <h5 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Tracking History</h5>
                       <div className="space-y-5">
@@ -523,6 +539,15 @@ export default function MaintenancePage() {
               rows={4}
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            />
+          </FormField>
+          <FormField label="Photos" optional>
+            <ImageUploadMultiple
+              value={form.images}
+              onChange={images => setForm(f => ({ ...f, images }))}
+              bucket="maintenance-images"
+              path={profile?.id ?? 'uploads'}
+              max={5}
             />
           </FormField>
           {formError && <p className="text-sm text-error">{formError}</p>}
