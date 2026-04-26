@@ -29,7 +29,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: sidebar + top bar. Mobile: bottom nav (4 tabs + "More" sheet). Breakpoint `lg`. Realtime notifications per `profile_id`; bell shows unread only.
 - `src/context/AuthContext.tsx` — `useAuth()` → `{ user, profile, session, loading, signOut }`
 - `src/context/ThemeContext.tsx` — `useTheme()` → `{ theme, setTheme }`. `dark` class on `<html>`.
-- `src/middleware.ts` — Public: `/auth/*`. Manager: all manager routes. Tenant: `/portal`. `/api/stripe` and `/api/notifications` always allowed (webhooks must be unauthenticated).
+- `src/middleware.ts` — Public: `/auth/*`. Manager: all manager routes. Tenant: `/portal`. `/api/stripe`, `/api/notifications`, and `/api/auth/set-role` are accessible to authenticated users; `/api/stripe/webhook` and `/api/notifications/*` are always allowed unauthenticated (Stripe/Supabase webhooks).
 - `src/lib/supabase/client.ts` — Browser client (stubs without env vars).
 - `src/lib/supabase/server.ts` — Server client with cookies.
 - `src/lib/stripe/server.ts` — Stripe SDK instance (server-only).
@@ -38,7 +38,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/lib/utils.ts` — Shared helpers (see conventions.md).
 - `src/lib/notificationMeta.ts` — `NOTIFICATION_TYPE_META` — icon/color/href per type. Never redefine locally.
 - `src/lib/schemas/` — Zod schemas + inferred types for all forms. One file per domain: `auth`, `people`, `property`, `payment`, `maintenance`, `lease`. See conventions.md for full export list.
-- `src/types/index.ts` — Domain interfaces: Property, Unit, Tenant, Lease, Payment, MaintenanceRequest, Vendor, etc.
+- `src/types/index.ts` — Domain interfaces: Property, Unit, Tenant, Lease, LeaseDocument, Payment, MaintenanceRequest, Conversation, Message, Profile, TeamMember, Vendor, Notification, Subscription. All DB-backed types live here — never define them inline in pages.
 - `src/data/mock.ts` — Mock fallback; used by /communication and /reports only.
 - `supabase/migrations/001_complete_schema.sql` — Full schema + RLS.
 - `supabase/migrations/002_team_vendors.sql` — Team members, vendors.
@@ -62,9 +62,9 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 ## Supabase
 
-- **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`
+- **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`. `profiles.role` is locked against self-update (migration 005) — role changes must go through `/api/auth/set-role`.
 - **Realtime** — `maintenance_requests`, `notifications`
-- **Triggers** — tenant profile auto-link; manager/tenant notifications on maintenance, payment, and lease events
+- **Triggers** — `handle_new_user` (creates `profiles` row on `auth.users` INSERT, `SET search_path = public` required); manager notified on new maintenance request; tenant notified on request update, payment confirmed/overdue, lease created/terminated
 
 ## Stripe
 

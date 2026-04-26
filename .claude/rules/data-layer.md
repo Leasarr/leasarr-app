@@ -16,9 +16,22 @@ Pages still using mock data: `/communication`, `/reports`. Dashboard falls back 
 
 ## Types (`src/types/index.ts`)
 
-All domain interfaces live here. Key types: Property, Unit, Tenant, Lease, Payment, MaintenanceRequest, Conversation, Message, Profile. Most entities have optional joined relationships (e.g. `Tenant` has `unit?`, `property?`, `leases?`, `payments?`). Status fields are union types (e.g. `'active' | 'inactive' | 'pending'`).
+All domain interfaces live here — never define DB-backed types inline in pages. Key types:
 
-Add new interfaces here, not inline in pages.
+| Interface | Notes |
+|---|---|
+| `Profile` | Auth user profile; `role: 'admin' \| 'manager' \| 'tenant'` |
+| `Property`, `Unit` | Core property objects; Unit includes `updated_at` |
+| `Tenant` | Includes `profile_id` (auth link) and `team_member_id` |
+| `Lease`, `LeaseDocument` | Lease lifecycle + document attachments |
+| `Payment` | Includes `stripe_payment_intent_id` |
+| `MaintenanceRequest` | Full request lifecycle with cost tracking |
+| `Conversation`, `Message` | Messaging (V2 — mock only) |
+| `TeamMember`, `Vendor` | Include `manager_id`, `created_at`, `updated_at`; no phantom fields |
+| `Notification` | `type: 'maintenance' \| 'payment' \| 'lease'`; links to `profile_id` |
+| `Subscription` | Stripe subscription state; mirrors `subscriptions` table |
+
+Most entities have optional joined relationships (e.g. `Tenant` has `unit?`, `property?`, `leases?`, `payments?`). Status fields are union types.
 
 ## Form schemas (`src/lib/schemas/`)
 

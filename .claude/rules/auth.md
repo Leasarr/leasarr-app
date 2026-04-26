@@ -25,6 +25,12 @@ Both pages and middleware handle both modes — keep any new auth logic dual-pat
 ### Why `/api/auth/set-role` exists
 Migration 005 locks `profiles.role` via RLS `WITH CHECK` — direct client-side `UPDATE` on role is blocked for all users (prevents privilege escalation). `/auth/set-role` page must call the server-side API route, which uses the service role key to bypass RLS and apply the role chosen on the register page.
 
+### `handle_new_user` trigger notes
+- Fires `AFTER INSERT ON auth.users` to auto-create the `profiles` row
+- Must use `SET search_path = public` and reference `public.profiles` explicitly — the trigger fires in the `auth` schema context and cannot resolve unqualified table names in `public`
+- Uses `ON CONFLICT DO NOTHING` to handle both primary key and email unique constraint conflicts gracefully
+- Role defaults to `'manager'`; only `'manager'` and `'tenant'` are accepted from sign-up metadata (migration 004)
+
 ## AuthContext
 
 Use `useAuth()` in client components:
