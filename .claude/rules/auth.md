@@ -18,9 +18,12 @@ Both pages and middleware handle both modes — keep any new auth logic dual-pat
 ## Google OAuth
 
 - Login page: "Continue with Google" → `signInWithOAuth({ provider: 'google' })` → callback → `/dashboard`
-- Register page: user selects role first, then "Sign up with Google" → role encoded in `redirectTo` → callback → `/auth/set-role?role=<role>` → updates `profiles` table → correct home
+- Register page: user selects role first, then "Sign up with Google" → role encoded in `redirectTo` → callback → `/auth/set-role?role=<role>` → POST `/api/auth/set-role` → correct home
 - `/auth/set-role` is in `PUBLIC_ROUTES` and `ALWAYS_ALLOW` in middleware
 - Callback decodes the `next` param (`decodeURIComponent`) to handle encoded query strings
+
+### Why `/api/auth/set-role` exists
+Migration 005 locks `profiles.role` via RLS `WITH CHECK` — direct client-side `UPDATE` on role is blocked for all users (prevents privilege escalation). `/auth/set-role` page must call the server-side API route, which uses the service role key to bypass RLS and apply the role chosen on the register page.
 
 ## AuthContext
 

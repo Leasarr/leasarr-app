@@ -44,6 +44,7 @@ export interface Unit {
   rent_amount: number
   status: 'occupied' | 'vacant' | 'maintenance'
   created_at: string
+  updated_at: string
   property?: Property
   tenant?: Tenant
 }
@@ -52,6 +53,8 @@ export interface Unit {
 export interface Tenant {
   id: string
   manager_id: string
+  profile_id?: string
+  team_member_id?: string
   first_name: string
   last_name: string
   email: string
@@ -123,6 +126,7 @@ export interface Payment {
   method?: 'ach' | 'credit_card' | 'check' | 'cash' | 'wire'
   late_fee?: number
   transaction_id?: string
+  stripe_payment_intent_id?: string
   notes?: string
   created_at: string
   updated_at: string
@@ -216,25 +220,56 @@ export interface AiRiskAlert {
 // ─── People ───────────────────────────────────────────────────────────────────
 export interface TeamMember {
   id: string
+  manager_id: string
   name: string
   role: string
   email: string
-  phone: string
+  phone?: string
   avatar_url?: string
-  assigned_properties: string[]
   status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
 }
 
 export interface Vendor {
   id: string
+  manager_id: string
   name: string
   company: string
   specialty: 'plumbing' | 'electrical' | 'hvac' | 'landscaping' | 'general' | 'cleaning'
   email: string
-  phone: string
+  phone?: string
   rating: number
-  last_job?: string
   status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+export interface Notification {
+  id: string
+  profile_id: string
+  type: 'maintenance' | 'payment' | 'lease'
+  title: string
+  body: string
+  read: boolean
+  linked_record_id?: string
+  created_at: string
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+export interface Subscription {
+  id: string
+  manager_id: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+  plan?: 'starter' | 'growth' | 'pro' | 'enterprise'
+  billing_interval?: 'monthly' | 'annual'
+  status: 'trialing' | 'active' | 'past_due' | 'canceled'
+  trial_end?: string
+  current_period_end?: string
+  extra_seats: number
+  created_at: string
 }
 
 // ─── Activity Feed ────────────────────────────────────────────────────────────

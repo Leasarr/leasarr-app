@@ -43,13 +43,17 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `supabase/migrations/001_complete_schema.sql` — Full schema + RLS.
 - `supabase/migrations/002_team_vendors.sql` — Team members, vendors.
 - `supabase/migrations/003_notifications.sql` — Notifications, RLS, triggers, Realtime.
+- `supabase/migrations/004_rls_fixes.sql` — Blocks admin role injection via sign-up metadata; restricts tenant maintenance to open requests only.
+- `supabase/migrations/005_rls_fixes_2.sql` — Locks `profiles.role` column against self-update (role changes must go through `/api/auth/set-role`); locks notification `profile_id` against reassignment.
 - `supabase/migrations/006_subscriptions.sql` — `subscriptions` table + RLS (service role writes, manager reads own row).
 - `supabase/migrations/007_notification_triggers.sql` — Payment and lease notification triggers (payment confirmed, payment overdue, lease created, lease terminated).
+- `supabase/migrations/008_rls_tenant_manager_profile.sql` — Allows tenants to SELECT their property manager's profile row (needed by tenant portal).
 
 ## API routes
 
 | Route | Method | Auth | Purpose |
 |---|---|---|---|
+| `/api/auth/set-role` | POST | required | Updates `profiles.role` via service role client (bypasses RLS role-lock); called by `/auth/set-role` page after Google OAuth |
 | `/api/stripe/checkout` | POST | required | Creates Stripe Checkout session; body: `{ plan, interval }` |
 | `/api/stripe/portal` | POST | required | Creates Stripe Billing Portal session |
 | `/api/stripe/webhook` | POST | none | Handles Stripe events → updates `subscriptions` table; sends plan/billing emails via Resend |
