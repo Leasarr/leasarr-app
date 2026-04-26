@@ -29,11 +29,12 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: sidebar + top bar. Mobile: bottom nav (4 tabs + "More" sheet). Breakpoint `lg`. Realtime notifications per `profile_id`; bell shows unread only.
 - `src/context/AuthContext.tsx` — `useAuth()` → `{ user, profile, session, loading, signOut }`
 - `src/context/ThemeContext.tsx` — `useTheme()` → `{ theme, setTheme }`. `dark` class on `<html>`.
-- `src/middleware.ts` — Public: `/auth/*`. Manager: all manager routes. Tenant: `/portal`. `/api/stripe` always allowed (webhook must be unauthenticated).
+- `src/middleware.ts` — Public: `/auth/*`. Manager: all manager routes. Tenant: `/portal`. `/api/stripe` and `/api/notifications` always allowed (webhooks must be unauthenticated).
 - `src/lib/supabase/client.ts` — Browser client (stubs without env vars).
 - `src/lib/supabase/server.ts` — Server client with cookies.
 - `src/lib/stripe/server.ts` — Stripe SDK instance (server-only).
 - `src/lib/stripe/plans.ts` — Plan definitions: Starter/Growth/Pro, monthly + annual price IDs, unit/seat limits.
+- `src/lib/resend.ts` — Resend client singleton (server-only).
 - `src/lib/utils.ts` — Shared helpers (see conventions.md).
 - `src/lib/notificationMeta.ts` — `NOTIFICATION_TYPE_META` — icon/color/href per type. Never redefine locally.
 - `src/lib/schemas/` — Zod schemas + inferred types for all forms. One file per domain: `auth`, `people`, `property`, `payment`, `maintenance`, `lease`. See conventions.md for full export list.
@@ -43,6 +44,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `supabase/migrations/002_team_vendors.sql` — Team members, vendors.
 - `supabase/migrations/003_notifications.sql` — Notifications, RLS, triggers, Realtime.
 - `supabase/migrations/006_subscriptions.sql` — `subscriptions` table + RLS (service role writes, manager reads own row).
+- `supabase/migrations/007_notification_triggers.sql` — Payment and lease notification triggers (payment confirmed, payment overdue, lease created, lease terminated).
 
 ## API routes
 
@@ -50,13 +52,15 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 |---|---|---|---|
 | `/api/stripe/checkout` | POST | required | Creates Stripe Checkout session; body: `{ plan, interval }` |
 | `/api/stripe/portal` | POST | required | Creates Stripe Billing Portal session |
-| `/api/stripe/webhook` | POST | none | Handles Stripe events → updates `subscriptions` table |
+| `/api/stripe/webhook` | POST | none | Handles Stripe events → updates `subscriptions` table; sends plan/billing emails via Resend |
+| `/api/notifications/email` | POST | none | Supabase webhook on `notifications` INSERT → sends email via Resend |
+| `/api/notifications/welcome` | POST | none | Supabase webhook on `profiles` INSERT → sends welcome email via Resend |
 
 ## Supabase
 
 - **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`
 - **Realtime** — `maintenance_requests`, `notifications`
-- **Triggers** — tenant profile auto-link; manager/tenant notifications on request events
+- **Triggers** — tenant profile auto-link; manager/tenant notifications on maintenance, payment, and lease events
 
 ## Stripe
 

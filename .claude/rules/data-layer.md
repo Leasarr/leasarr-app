@@ -34,6 +34,10 @@ Zod schemas for all forms — one file per domain. Always import both the schema
 - `src/lib/stripe/server.ts` — Stripe SDK instance; server-only; never import in client components
 - `src/lib/stripe/plans.ts` — `PLANS` record (Starter/Growth/Pro); price IDs read from env vars; `PlanKey` type
 
+## Resend client
+
+- `src/lib/resend.ts` — Resend SDK instance; server-only; never import in client components
+
 ## Environment variables
 
 Required in `.env.local`:
@@ -51,5 +55,8 @@ STRIPE_PRICE_GROWTH_ANNUAL
 STRIPE_PRICE_PRO_MONTHLY
 STRIPE_PRICE_PRO_ANNUAL
 NEXT_PUBLIC_APP_URL
+RESEND_API_KEY
+RESEND_FROM_EMAIL
+SUPABASE_WEBHOOK_SECRET
 ```
 See `.env.example` for the full template. Local dev uses test Stripe keys; Vercel Production uses live keys.
