@@ -48,6 +48,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `supabase/migrations/006_subscriptions.sql` — `subscriptions` table + RLS (service role writes, manager reads own row).
 - `supabase/migrations/007_notification_triggers.sql` — Payment and lease notification triggers (payment confirmed, payment overdue, lease created, lease terminated).
 - `supabase/migrations/008_rls_tenant_manager_profile.sql` — Allows tenants to SELECT their property manager's profile row (needed by tenant portal).
+- `supabase/migrations/009_tenant_profile_autolink.sql` — `link_profile_to_tenant` trigger: fires after `profiles` INSERT, matches by email, sets `tenants.profile_id` so the portal loads the correct unit/lease on first login.
 
 ## API routes
 
@@ -64,7 +65,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 - **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`. `profiles.role` is locked against self-update (migration 005) — role changes must go through `/api/auth/set-role`.
 - **Realtime** — `maintenance_requests`, `notifications`
-- **Triggers** — `handle_new_user` (creates `profiles` row on `auth.users` INSERT, `SET search_path = public` required); manager notified on new maintenance request; tenant notified on request update, payment confirmed/overdue, lease created/terminated
+- **Triggers** — `handle_new_user` (creates `profiles` row on `auth.users` INSERT, `SET search_path = public` required); `link_profile_to_tenant` (links new profile to existing tenant record by email on `profiles` INSERT); manager notified on new maintenance request; tenant notified on request update, payment confirmed/overdue, lease created/terminated
 
 ## Stripe
 
