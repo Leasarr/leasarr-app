@@ -266,42 +266,42 @@ export const REPORT_DATA: ReportData = {
 
 export const TEAM_MEMBERS: TeamMember[] = [
   {
-    id: 'tm1', name: 'Alexander Graham', role: 'Property Manager',
+    id: 'tm1', manager_id: 'mock', name: 'Alexander Graham', role: 'Property Manager',
     email: 'alexander@leasarr.com', phone: '+1 (555) 100-2000',
-    assigned_properties: ['p1', 'p2', 'p3', 'p4'], status: 'active',
+    status: 'active', created_at: '', updated_at: '',
   },
   {
-    id: 'tm2', name: 'Rachel Moore', role: 'Assistant Manager',
+    id: 'tm2', manager_id: 'mock', name: 'Rachel Moore', role: 'Assistant Manager',
     email: 'rachel@leasarr.com', phone: '+1 (555) 100-2001',
-    assigned_properties: ['p1', 'p2'], status: 'active',
+    status: 'active', created_at: '', updated_at: '',
   },
   {
-    id: 'tm3', name: 'James Park', role: 'Leasing Agent',
+    id: 'tm3', manager_id: 'mock', name: 'James Park', role: 'Leasing Agent',
     email: 'james@leasarr.com', phone: '+1 (555) 100-2002',
-    assigned_properties: ['p3'], status: 'active',
+    status: 'active', created_at: '', updated_at: '',
   },
 ]
 
 export const VENDORS: Vendor[] = [
   {
-    id: 'v1', name: 'Mike Torres', company: 'Torres HVAC & Plumbing',
+    id: 'v1', manager_id: 'mock', name: 'Mike Torres', company: 'Torres HVAC & Plumbing',
     specialty: 'plumbing', email: 'mike@torresplumbing.com', phone: '+1 (555) 300-1001',
-    rating: 4.8, last_job: 'HVAC Filter Replacement — Azure Heights', status: 'active',
+    rating: 4.8, status: 'active', created_at: '', updated_at: '',
   },
   {
-    id: 'v2', name: 'Jake Wilson', company: 'Wilson Electrical Solutions',
+    id: 'v2', manager_id: 'mock', name: 'Jake Wilson', company: 'Wilson Electrical Solutions',
     specialty: 'electrical', email: 'jake@wilsonelec.com', phone: '+1 (555) 300-1002',
-    rating: 4.6, last_job: 'AC Not Cooling — Pacific View', status: 'active',
+    rating: 4.6, status: 'active', created_at: '', updated_at: '',
   },
   {
-    id: 'v3', name: 'Linda Park', company: 'GreenScape Landscaping',
+    id: 'v3', manager_id: 'mock', name: 'Linda Park', company: 'GreenScape Landscaping',
     specialty: 'landscaping', email: 'linda@greenscape.com', phone: '+1 (555) 300-1003',
-    rating: 4.9, last_job: 'Monthly grounds maintenance', status: 'active',
+    rating: 4.9, status: 'active', created_at: '', updated_at: '',
   },
   {
-    id: 'v4', name: 'Bob Hanson', company: 'Hanson General Contracting',
+    id: 'v4', manager_id: 'mock', name: 'Bob Hanson', company: 'Hanson General Contracting',
     specialty: 'general', email: 'bob@hansoncontracting.com', phone: '+1 (555) 300-1004',
-    rating: 4.4, last_job: 'Loose Door Handle — Azure Heights', status: 'active',
+    rating: 4.4, status: 'active', created_at: '', updated_at: '',
   },
 ]
 

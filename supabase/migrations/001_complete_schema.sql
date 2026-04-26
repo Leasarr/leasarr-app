@@ -1,5 +1,5 @@
 -- ============================================================
--- PMSoft Web — Complete Database Schema for Supabase
+-- Leasarr — Complete Database Schema for Supabase
 -- ============================================================
 -- HOW TO USE:
 -- 1. Go to https://app.supabase.com
@@ -11,7 +11,7 @@
 
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- enables fast text search
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- ─── PROFILES ────────────────────────────────────────────────────────────────
 CREATE TABLE profiles (
@@ -307,7 +307,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'role', 'manager')
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -385,7 +385,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE payments;
 ALTER PUBLICATION supabase_realtime ADD TABLE maintenance_requests;
 
 -- ============================================================
--- DONE! Your PMSoft database is ready.
+-- DONE! Your Leasarr database is ready.
 -- Next steps:
 -- 1. Copy NEXT_PUBLIC_SUPABASE_URL from Settings > API
 -- 2. Copy NEXT_PUBLIC_SUPABASE_ANON_KEY from Settings > API
