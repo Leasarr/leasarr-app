@@ -19,10 +19,13 @@ function SetRole() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth/login'); return }
 
-      await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', user.id)
+      const res = await fetch('/api/auth/set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      })
+
+      if (!res.ok) { router.push('/auth/login'); return }
 
       router.push(role === 'tenant' ? '/portal' : '/dashboard')
     }
