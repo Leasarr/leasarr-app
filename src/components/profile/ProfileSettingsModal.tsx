@@ -35,7 +35,7 @@ type Props = {
 }
 
 export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props) {
-  const { profile, updateProfile } = useAuth()
+  const { user, profile, updateProfile } = useAuth()
   const supabase = createClient()
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
@@ -94,7 +94,7 @@ export default function ProfileSettingsModal({ open, onClose, onSignOut }: Props
         {/* Avatar + identity */}
         <div className="flex items-center gap-4 mb-6">
           <ImageUpload
-            value={profile?.avatar_url ?? null}
+            value={(user?.user_metadata?.avatar_url as string | undefined) ?? profile?.avatar_url ?? null}
             onChange={async url => { if (url) await updateProfile({ avatar_url: url }) }}
             bucket="avatars"
             path={profile?.id ?? 'uploads'}

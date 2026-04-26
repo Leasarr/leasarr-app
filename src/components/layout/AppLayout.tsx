@@ -120,7 +120,7 @@ const TENANT_BOTTOM_NAV: NavItem[] = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const { theme, setTheme } = useTheme()
   const supabase = createClient()
 
@@ -195,6 +195,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const displayName = profile?.name ?? profile?.email ?? '...'
   const initials = profile?.name ? getInitials(profile.name) : '?'
   const roleLabel = isTenant ? 'Tenant' : 'Property Manager'
+  const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? profile?.avatar_url ?? null
 
   const handleLogout = async () => {
     await signOut()
@@ -250,9 +251,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-surface-container cursor-pointer transition-colors text-left">
-                <div className="w-8 h-8 rounded-full primary-gradient flex items-center justify-center shrink-0">
-                  <span className="text-on-primary text-xs font-bold">{initials}</span>
-                </div>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full primary-gradient flex items-center justify-center shrink-0">
+                    <span className="text-on-primary text-xs font-bold">{initials}</span>
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
                   <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>
@@ -433,9 +438,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* User info */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/10">
-              <div className="w-10 h-10 rounded-full primary-gradient flex items-center justify-center shrink-0">
-                <span className="text-on-primary text-sm font-bold">{initials}</span>
-              </div>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full primary-gradient flex items-center justify-center shrink-0">
+                  <span className="text-on-primary text-sm font-bold">{initials}</span>
+                </div>
+              )}
               <div>
                 <p className="text-sm font-semibold text-on-surface">{displayName}</p>
                 <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>
