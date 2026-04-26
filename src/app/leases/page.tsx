@@ -88,13 +88,15 @@ export default function LeasesPage() {
     const [tenantsRes, propsRes, unitsRes, activeLeasesRes] = await Promise.all([
       supabase.from('tenants').select('id, first_name, last_name, unit_id, property_id').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
       supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
-      supabase.from('units').select('id, unit_number, property_id, rent_amount, status').eq('status', 'vacant').order('unit_number'),
-      supabase.from('leases').select('tenant_id').eq('status', 'active'),
+      supabase.from('units').select('id, unit_number, property_id, rent_amount, status').order('unit_number'),
+      supabase.from('leases').select('tenant_id, unit_id').eq('status', 'active'),
     ])
-    const leasedTenantIds = new Set((activeLeasesRes.data ?? []).map((l: { tenant_id: string }) => l.tenant_id))
+    const activeLeases = (activeLeasesRes.data ?? []) as { tenant_id: string; unit_id: string }[]
+    const leasedTenantIds = new Set(activeLeases.map(l => l.tenant_id))
+    const leasedUnitIds = new Set(activeLeases.map(l => l.unit_id).filter(Boolean))
     setTenantOptions(((tenantsRes.data ?? []) as TenantOption[]).filter(t => !leasedTenantIds.has(t.id)))
     setPropertyOptions((propsRes.data ?? []) as PropertyOption[])
-    setUnitOptions((unitsRes.data ?? []) as UnitOption[])
+    setUnitOptions(((unitsRes.data ?? []) as UnitOption[]).filter(u => !leasedUnitIds.has(u.id)))
   }
 
   function closeCreate() {
@@ -177,7 +179,9 @@ export default function LeasesPage() {
     ? propertyOptions.filter(p => p.id === selectedTenant.property_id)
     : propertyOptions
 
-  const filteredUnits = unitOptions.filter(u => !propertyId || u.property_id === propertyId)
+  const filteredUnits = propertyId
+    ? unitOptions.filter(u => u.property_id === propertyId)
+    : unitOptions
 
   const filteredTenants = (!tenantId && propertyId)
     ? tenantOptions.filter(t => t.property_id === propertyId)
@@ -407,12 +411,11 @@ export default function LeasesPage() {
             <select
               className="input-base"
               value={createLeaseForm.watch('unit_id')}
-              disabled={!propertyId}
               onChange={e => handleUnitChange(e.target.value)}
             >
               <option value="">— Select unit —</option>
               {filteredUnits.map(u => (
-                <option key={u.id} value={u.id}>Unit {u.unit_number} {u.status !== 'vacant' ? `(${u.status})` : ''}</option>
+                <option key={u.id} value={u.id}>Unit {u.unit_number}</option>
               ))}
             </select>
             {createLeaseForm.formState.errors.unit_id && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.unit_id.message}</p>}
