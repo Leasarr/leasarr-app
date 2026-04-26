@@ -13,8 +13,7 @@ import { MasterDetail } from '@/components/layout/MasterDetail'
 import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
-import { ImageUpload } from '@/components/ui/ImageUpload'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { teamMemberSchema, vendorSchema, tenantSchema, editTenantSchema, type TeamMemberForm, type VendorForm, type TenantForm, type EditTenantForm } from '@/lib/schemas/people'
 
@@ -654,22 +653,6 @@ export default function PeoplePage() {
       {/* ── Edit Tenant Modal ── */}
       <Modal open={showEditTenant} onClose={() => setShowEditTenant(false)} title="Edit Tenant" size="md">
         <form onSubmit={editTenantForm.handleSubmit(onEditTenant)} className="space-y-4">
-          <FormField label="Photo" optional>
-            <Controller
-              control={editTenantForm.control}
-              name="avatar_url"
-              render={({ field }) => (
-                <ImageUpload
-                  value={field.value ?? null}
-                  onChange={field.onChange}
-                  bucket="avatars"
-                  path={`tenants/${profile?.id ?? 'uploads'}`}
-                  shape="circle"
-                  className="w-20 h-20"
-                />
-              )}
-            />
-          </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="First Name">
               <input {...editTenantForm.register('first_name')} className="input-base" />
@@ -773,22 +756,6 @@ export default function PeoplePage() {
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
-            <FormField label="Photo" optional>
-              <Controller
-                control={addTenantForm.control}
-                name="avatar_url"
-                render={({ field }) => (
-                  <ImageUpload
-                    value={field.value ?? null}
-                    onChange={field.onChange}
-                    bucket="avatars"
-                    path={`tenants/${profile?.id ?? 'uploads'}`}
-                    shape="circle"
-                    className="w-20 h-20"
-                  />
-                )}
-              />
-            </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="First Name">
                 <input {...addTenantForm.register('first_name')} className="input-base" placeholder="Jane" />
