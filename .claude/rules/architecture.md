@@ -36,6 +36,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/lib/stripe/plans.ts` — Plan definitions: Starter/Growth/Pro, monthly + annual price IDs, unit/seat limits.
 - `src/lib/utils.ts` — Shared helpers (see conventions.md).
 - `src/lib/notificationMeta.ts` — `NOTIFICATION_TYPE_META` — icon/color/href per type. Never redefine locally.
+- `src/lib/schemas/` — Zod schemas + inferred types for all forms. One file per domain: `auth`, `people`, `property`, `payment`, `maintenance`, `lease`. See conventions.md for full export list.
 - `src/types/index.ts` — Domain interfaces: Property, Unit, Tenant, Lease, Payment, MaintenanceRequest, Vendor, etc.
 - `src/data/mock.ts` — Mock fallback; used by /communication and /reports only.
 - `supabase/migrations/001_complete_schema.sql` — Full schema + RLS.

@@ -2,11 +2,13 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { loginSchema, type LoginForm } from '@/lib/schemas/auth'
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Mock credentials for testing without Supabase
 const MOCK_USERS = {
   'manager@demo.com': { password: 'password', role: 'manager' },
   'tenant@demo.com':  { password: 'password', role: 'tenant'  },
@@ -21,25 +23,22 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
-
   const message = searchParams.get('message')
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [serverError, setServerError] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  })
+
+  const onSubmit = async (data: LoginForm) => {
+    setServerError('')
 
     if (MOCK_AUTH) {
       await new Promise(r => setTimeout(r, 600))
-      const match = MOCK_USERS[email as keyof typeof MOCK_USERS]
-      if (!match || match.password !== password) {
-        setError('Invalid email or password.')
-        setLoading(false)
+      const match = MOCK_USERS[data.email as keyof typeof MOCK_USERS]
+      if (!match || match.password !== data.password) {
+        setServerError('Invalid email or password.')
         return
       }
       document.cookie = `mock_role=${match.role}; path=/; max-age=86400`
@@ -50,15 +49,17 @@ function LoginForm() {
       return
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setServerError(error.message)
       return
     }
 
-    const role = data.user?.user_metadata?.role as string
+    const role = authData.user?.user_metadata?.role as string
     const destination = (redirectTo && !redirectTo.startsWith('/auth'))
       ? redirectTo
       : role === 'tenant' ? '/portal' : '/dashboard'
@@ -92,29 +93,31 @@ function LoginForm() {
             </div>
           )}
 
-          {error && (
+          {serverError && (
             <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
               <span className="material-symbols-outlined text-error text-base leading-none">error</span>
-              <p className="text-error text-sm font-medium">{error}</p>
+              <p className="text-error text-sm font-medium">{serverError}</p>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Email address</label>
               <input
-                type="email" required className="input-base"
-                value={email} onChange={e => setEmail(e.target.value)}
+                {...register('email')}
+                type="email" className="input-base"
                 placeholder="you@example.com"
               />
+              {errors.email && <p className="text-error text-xs mt-1">{errors.email.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Password</label>
               <input
-                type="password" required className="input-base"
-                value={password} onChange={e => setPassword(e.target.value)}
+                {...register('password')}
+                type="password" className="input-base"
                 placeholder="••••••••"
               />
+              {errors.password && <p className="text-error text-xs mt-1">{errors.password.message}</p>}
             </div>
 
             <div className="flex justify-end">
@@ -124,10 +127,10 @@ function LoginForm() {
             </div>
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={isSubmitting}
               className="btn-primary w-full py-4 text-base rounded-xl disabled:opacity-60"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <span className="flex items-center gap-2 justify-center">
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

@@ -13,6 +13,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatDate, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { editPaymentSchema, recordPaymentSchema, type EditPaymentForm, type RecordPaymentForm } from '@/lib/schemas/payment'
 
 type PaymentRow = {
   id: string
@@ -35,8 +38,6 @@ type LeaseOption = {
   tenant: { id: string; first_name: string; last_name: string } | null
 }
 
-const EMPTY_FORM = { tenant_id: '', amount: '', due_date: '', status: 'pending' as PaymentRow['status'], method: '', late_fee: '', notes: '' }
-
 const methodIcon: Record<string, string> = {
   credit_card: 'credit_card',
   ach: 'account_balance',
@@ -56,15 +57,18 @@ export default function PaymentsPage() {
 
   const [showRecord, setShowRecord] = useState(false)
   const [leaseOptions, setLeaseOptions] = useState<LeaseOption[]>([])
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [recordServerError, setRecordServerError] = useState('')
+
+  const recordPaymentForm = useForm<RecordPaymentForm>({
+    resolver: zodResolver(recordPaymentSchema),
+    defaultValues: { tenant_id: '', amount: '', due_date: '', status: 'pending', method: '', late_fee: '', notes: '' },
+  })
+  const recordTenantId = recordPaymentForm.watch('tenant_id')
 
   const [showEdit, setShowEdit] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PaymentRow | null>(null)
-  const [editForm, setEditForm] = useState(EMPTY_FORM)
-  const [editSubmitting, setEditSubmitting] = useState(false)
-  const [editError, setEditError] = useState('')
+  const editPaymentForm = useForm<EditPaymentForm>({ resolver: zodResolver(editPaymentSchema) })
+  const [editServerError, setEditServerError] = useState('')
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -84,8 +88,8 @@ export default function PaymentsPage() {
   }, [profile])
 
   async function openRecord() {
-    setForm(EMPTY_FORM)
-    setFormError('')
+    recordPaymentForm.reset()
+    setRecordServerError('')
     const { data } = await supabase
       .from('leases')
       .select('id, tenant_id, unit_id, property_id, rent_amount, tenant:tenants(id, first_name, last_name)')
@@ -94,35 +98,31 @@ export default function PaymentsPage() {
     setShowRecord(true)
   }
 
-  async function handleRecord(e: React.FormEvent) {
-    e.preventDefault()
-    const lease = leaseOptions.find(l => l.tenant_id === form.tenant_id)
-    if (!lease) { setFormError('No active lease found for this tenant.'); return }
-    setSubmitting(true)
-    setFormError('')
-    const { data, error } = await supabase.from('payments').insert({
-      tenant_id: form.tenant_id,
+  async function onRecordPayment(data: RecordPaymentForm) {
+    const lease = leaseOptions.find(l => l.tenant_id === data.tenant_id)
+    if (!lease) { setRecordServerError('No active lease found for this tenant.'); return }
+    setRecordServerError('')
+    const { data: row, error } = await supabase.from('payments').insert({
+      tenant_id: data.tenant_id,
       lease_id: lease.id,
       unit_id: lease.unit_id,
       property_id: lease.property_id,
-      amount: parseFloat(form.amount),
-      due_date: form.due_date,
-      status: form.status,
-      method: form.method || null,
-      late_fee: form.late_fee ? parseFloat(form.late_fee) : null,
-      notes: form.notes || null,
-      paid_date: form.status === 'paid' ? new Date().toISOString().split('T')[0] : null,
+      amount: parseFloat(data.amount),
+      due_date: data.due_date,
+      status: data.status,
+      method: data.method || null,
+      late_fee: data.late_fee ? parseFloat(data.late_fee) : null,
+      notes: data.notes || null,
+      paid_date: data.status === 'paid' ? new Date().toISOString().split('T')[0] : null,
     }).select('id, amount, due_date, paid_date, status, method, late_fee, notes, tenant:tenants(first_name, last_name)').single()
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    setPayments(prev => [data as unknown as PaymentRow, ...prev])
+    if (error) { setRecordServerError(error.message); return }
+    setPayments(prev => [row as unknown as PaymentRow, ...prev])
     setShowRecord(false)
-    setSubmitting(false)
   }
 
   function openEdit(payment: PaymentRow) {
     setEditingPayment(payment)
-    setEditForm({
-      tenant_id: '',
+    editPaymentForm.reset({
       amount: String(payment.amount),
       due_date: payment.due_date,
       status: payment.status,
@@ -130,36 +130,33 @@ export default function PaymentsPage() {
       late_fee: payment.late_fee ? String(payment.late_fee) : '',
       notes: payment.notes ?? '',
     })
-    setEditError('')
+    setEditServerError('')
     setShowEdit(true)
   }
 
-  async function handleEdit(e: React.FormEvent) {
-    e.preventDefault()
+  async function onEditPayment(data: EditPaymentForm) {
     if (!editingPayment) return
-    setEditSubmitting(true)
-    setEditError('')
+    setEditServerError('')
     const { error } = await supabase.from('payments').update({
-      amount: parseFloat(editForm.amount),
-      due_date: editForm.due_date,
-      status: editForm.status,
-      method: editForm.method || null,
-      late_fee: editForm.late_fee ? parseFloat(editForm.late_fee) : null,
-      notes: editForm.notes || null,
-      paid_date: editForm.status === 'paid' && !editingPayment.paid_date ? new Date().toISOString().split('T')[0] : editingPayment.paid_date,
+      amount: parseFloat(data.amount),
+      due_date: data.due_date,
+      status: data.status,
+      method: data.method || null,
+      late_fee: data.late_fee ? parseFloat(data.late_fee) : null,
+      notes: data.notes || null,
+      paid_date: data.status === 'paid' && !editingPayment.paid_date ? new Date().toISOString().split('T')[0] : editingPayment.paid_date,
     }).eq('id', editingPayment.id)
-    if (error) { setEditError(error.message); setEditSubmitting(false); return }
+    if (error) { setEditServerError(error.message); return }
     setPayments(prev => prev.map(p => p.id === editingPayment.id ? {
       ...p,
-      amount: parseFloat(editForm.amount),
-      due_date: editForm.due_date,
-      status: editForm.status,
-      method: editForm.method || null,
-      late_fee: editForm.late_fee ? parseFloat(editForm.late_fee) : null,
-      notes: editForm.notes || null,
+      amount: parseFloat(data.amount),
+      due_date: data.due_date,
+      status: data.status,
+      method: data.method || null,
+      late_fee: data.late_fee ? parseFloat(data.late_fee) : null,
+      notes: data.notes || null,
     } : p))
     setShowEdit(false)
-    setEditSubmitting(false)
   }
 
   async function handleDelete(id: string) {
@@ -347,12 +344,17 @@ export default function PaymentsPage() {
 
       {/* Record Payment Modal */}
       <Modal open={showRecord} onClose={() => setShowRecord(false)} title="Record Payment" size="md">
-        <form onSubmit={handleRecord} className="space-y-4">
+        <form onSubmit={recordPaymentForm.handleSubmit(onRecordPayment)} className="space-y-4">
           <FormField label="Tenant" hint={leaseOptions.length === 0 ? 'No active leases found.' : undefined}>
-            <select required className="input-base" value={form.tenant_id} onChange={e => {
-              const lease = leaseOptions.find(l => l.tenant_id === e.target.value)
-              setForm(f => ({ ...f, tenant_id: e.target.value, amount: lease ? String(lease.rent_amount) : f.amount }))
-            }}>
+            <select
+              className="input-base"
+              value={recordTenantId}
+              onChange={e => {
+                const lease = leaseOptions.find(l => l.tenant_id === e.target.value)
+                recordPaymentForm.setValue('tenant_id', e.target.value)
+                if (lease) recordPaymentForm.setValue('amount', String(lease.rent_amount))
+              }}
+            >
               <option value="">— Select tenant —</option>
               {leaseOptions.map(l => (
                 <option key={l.tenant_id} value={l.tenant_id}>
@@ -360,18 +362,21 @@ export default function PaymentsPage() {
                 </option>
               ))}
             </select>
+            {recordPaymentForm.formState.errors.tenant_id && <p className="text-error text-xs mt-1">{recordPaymentForm.formState.errors.tenant_id.message}</p>}
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Amount ($)">
-              <input required type="number" min="0" step="0.01" className="input-base" placeholder="2500" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+              <input {...recordPaymentForm.register('amount')} type="number" min="0" step="0.01" className="input-base" placeholder="2500" />
+              {recordPaymentForm.formState.errors.amount && <p className="text-error text-xs mt-1">{recordPaymentForm.formState.errors.amount.message}</p>}
             </FormField>
             <FormField label="Due Date">
-              <input required type="date" className="input-base" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+              <input {...recordPaymentForm.register('due_date')} type="date" className="input-base" />
+              {recordPaymentForm.formState.errors.due_date && <p className="text-error text-xs mt-1">{recordPaymentForm.formState.errors.due_date.message}</p>}
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Status">
-              <select className="input-base" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as PaymentRow['status'] }))}>
+              <select {...recordPaymentForm.register('status')} className="input-base">
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
@@ -380,7 +385,7 @@ export default function PaymentsPage() {
               </select>
             </FormField>
             <FormField label="Method" optional>
-              <select className="input-base" value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))}>
+              <select {...recordPaymentForm.register('method')} className="input-base">
                 <option value="">— None —</option>
                 <option value="ach">ACH</option>
                 <option value="credit_card">Credit Card</option>
@@ -391,15 +396,15 @@ export default function PaymentsPage() {
             </FormField>
           </div>
           <FormField label="Late Fee ($)" optional>
-            <input type="number" min="0" step="0.01" className="input-base" placeholder="0" value={form.late_fee} onChange={e => setForm(f => ({ ...f, late_fee: e.target.value }))} />
+            <input {...recordPaymentForm.register('late_fee')} type="number" min="0" step="0.01" className="input-base" placeholder="0" />
           </FormField>
           <FormField label="Notes" optional>
-            <input type="text" className="input-base" placeholder="e.g. Paid via bank transfer" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            <input {...recordPaymentForm.register('notes')} type="text" className="input-base" placeholder="e.g. Paid via bank transfer" />
           </FormField>
-          {formError && <p className="text-sm text-error">{formError}</p>}
+          {recordServerError && <p className="text-sm text-error">{recordServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowRecord(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Saving...' : 'Record Payment'}</Button>
+            <Button type="submit" disabled={recordPaymentForm.formState.isSubmitting} className="flex-1">{recordPaymentForm.formState.isSubmitting ? 'Saving...' : 'Record Payment'}</Button>
           </div>
         </form>
       </Modal>
@@ -418,18 +423,20 @@ export default function PaymentsPage() {
 
       {/* Edit Payment Modal */}
       <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Payment" size="md">
-        <form onSubmit={handleEdit} className="space-y-4">
+        <form onSubmit={editPaymentForm.handleSubmit(onEditPayment)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Amount ($)">
-              <input required type="number" min="0" step="0.01" className="input-base" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
+              <input {...editPaymentForm.register('amount')} type="number" min="0" step="0.01" className="input-base" />
+              {editPaymentForm.formState.errors.amount && <p className="text-error text-xs mt-1">{editPaymentForm.formState.errors.amount.message}</p>}
             </FormField>
             <FormField label="Due Date">
-              <input required type="date" className="input-base" value={editForm.due_date} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))} />
+              <input {...editPaymentForm.register('due_date')} type="date" className="input-base" />
+              {editPaymentForm.formState.errors.due_date && <p className="text-error text-xs mt-1">{editPaymentForm.formState.errors.due_date.message}</p>}
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Status">
-              <select className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as PaymentRow['status'] }))}>
+              <select {...editPaymentForm.register('status')} className="input-base">
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
@@ -437,8 +444,8 @@ export default function PaymentsPage() {
                 <option value="failed">Failed</option>
               </select>
             </FormField>
-            <FormField label="Method">
-              <select className="input-base" value={editForm.method} onChange={e => setEditForm(f => ({ ...f, method: e.target.value }))}>
+            <FormField label="Method" optional>
+              <select {...editPaymentForm.register('method')} className="input-base">
                 <option value="">— None —</option>
                 <option value="ach">ACH</option>
                 <option value="credit_card">Credit Card</option>
@@ -448,16 +455,16 @@ export default function PaymentsPage() {
               </select>
             </FormField>
           </div>
-          <FormField label="Late Fee ($)">
-            <input type="number" min="0" step="0.01" className="input-base" placeholder="0" value={editForm.late_fee} onChange={e => setEditForm(f => ({ ...f, late_fee: e.target.value }))} />
+          <FormField label="Late Fee ($)" optional>
+            <input {...editPaymentForm.register('late_fee')} type="number" min="0" step="0.01" className="input-base" placeholder="0" />
           </FormField>
-          <FormField label="Notes">
-            <input type="text" className="input-base" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+          <FormField label="Notes" optional>
+            <input {...editPaymentForm.register('notes')} type="text" className="input-base" />
           </FormField>
-          {editError && <p className="text-sm text-error">{editError}</p>}
+          {editServerError && <p className="text-sm text-error">{editServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowEdit(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" disabled={editPaymentForm.formState.isSubmitting} className="flex-1">{editPaymentForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>

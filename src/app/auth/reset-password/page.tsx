@@ -1,35 +1,36 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { resetPasswordSchema, type ResetPasswordForm } from '@/lib/schemas/auth'
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export default function ResetPasswordPage() {
   const supabase = createClient()
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
-  const [error, setError] = useState('')
+  const [serverError, setServerError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const { register, handleSubmit, getValues, formState: { errors, isSubmitting } } = useForm<ResetPasswordForm>({
+    resolver: zodResolver(resetPasswordSchema),
+  })
+
+  const onSubmit = async (data: ResetPasswordForm) => {
+    setServerError('')
 
     const origin = window.location.origin
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
       redirectTo: `${origin}/auth/callback?next=/auth/update-password`,
     })
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setServerError(error.message)
       return
     }
 
     setSent(true)
-    setLoading(false)
   }
 
   return (
@@ -52,7 +53,7 @@ export default function ResetPasswordPage() {
               </div>
               <h2 className="text-xl font-headline font-extrabold text-on-surface mb-2">Check your inbox</h2>
               <p className="text-on-surface-variant text-sm">
-                We&apos;ve sent a password reset link to <span className="font-semibold text-on-surface">{email}</span>.
+                We&apos;ve sent a password reset link to <span className="font-semibold text-on-surface">{getValues('email')}</span>.
                 Follow the link in the email to set a new password.
               </p>
             </div>
@@ -72,28 +73,29 @@ export default function ResetPasswordPage() {
                 </div>
               )}
 
-              {error && (
+              {serverError && (
                 <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
                   <span className="material-symbols-outlined text-error text-base leading-none">error</span>
-                  <p className="text-error text-sm font-medium">{error}</p>
+                  <p className="text-error text-sm font-medium">{serverError}</p>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-on-surface mb-1.5">Email address</label>
                   <input
-                    type="email" required className="input-base"
-                    value={email} onChange={e => setEmail(e.target.value)}
+                    {...register('email')}
+                    type="email" className="input-base"
                     placeholder="you@example.com"
                   />
+                  {errors.email && <p className="text-error text-xs mt-1">{errors.email.message}</p>}
                 </div>
 
                 <button
-                  type="submit" disabled={loading || MOCK_AUTH}
+                  type="submit" disabled={isSubmitting || MOCK_AUTH}
                   className="btn-primary w-full py-4 text-base rounded-xl disabled:opacity-60"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <span className="flex items-center gap-2 justify-center">
                       <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

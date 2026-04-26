@@ -2,35 +2,27 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
+import { updatePasswordSchema, type UpdatePasswordForm } from '@/lib/schemas/auth'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [serverError, setServerError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password !== confirm) {
-      setError('Passwords do not match.')
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<UpdatePasswordForm>({
+    resolver: zodResolver(updatePasswordSchema),
+  })
 
-    setLoading(true)
-    setError('')
+  const onSubmit = async (data: UpdatePasswordForm) => {
+    setServerError('')
 
-    const { error } = await supabase.auth.updateUser({ password })
+    const { error } = await supabase.auth.updateUser({ password: data.password })
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setServerError(error.message)
       return
     }
 
@@ -53,36 +45,38 @@ export default function UpdatePasswordPage() {
           <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">Set new password</h2>
           <p className="text-on-surface-variant text-sm mb-8">Choose a strong password for your account.</p>
 
-          {error && (
+          {serverError && (
             <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
               <span className="material-symbols-outlined text-error text-base leading-none">error</span>
-              <p className="text-error text-sm font-medium">{error}</p>
+              <p className="text-error text-sm font-medium">{serverError}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">New password</label>
               <input
-                type="password" required className="input-base"
-                value={password} onChange={e => setPassword(e.target.value)}
+                {...register('password')}
+                type="password" className="input-base"
                 placeholder="••••••••"
               />
+              {errors.password && <p className="text-error text-xs mt-1">{errors.password.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Confirm password</label>
               <input
-                type="password" required className="input-base"
-                value={confirm} onChange={e => setConfirm(e.target.value)}
+                {...register('confirm')}
+                type="password" className="input-base"
                 placeholder="••••••••"
               />
+              {errors.confirm && <p className="text-error text-xs mt-1">{errors.confirm.message}</p>}
             </div>
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={isSubmitting}
               className="btn-primary w-full py-4 text-base rounded-xl disabled:opacity-60"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <span className="flex items-center gap-2 justify-center">
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

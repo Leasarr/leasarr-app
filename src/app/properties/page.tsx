@@ -15,6 +15,9 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { unitSchema, propertySchema, type UnitForm, type PropertyForm } from '@/lib/schemas/property'
 
 type DbUnit = {
   id: string
@@ -49,9 +52,6 @@ function getStats(p: PropertyRow) {
   return { total, occupied, revenue, occupancy }
 }
 
-const EMPTY_PROPERTY_FORM = { name: '', address: '', city: '', state: '', zip: '', type: 'apartment' as PropertyRow['type'], image_url: '' }
-const EMPTY_UNIT_FORM = { unit_number: '', bedrooms: '1', bathrooms: '1', sqft: '', rent_amount: '', status: 'vacant' as DbUnit['status'] }
-
 export default function PropertiesPage() {
   const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
@@ -61,25 +61,17 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(false)
 
   const [showAddProperty, setShowAddProperty] = useState(false)
-  const [propertyForm, setPropertyForm] = useState(EMPTY_PROPERTY_FORM)
-  const [propertySubmitting, setPropertySubmitting] = useState(false)
-  const [propertyError, setPropertyError] = useState('')
+  const [showEditProperty, setShowEditProperty] = useState(false)
+  const [editPropertyDefaults, setEditPropertyDefaults] = useState<PropertyForm | undefined>()
 
   const [showAddUnit, setShowAddUnit] = useState(false)
-  const [unitForm, setUnitForm] = useState(EMPTY_UNIT_FORM)
-  const [unitSubmitting, setUnitSubmitting] = useState(false)
-  const [unitError, setUnitError] = useState('')
-
-  const [showEditProperty, setShowEditProperty] = useState(false)
-  const [editPropertyForm, setEditPropertyForm] = useState(EMPTY_PROPERTY_FORM)
-  const [editPropertySubmitting, setEditPropertySubmitting] = useState(false)
-  const [editPropertyError, setEditPropertyError] = useState('')
+  const [unitServerError, setUnitServerError] = useState('')
+  const addUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema), defaultValues: { bedrooms: '1', bathrooms: '1', status: 'vacant' } })
 
   const [showEditUnit, setShowEditUnit] = useState(false)
   const [editingUnit, setEditingUnit] = useState<DbUnit | null>(null)
-  const [editUnitForm, setEditUnitForm] = useState(EMPTY_UNIT_FORM)
-  const [editUnitSubmitting, setEditUnitSubmitting] = useState(false)
-  const [editUnitError, setEditUnitError] = useState('')
+  const [editUnitServerError, setEditUnitServerError] = useState('')
+  const editUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema) })
 
   useEffect(() => {
     if (!profile) return
@@ -99,118 +91,100 @@ export default function PropertiesPage() {
     fetchProperties()
   }, [profile])
 
-  async function handleAddProperty(e: React.FormEvent) {
-    e.preventDefault()
-    setPropertySubmitting(true)
-    setPropertyError('')
-    const { data, error } = await supabase
+  async function handleAddProperty(data: PropertyForm): Promise<string | null> {
+    const { data: row, error } = await supabase
       .from('properties')
       .insert({
-        name: propertyForm.name,
-        address: propertyForm.address,
-        city: propertyForm.city,
-        state: propertyForm.state,
-        zip: propertyForm.zip,
-        type: propertyForm.type,
-        image_url: propertyForm.image_url || null,
+        name: data.name,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        type: data.type,
+        image_url: data.image_url || null,
         manager_id: profile!.id,
       })
       .select('*, units(*)')
       .single()
-
-    if (error) {
-      setPropertyError(error.message)
-      setPropertySubmitting(false)
-      return
-    }
-
-    const newProperty = data as PropertyRow
+    if (error) return error.message
+    const newProperty = row as PropertyRow
     setProperties(prev => [newProperty, ...prev])
     setSelected(newProperty)
-    setPropertyForm(EMPTY_PROPERTY_FORM)
     setShowAddProperty(false)
-    setPropertySubmitting(false)
+    return null
   }
 
-  async function handleAddUnit(e: React.FormEvent) {
-    e.preventDefault()
+  async function onAddUnit(data: UnitForm) {
     if (!selected) return
-    setUnitSubmitting(true)
-    setUnitError('')
-    const { data, error } = await supabase
+    setUnitServerError('')
+    const { data: row, error } = await supabase
       .from('units')
       .insert({
         property_id: selected.id,
-        unit_number: unitForm.unit_number,
-        bedrooms: parseInt(unitForm.bedrooms),
-        bathrooms: parseInt(unitForm.bathrooms),
-        sqft: unitForm.sqft ? parseInt(unitForm.sqft) : null,
-        rent_amount: parseFloat(unitForm.rent_amount),
-        status: unitForm.status,
+        unit_number: data.unit_number,
+        bedrooms: parseInt(data.bedrooms),
+        bathrooms: parseFloat(data.bathrooms),
+        sqft: data.sqft ? parseInt(data.sqft) : null,
+        rent_amount: parseFloat(data.rent_amount),
+        status: data.status,
       })
       .select()
       .single()
 
     if (error) {
-      setUnitError(error.message)
-      setUnitSubmitting(false)
+      setUnitServerError(error.message)
       return
     }
 
-    const newUnit = data as DbUnit
+    const newUnit = row as DbUnit
     const updatedProperty = { ...selected, units: [...selected.units, newUnit] }
     setSelected(updatedProperty)
     setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
-    setUnitForm(EMPTY_UNIT_FORM)
+    addUnitForm.reset()
     setShowAddUnit(false)
-    setUnitSubmitting(false)
   }
 
   function openEditProperty() {
     if (!selected) return
-    setEditPropertyForm({
+    setEditPropertyDefaults({
       name: selected.name,
       address: selected.address,
       city: selected.city,
       state: selected.state,
       zip: selected.zip,
       type: selected.type,
-      image_url: selected.image_url ?? '',
+      image_url: selected.image_url ?? null,
     })
-    setEditPropertyError('')
     setShowEditProperty(true)
   }
 
-  async function handleEditProperty(e: React.FormEvent) {
-    e.preventDefault()
-    if (!selected) return
-    setEditPropertySubmitting(true)
-    setEditPropertyError('')
-    const { data, error } = await supabase
+  async function handleEditProperty(data: PropertyForm): Promise<string | null> {
+    if (!selected) return null
+    const { data: row, error } = await supabase
       .from('properties')
       .update({
-        name: editPropertyForm.name,
-        address: editPropertyForm.address,
-        city: editPropertyForm.city,
-        state: editPropertyForm.state,
-        zip: editPropertyForm.zip,
-        type: editPropertyForm.type,
-        image_url: editPropertyForm.image_url || null,
+        name: data.name,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        type: data.type,
+        image_url: data.image_url || null,
       })
       .eq('id', selected.id)
       .select('*, units(*)')
       .single()
-    if (error) { setEditPropertyError(error.message); setEditPropertySubmitting(false); return }
-    const updated = data as PropertyRow
+    if (error) return error.message
+    const updated = row as PropertyRow
     setProperties(prev => prev.map(p => p.id === selected.id ? updated : p))
     setSelected(updated)
     setShowEditProperty(false)
-    setEditPropertySubmitting(false)
+    return null
   }
 
   function openEditUnit(unit: DbUnit) {
     setEditingUnit(unit)
-    setEditUnitForm({
+    editUnitForm.reset({
       unit_number: unit.unit_number,
       bedrooms: String(unit.bedrooms),
       bathrooms: String(unit.bathrooms),
@@ -218,35 +192,32 @@ export default function PropertiesPage() {
       rent_amount: String(unit.rent_amount),
       status: unit.status,
     })
-    setEditUnitError('')
+    setEditUnitServerError('')
     setShowEditUnit(true)
   }
 
-  async function handleEditUnit(e: React.FormEvent) {
-    e.preventDefault()
+  async function onEditUnit(data: UnitForm) {
     if (!selected || !editingUnit) return
-    setEditUnitSubmitting(true)
-    setEditUnitError('')
-    const { data, error } = await supabase
+    setEditUnitServerError('')
+    const { data: row, error } = await supabase
       .from('units')
       .update({
-        unit_number: editUnitForm.unit_number,
-        bedrooms: parseInt(editUnitForm.bedrooms),
-        bathrooms: parseFloat(editUnitForm.bathrooms),
-        sqft: editUnitForm.sqft ? parseInt(editUnitForm.sqft) : null,
-        rent_amount: parseFloat(editUnitForm.rent_amount),
-        status: editUnitForm.status,
+        unit_number: data.unit_number,
+        bedrooms: parseInt(data.bedrooms),
+        bathrooms: parseFloat(data.bathrooms),
+        sqft: data.sqft ? parseInt(data.sqft) : null,
+        rent_amount: parseFloat(data.rent_amount),
+        status: data.status,
       })
       .eq('id', editingUnit.id)
       .select()
       .single()
-    if (error) { setEditUnitError(error.message); setEditUnitSubmitting(false); return }
-    const updatedUnit = data as DbUnit
+    if (error) { setEditUnitServerError(error.message); return }
+    const updatedUnit = row as DbUnit
     const updatedProperty = { ...selected, units: selected.units.map(u => u.id === editingUnit.id ? updatedUnit : u) }
     setSelected(updatedProperty)
     setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
     setShowEditUnit(false)
-    setEditUnitSubmitting(false)
   }
 
   if (authLoading || loading) {
@@ -274,12 +245,8 @@ export default function PropertiesPage() {
 
         <AddPropertyModal
           open={showAddProperty}
-          onClose={() => { setShowAddProperty(false); setPropertyError('') }}
-          form={propertyForm}
-          onChange={setPropertyForm}
+          onClose={() => setShowAddProperty(false)}
           onSubmit={handleAddProperty}
-          submitting={propertySubmitting}
-          error={propertyError}
         />
       </AppLayout>
     )
@@ -525,23 +492,16 @@ export default function PropertiesPage() {
       {/* Add Property Modal */}
       <AddPropertyModal
         open={showAddProperty}
-        onClose={() => { setShowAddProperty(false); setPropertyError('') }}
-        form={propertyForm}
-        onChange={setPropertyForm}
+        onClose={() => setShowAddProperty(false)}
         onSubmit={handleAddProperty}
-        submitting={propertySubmitting}
-        error={propertyError}
       />
 
       {/* Edit Property Modal */}
       <AddPropertyModal
         open={showEditProperty}
         onClose={() => setShowEditProperty(false)}
-        form={editPropertyForm}
-        onChange={setEditPropertyForm}
         onSubmit={handleEditProperty}
-        submitting={editPropertySubmitting}
-        error={editPropertyError}
+        defaultValues={editPropertyDefaults}
         title="Edit Property"
         submitLabel="Save Changes"
       />
@@ -552,35 +512,39 @@ export default function PropertiesPage() {
         onClose={() => setShowEditUnit(false)}
         title={`Edit Unit ${editingUnit?.unit_number ?? ''}`}
       >
-        <form onSubmit={handleEditUnit} className="space-y-4">
+        <form onSubmit={editUnitForm.handleSubmit(onEditUnit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Unit Number" className="col-span-2">
-              <input required className="input-base" value={editUnitForm.unit_number} onChange={e => setEditUnitForm(f => ({ ...f, unit_number: e.target.value }))} />
+              <input {...editUnitForm.register('unit_number')} className="input-base" />
+              {editUnitForm.formState.errors.unit_number && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.unit_number.message}</p>}
             </FormField>
             <FormField label="Bedrooms">
-              <input required type="number" min="0" className="input-base" value={editUnitForm.bedrooms} onChange={e => setEditUnitForm(f => ({ ...f, bedrooms: e.target.value }))} />
+              <input {...editUnitForm.register('bedrooms')} type="number" min="0" className="input-base" />
+              {editUnitForm.formState.errors.bedrooms && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.bedrooms.message}</p>}
             </FormField>
             <FormField label="Bathrooms">
-              <input required type="number" min="0" step="0.5" className="input-base" value={editUnitForm.bathrooms} onChange={e => setEditUnitForm(f => ({ ...f, bathrooms: e.target.value }))} />
+              <input {...editUnitForm.register('bathrooms')} type="number" min="0" step="0.5" className="input-base" />
+              {editUnitForm.formState.errors.bathrooms && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.bathrooms.message}</p>}
             </FormField>
             <FormField label="Sqft" optional>
-              <input type="number" min="0" className="input-base" value={editUnitForm.sqft} onChange={e => setEditUnitForm(f => ({ ...f, sqft: e.target.value }))} />
+              <input {...editUnitForm.register('sqft')} type="number" min="0" className="input-base" />
             </FormField>
             <FormField label="Monthly Rent ($)">
-              <input required type="number" min="0" step="0.01" className="input-base" value={editUnitForm.rent_amount} onChange={e => setEditUnitForm(f => ({ ...f, rent_amount: e.target.value }))} />
+              <input {...editUnitForm.register('rent_amount')} type="number" min="0" step="0.01" className="input-base" />
+              {editUnitForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Status" className="col-span-2">
-              <select className="input-base" value={editUnitForm.status} onChange={e => setEditUnitForm(f => ({ ...f, status: e.target.value as DbUnit['status'] }))}>
+              <select {...editUnitForm.register('status')} className="input-base">
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
               </select>
             </FormField>
           </div>
-          {editUnitError && <p className="text-sm text-error">{editUnitError}</p>}
+          {editUnitServerError && <p className="text-sm text-error">{editUnitServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowEditUnit(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editUnitSubmitting} className="flex-1">{editUnitSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" disabled={editUnitForm.formState.isSubmitting} className="flex-1">{editUnitForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
@@ -588,68 +552,62 @@ export default function PropertiesPage() {
       {/* Add Unit Modal */}
       <Modal
         open={showAddUnit}
-        onClose={() => { setShowAddUnit(false); setUnitError('') }}
+        onClose={() => { addUnitForm.reset(); setShowAddUnit(false) }}
         title={`Add Unit — ${selected?.name ?? ''}`}
       >
-        <form onSubmit={handleAddUnit} className="space-y-4">
+        <form onSubmit={addUnitForm.handleSubmit(onAddUnit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Unit Number" className="col-span-2">
               <input
-                required
+                {...addUnitForm.register('unit_number')}
                 className="input-base"
                 placeholder="e.g. 1A, 204, G1"
-                value={unitForm.unit_number}
-                onChange={e => setUnitForm(f => ({ ...f, unit_number: e.target.value }))}
               />
+              {addUnitForm.formState.errors.unit_number && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.unit_number.message}</p>}
             </FormField>
             <FormField label="Bedrooms">
               <input
-                required
+                {...addUnitForm.register('bedrooms')}
                 type="number"
                 min="0"
                 className="input-base"
-                value={unitForm.bedrooms}
-                onChange={e => setUnitForm(f => ({ ...f, bedrooms: e.target.value }))}
               />
+              {addUnitForm.formState.errors.bedrooms && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.bedrooms.message}</p>}
             </FormField>
             <FormField label="Bathrooms">
               <input
-                required
+                {...addUnitForm.register('bathrooms')}
                 type="number"
                 min="0"
                 step="0.5"
                 className="input-base"
-                value={unitForm.bathrooms}
-                onChange={e => setUnitForm(f => ({ ...f, bathrooms: e.target.value }))}
               />
+              {addUnitForm.formState.errors.bathrooms && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.bathrooms.message}</p>}
             </FormField>
             <FormField label="Sqft" optional>
               <input
+                {...addUnitForm.register('sqft')}
                 type="number"
                 min="0"
                 className="input-base"
                 placeholder="e.g. 850"
-                value={unitForm.sqft}
-                onChange={e => setUnitForm(f => ({ ...f, sqft: e.target.value }))}
               />
             </FormField>
             <FormField label="Monthly Rent ($)">
               <input
-                required
+                {...addUnitForm.register('rent_amount')}
                 type="number"
                 min="0"
                 step="0.01"
                 className="input-base"
                 placeholder="e.g. 2500"
-                value={unitForm.rent_amount}
-                onChange={e => setUnitForm(f => ({ ...f, rent_amount: e.target.value }))}
               />
+              {addUnitForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Status" className="col-span-2">
               <select
+                {...addUnitForm.register('status')}
                 className="input-base"
-                value={unitForm.status}
-                onChange={e => setUnitForm(f => ({ ...f, status: e.target.value as DbUnit['status'] }))}
               >
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
@@ -657,10 +615,10 @@ export default function PropertiesPage() {
               </select>
             </FormField>
           </div>
-          {unitError && <p className="text-sm text-error">{unitError}</p>}
+          {unitServerError && <p className="text-sm text-error">{unitServerError}</p>}
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => { setShowAddUnit(false); setUnitError('') }} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={unitSubmitting} className="flex-1">{unitSubmitting ? 'Adding...' : 'Add Unit'}</Button>
+            <Button type="button" variant="secondary" onClick={() => { addUnitForm.reset(); setShowAddUnit(false) }} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={addUnitForm.formState.isSubmitting} className="flex-1">{addUnitForm.formState.isSubmitting ? 'Adding...' : 'Add Unit'}</Button>
           </div>
         </form>
       </Modal>
@@ -668,81 +626,85 @@ export default function PropertiesPage() {
   )
 }
 
-// ── Add Property Modal ─────────────────────────────────────────────────────────
+// ── Add / Edit Property Modal ──────────────────────────────────────────────────
 
-type PropertyForm = typeof EMPTY_PROPERTY_FORM
+const EMPTY_PROPERTY_DEFAULTS: PropertyForm = { name: '', address: '', city: '', state: '', zip: '', type: 'apartment', image_url: null }
 
 function AddPropertyModal({
-  open, onClose, form, onChange, onSubmit, submitting, error, title = 'Add Property', submitLabel = 'Create Property',
+  open, onClose, onSubmit, defaultValues, title = 'Add Property', submitLabel = 'Create Property',
 }: {
   open: boolean
   onClose: () => void
-  form: PropertyForm
-  onChange: React.Dispatch<React.SetStateAction<PropertyForm>>
-  onSubmit: (e: React.FormEvent) => void
-  submitting: boolean
-  error: string
+  onSubmit: (data: PropertyForm) => Promise<string | null>
+  defaultValues?: PropertyForm
   title?: string
   submitLabel?: string
 }) {
+  const form = useForm<PropertyForm>({ resolver: zodResolver(propertySchema), defaultValues: EMPTY_PROPERTY_DEFAULTS })
+  const [serverError, setServerError] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      setServerError('')
+      form.reset(defaultValues ?? EMPTY_PROPERTY_DEFAULTS)
+    }
+  }, [open])
+
+  async function handleSubmit(data: PropertyForm) {
+    const err = await onSubmit(data)
+    if (err) setServerError(err)
+  }
+
   return (
     <Modal open={open} onClose={onClose} title={title} size="lg">
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField label="Property Name">
           <input
-            required
+            {...form.register('name')}
             className="input-base"
             placeholder="e.g. The Azure Heights"
-            value={form.name}
-            onChange={e => onChange(f => ({ ...f, name: e.target.value }))}
           />
+          {form.formState.errors.name && <p className="text-error text-xs mt-1">{form.formState.errors.name.message}</p>}
         </FormField>
         <FormField label="Street Address">
           <input
-            required
+            {...form.register('address')}
             className="input-base"
             placeholder="e.g. 1244 East 86th St"
-            value={form.address}
-            onChange={e => onChange(f => ({ ...f, address: e.target.value }))}
           />
+          {form.formState.errors.address && <p className="text-error text-xs mt-1">{form.formState.errors.address.message}</p>}
         </FormField>
         <div className="grid grid-cols-2 gap-4">
           <FormField label="City">
             <input
-              required
+              {...form.register('city')}
               className="input-base"
               placeholder="e.g. New York"
-              value={form.city}
-              onChange={e => onChange(f => ({ ...f, city: e.target.value }))}
             />
+            {form.formState.errors.city && <p className="text-error text-xs mt-1">{form.formState.errors.city.message}</p>}
           </FormField>
           <FormField label="State">
             <input
-              required
+              {...form.register('state')}
               className="input-base"
               placeholder="e.g. NY"
               maxLength={2}
-              value={form.state}
-              onChange={e => onChange(f => ({ ...f, state: e.target.value.toUpperCase() }))}
+              onChange={e => form.setValue('state', e.target.value.toUpperCase())}
             />
+            {form.formState.errors.state && <p className="text-error text-xs mt-1">{form.formState.errors.state.message}</p>}
           </FormField>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <FormField label="ZIP Code">
             <input
-              required
+              {...form.register('zip')}
               className="input-base"
               placeholder="e.g. 10028"
-              value={form.zip}
-              onChange={e => onChange(f => ({ ...f, zip: e.target.value }))}
             />
+            {form.formState.errors.zip && <p className="text-error text-xs mt-1">{form.formState.errors.zip.message}</p>}
           </FormField>
           <FormField label="Type">
-            <select
-              className="input-base"
-              value={form.type}
-              onChange={e => onChange(f => ({ ...f, type: e.target.value as PropertyForm['type'] }))}
-            >
+            <select {...form.register('type')} className="input-base">
               <option value="apartment">Apartment</option>
               <option value="house">House</option>
               <option value="condo">Condo</option>
@@ -751,18 +713,24 @@ function AddPropertyModal({
           </FormField>
         </div>
         <FormField label="Property Photo" optional>
-          <ImageUpload
-            value={form.image_url || null}
-            onChange={url => onChange(f => ({ ...f, image_url: url ?? '' }))}
-            bucket="property-images"
-            path="uploads"
-            height="h-40"
+          <Controller
+            control={form.control}
+            name="image_url"
+            render={({ field }) => (
+              <ImageUpload
+                value={field.value ?? null}
+                onChange={field.onChange}
+                bucket="property-images"
+                path="uploads"
+                height="h-40"
+              />
+            )}
           />
         </FormField>
-        {error && <p className="text-sm text-error">{error}</p>}
+        {serverError && <p className="text-sm text-error">{serverError}</p>}
         <div className="flex gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
-          <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Saving...' : submitLabel}</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting} className="flex-1">{form.formState.isSubmitting ? 'Saving...' : submitLabel}</Button>
         </div>
       </form>
     </Modal>

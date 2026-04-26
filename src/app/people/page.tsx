@@ -14,6 +14,9 @@ import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/l
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { teamMemberSchema, vendorSchema, tenantSchema, editTenantSchema, type TeamMemberForm, type VendorForm, type TenantForm, type EditTenantForm } from '@/lib/schemas/people'
 
 // ── DB row types ───────────────────────────────────────────────────────────────
 
@@ -106,9 +109,13 @@ export default function PeoplePage() {
   // ── Edit Tenant modal state
   const [showEditTenant, setShowEditTenant] = useState(false)
   const [editUnits, setEditUnits] = useState<VacantUnit[]>([])
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', phone: '', avatar_url: '' as string | null, property_id: '', unit_id: '', team_member_id: '', status: 'active' as TenantRow['status'] })
-  const [editSubmitting, setEditSubmitting] = useState(false)
-  const [editError, setEditError] = useState('')
+  const [editTenantServerError, setEditTenantServerError] = useState('')
+
+  const editTenantForm = useForm<EditTenantForm>({
+    resolver: zodResolver(editTenantSchema),
+    defaultValues: { first_name: '', last_name: '', email: '', phone: '', avatar_url: null, property_id: '', unit_id: '', team_member_id: '', status: 'active' },
+  })
+  const editPropertyId = editTenantForm.watch('property_id')
 
   // ── Add Person modal state
   const [showAddPerson, setShowAddPerson] = useState(false)
@@ -116,12 +123,18 @@ export default function PeoplePage() {
   const [personType, setPersonType] = useState<PersonType | null>(null)
   const [vacantUnits, setVacantUnits] = useState<VacantUnit[]>([])
   const [properties, setProperties] = useState<{ id: string; name: string }[]>([])
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [addTenantServerError, setAddTenantServerError] = useState('')
 
-  const [tenantForm, setTenantForm] = useState({ first_name: '', last_name: '', email: '', phone: '', avatar_url: null as string | null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
-  const [teamForm, setTeamForm] = useState({ name: '', role: '', email: '', phone: '' })
-  const [vendorForm, setVendorForm] = useState({ name: '', company: '', specialty: 'general' as VendorRow['specialty'], email: '', phone: '' })
+  const addTenantForm = useForm<TenantForm>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: { first_name: '', last_name: '', email: '', phone: '', avatar_url: null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' },
+  })
+  const addPropertyId = addTenantForm.watch('property_id')
+
+  const teamMemberForm = useForm<TeamMemberForm>({ resolver: zodResolver(teamMemberSchema) })
+  const vendorForm = useForm<VendorForm>({ resolver: zodResolver(vendorSchema), defaultValues: { specialty: 'general' } })
+  const [teamServerError, setTeamServerError] = useState('')
+  const [vendorServerError, setVendorServerError] = useState('')
 
   // ── Fetch all people
   useEffect(() => {
@@ -166,7 +179,7 @@ export default function PeoplePage() {
     setShowAddPerson(true)
     setModalStep(1)
     setPersonType(null)
-    setFormError('')
+    setAddTenantServerError('')
     const [unitsRes, propsRes] = await Promise.all([
       supabase.from('units').select('id, unit_number, property_id, property:properties(id, name)').eq('status', 'vacant'),
       supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
@@ -178,23 +191,24 @@ export default function PeoplePage() {
   function selectType(type: PersonType) {
     setPersonType(type)
     setModalStep(2)
-    setFormError('')
+    setAddTenantServerError('')
   }
 
   function closeModal() {
     setShowAddPerson(false)
     setModalStep(1)
     setPersonType(null)
-    setFormError('')
-    setSubmitting(false)
-    setTenantForm({ first_name: '', last_name: '', email: '', phone: '', avatar_url: null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' })
-    setTeamForm({ name: '', role: '', email: '', phone: '' })
-    setVendorForm({ name: '', company: '', specialty: 'general', email: '', phone: '' })
+    setAddTenantServerError('')
+    addTenantForm.reset()
+    teamMemberForm.reset()
+    setTeamServerError('')
+    vendorForm.reset()
+    setVendorServerError('')
   }
 
   // ── Edit Tenant
   async function openEditTenant(tenant: TenantRow) {
-    setEditForm({
+    editTenantForm.reset({
       first_name: tenant.first_name,
       last_name: tenant.last_name,
       email: tenant.email,
@@ -205,8 +219,7 @@ export default function PeoplePage() {
       team_member_id: tenant.team_member_id ?? '',
       status: tenant.status,
     })
-    setEditError('')
-    // Fetch vacant units + the tenant's current unit (so it shows in the dropdown)
+    setEditTenantServerError('')
     const { data } = await supabase
       .from('units')
       .select('id, unit_number, property_id, property:properties(id, name)')
@@ -215,111 +228,101 @@ export default function PeoplePage() {
     setShowEditTenant(true)
   }
 
-  async function handleEditTenant(e: React.FormEvent) {
-    e.preventDefault()
+  async function onEditTenant(data: EditTenantForm) {
     if (!selectedTenant) return
-    setEditSubmitting(true)
-    setEditError('')
+    setEditTenantServerError('')
 
     const prevUnitId = selectedTenant.unit_id
-    const nextUnitId = editForm.unit_id || null
+    const nextUnitId = data.unit_id || null
 
-    const { data, error } = await supabase
+    const { data: row, error } = await supabase
       .from('tenants')
       .update({
-        first_name: editForm.first_name,
-        last_name: editForm.last_name,
-        email: editForm.email,
-        phone: editForm.phone,
-        avatar_url: editForm.avatar_url || null,
-        property_id: editForm.property_id || null,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        avatar_url: data.avatar_url || null,
+        property_id: data.property_id || null,
         unit_id: nextUnitId,
-        team_member_id: editForm.team_member_id || null,
-        status: editForm.status,
+        team_member_id: data.team_member_id || null,
+        status: data.status,
       })
       .eq('id', selectedTenant.id)
       .select('*, property:properties(name), unit:units(unit_number)')
       .single()
 
-    if (error) { setEditError(error.message); setEditSubmitting(false); return }
+    if (error) { setEditTenantServerError(error.message); return }
 
-    // Always sync unit status to reflect tenant state
     if (prevUnitId && prevUnitId !== nextUnitId) {
       await supabase.from('units').update({ status: 'vacant' }).eq('id', prevUnitId)
     }
     if (nextUnitId) {
-      const unitStatus = editForm.status === 'active' ? 'occupied' : 'vacant'
+      const unitStatus = data.status === 'active' ? 'occupied' : 'vacant'
       await supabase.from('units').update({ status: unitStatus }).eq('id', nextUnitId)
     }
 
-    const updated = data as TenantRow
+    const updated = row as TenantRow
     setTenants(prev => prev.map(t => t.id === selectedTenant.id ? updated : t))
     setSelectedTenant(updated)
     setShowEditTenant(false)
-    setEditSubmitting(false)
   }
 
   // ── Submit handlers
-  async function handleAddTenant(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setFormError('')
-    const { data, error } = await supabase.from('tenants').insert({
-      first_name: tenantForm.first_name,
-      last_name: tenantForm.last_name,
-      email: tenantForm.email,
-      phone: tenantForm.phone,
-      avatar_url: tenantForm.avatar_url || null,
-      move_in_date: tenantForm.move_in_date || null,
-      unit_id: tenantForm.unit_id || null,
-      property_id: tenantForm.property_id || null,
-      team_member_id: tenantForm.team_member_id || null,
+  async function onAddTenant(data: TenantForm) {
+    setAddTenantServerError('')
+    const { data: row, error } = await supabase.from('tenants').insert({
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      phone: data.phone,
+      avatar_url: data.avatar_url || null,
+      move_in_date: data.move_in_date || null,
+      unit_id: data.unit_id || null,
+      property_id: data.property_id || null,
+      team_member_id: data.team_member_id || null,
       manager_id: profile!.id,
       status: 'active',
     }).select('*, property:properties(name), unit:units(unit_number)').single()
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    if (tenantForm.unit_id) {
-      await supabase.from('units').update({ status: 'occupied' }).eq('id', tenantForm.unit_id)
+    if (error) { setAddTenantServerError(error.message); return }
+    if (data.unit_id) {
+      await supabase.from('units').update({ status: 'occupied' }).eq('id', data.unit_id)
     }
-    setTenants(prev => [data as TenantRow, ...prev])
-    setSelectedTenant(data as TenantRow)
+    setTenants(prev => [row as TenantRow, ...prev])
+    setSelectedTenant(row as TenantRow)
     setActiveTab('tenants')
     closeModal()
   }
 
-  async function handleAddTeamMember(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setFormError('')
-    const { data, error } = await supabase.from('team_members').insert({
-      name: teamForm.name,
-      role: teamForm.role,
-      email: teamForm.email,
-      phone: teamForm.phone || null,
+  async function onAddTeamMember(data: TeamMemberForm) {
+    setTeamServerError('')
+    const { data: row, error } = await supabase.from('team_members').insert({
+      name: data.name,
+      role: data.role,
+      email: data.email,
+      phone: data.phone || null,
       manager_id: profile!.id,
       status: 'active',
     }).select('*').single()
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    setTeamMembers(prev => [data as TeamMemberRow, ...prev])
+    if (error) { setTeamServerError(error.message); return }
+    setTeamMembers(prev => [row as TeamMemberRow, ...prev])
     setActiveTab('team')
     closeModal()
   }
 
-  async function handleAddVendor(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setFormError('')
-    const { data, error } = await supabase.from('vendors').insert({
-      name: vendorForm.name,
-      company: vendorForm.company,
-      specialty: vendorForm.specialty,
-      email: vendorForm.email,
-      phone: vendorForm.phone || null,
+  async function onAddVendor(data: VendorForm) {
+    setVendorServerError('')
+    const { data: row, error } = await supabase.from('vendors').insert({
+      name: data.name,
+      company: data.company,
+      specialty: data.specialty,
+      email: data.email,
+      phone: data.phone || null,
       manager_id: profile!.id,
       status: 'active',
     }).select('*').single()
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    setVendors(prev => [data as VendorRow, ...prev])
+    if (error) { setVendorServerError(error.message); return }
+    setVendors(prev => [row as VendorRow, ...prev])
     setActiveTab('vendors')
     closeModal()
   }
@@ -650,65 +653,86 @@ export default function PeoplePage() {
 
       {/* ── Edit Tenant Modal ── */}
       <Modal open={showEditTenant} onClose={() => setShowEditTenant(false)} title="Edit Tenant" size="md">
-        <form onSubmit={handleEditTenant} className="space-y-4">
+        <form onSubmit={editTenantForm.handleSubmit(onEditTenant)} className="space-y-4">
           <FormField label="Photo" optional>
-            <ImageUpload
-              value={editForm.avatar_url}
-              onChange={url => setEditForm(f => ({ ...f, avatar_url: url }))}
-              bucket="avatars"
-              path={`tenants/${profile?.id ?? 'uploads'}`}
-              shape="circle"
-              className="w-20 h-20"
+            <Controller
+              control={editTenantForm.control}
+              name="avatar_url"
+              render={({ field }) => (
+                <ImageUpload
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  bucket="avatars"
+                  path={`tenants/${profile?.id ?? 'uploads'}`}
+                  shape="circle"
+                  className="w-20 h-20"
+                />
+              )}
             />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="First Name">
-              <input required className="input-base" value={editForm.first_name} onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))} />
+              <input {...editTenantForm.register('first_name')} className="input-base" />
+              {editTenantForm.formState.errors.first_name && <p className="text-error text-xs mt-1">{editTenantForm.formState.errors.first_name.message}</p>}
             </FormField>
             <FormField label="Last Name">
-              <input required className="input-base" value={editForm.last_name} onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))} />
+              <input {...editTenantForm.register('last_name')} className="input-base" />
+              {editTenantForm.formState.errors.last_name && <p className="text-error text-xs mt-1">{editTenantForm.formState.errors.last_name.message}</p>}
             </FormField>
           </div>
           <FormField label="Email">
-            <input required type="email" className="input-base" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+            <input {...editTenantForm.register('email')} type="email" className="input-base" />
+            {editTenantForm.formState.errors.email && <p className="text-error text-xs mt-1">{editTenantForm.formState.errors.email.message}</p>}
           </FormField>
           <FormField label="Phone">
-            <input className="input-base" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+            <input {...editTenantForm.register('phone')} className="input-base" />
           </FormField>
           <FormField label="Property">
-            <select className="input-base" value={editForm.property_id} onChange={e => setEditForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}>
+            <select
+              className="input-base"
+              value={editPropertyId}
+              onChange={e => {
+                editTenantForm.setValue('property_id', e.target.value)
+                editTenantForm.setValue('unit_id', '')
+              }}
+            >
               <option value="">— None —</option>
               {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </FormField>
           <FormField label="Unit">
-            <select className="input-base" value={editForm.unit_id} onChange={e => {
-              const unit = editUnits.find(u => u.id === e.target.value)
-              setEditForm(f => ({ ...f, unit_id: e.target.value, property_id: unit?.property_id ?? f.property_id }))
-            }}>
+            <select
+              className="input-base"
+              value={editTenantForm.watch('unit_id')}
+              onChange={e => {
+                const unit = editUnits.find(u => u.id === e.target.value)
+                editTenantForm.setValue('unit_id', e.target.value)
+                if (unit) editTenantForm.setValue('property_id', unit.property_id)
+              }}
+            >
               <option value="">— Unassigned —</option>
-              {editUnits.filter(u => !editForm.property_id || u.property_id === editForm.property_id).map(u => (
+              {editUnits.filter(u => !editPropertyId || u.property_id === editPropertyId).map(u => (
                 <option key={u.id} value={u.id}>Unit {u.unit_number}{u.id === selectedTenant?.unit_id ? ' (current)' : ''}</option>
               ))}
             </select>
           </FormField>
           <FormField label="Assign Team Member">
-            <select className="input-base" value={editForm.team_member_id} onChange={e => setEditForm(f => ({ ...f, team_member_id: e.target.value }))}>
+            <select {...editTenantForm.register('team_member_id')} className="input-base">
               <option value="">— None —</option>
               {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
             </select>
           </FormField>
           <FormField label="Status">
-            <select className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value as TenantRow['status'] }))}>
+            <select {...editTenantForm.register('status')} className="input-base">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="pending">Pending</option>
             </select>
           </FormField>
-          {editError && <p className="text-sm text-error">{editError}</p>}
+          {editTenantServerError && <p className="text-sm text-error">{editTenantServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowEditTenant(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" disabled={editTenantForm.formState.isSubmitting} className="flex-1">{editTenantForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
@@ -745,42 +769,54 @@ export default function PeoplePage() {
 
         {/* Step 2 — Tenant form */}
         {modalStep === 2 && personType === 'tenant' && (
-          <form onSubmit={handleAddTenant} className="space-y-4">
+          <form onSubmit={addTenantForm.handleSubmit(onAddTenant)} className="space-y-4">
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
             <FormField label="Photo" optional>
-              <ImageUpload
-                value={tenantForm.avatar_url}
-                onChange={url => setTenantForm(f => ({ ...f, avatar_url: url }))}
-                bucket="avatars"
-                path={`tenants/${profile?.id ?? 'uploads'}`}
-                shape="circle"
-                className="w-20 h-20"
+              <Controller
+                control={addTenantForm.control}
+                name="avatar_url"
+                render={({ field }) => (
+                  <ImageUpload
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    bucket="avatars"
+                    path={`tenants/${profile?.id ?? 'uploads'}`}
+                    shape="circle"
+                    className="w-20 h-20"
+                  />
+                )}
               />
             </FormField>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="First Name">
-                <input required className="input-base" placeholder="Jane" value={tenantForm.first_name} onChange={e => setTenantForm(f => ({ ...f, first_name: e.target.value }))} />
+                <input {...addTenantForm.register('first_name')} className="input-base" placeholder="Jane" />
+                {addTenantForm.formState.errors.first_name && <p className="text-error text-xs mt-1">{addTenantForm.formState.errors.first_name.message}</p>}
               </FormField>
               <FormField label="Last Name">
-                <input required className="input-base" placeholder="Smith" value={tenantForm.last_name} onChange={e => setTenantForm(f => ({ ...f, last_name: e.target.value }))} />
+                <input {...addTenantForm.register('last_name')} className="input-base" placeholder="Smith" />
+                {addTenantForm.formState.errors.last_name && <p className="text-error text-xs mt-1">{addTenantForm.formState.errors.last_name.message}</p>}
               </FormField>
             </div>
             <FormField label="Email">
-              <input required type="email" className="input-base" placeholder="jane@email.com" value={tenantForm.email} onChange={e => setTenantForm(f => ({ ...f, email: e.target.value }))} />
+              <input {...addTenantForm.register('email')} type="email" className="input-base" placeholder="jane@email.com" />
+              {addTenantForm.formState.errors.email && <p className="text-error text-xs mt-1">{addTenantForm.formState.errors.email.message}</p>}
             </FormField>
-            <FormField label="Phone">
-              <input className="input-base" placeholder="+1 (555) 000-0000" value={tenantForm.phone} onChange={e => setTenantForm(f => ({ ...f, phone: e.target.value }))} />
+            <FormField label="Phone" optional>
+              <input {...addTenantForm.register('phone')} className="input-base" placeholder="+1 (555) 000-0000" />
             </FormField>
             <FormField label="Move-in Date" optional>
-              <input type="date" className="input-base" value={tenantForm.move_in_date} onChange={e => setTenantForm(f => ({ ...f, move_in_date: e.target.value }))} />
+              <input {...addTenantForm.register('move_in_date')} type="date" className="input-base" />
             </FormField>
             <FormField label="Property" optional hint={properties.length === 0 ? 'No properties yet. Add a property first.' : undefined}>
               <select
                 className="input-base"
-                value={tenantForm.property_id}
-                onChange={e => setTenantForm(f => ({ ...f, property_id: e.target.value, unit_id: '' }))}
+                value={addPropertyId}
+                onChange={e => {
+                  addTenantForm.setValue('property_id', e.target.value)
+                  addTenantForm.setValue('unit_id', '')
+                }}
               >
                 <option value="">— Select property —</option>
                 {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -789,76 +825,82 @@ export default function PeoplePage() {
             <FormField
               label="Unit"
               optional
-              hint={tenantForm.property_id && vacantUnits.filter(u => u.property_id === tenantForm.property_id).length === 0 ? 'No vacant units in this property.' : undefined}
+              hint={addPropertyId && vacantUnits.filter(u => u.property_id === addPropertyId).length === 0 ? 'No vacant units in this property.' : undefined}
             >
               <select
                 className="input-base"
-                value={tenantForm.unit_id}
+                value={addTenantForm.watch('unit_id')}
                 onChange={e => {
                   const unit = vacantUnits.find(u => u.id === e.target.value)
-                  setTenantForm(f => ({ ...f, unit_id: e.target.value, property_id: unit?.property_id ?? f.property_id }))
+                  addTenantForm.setValue('unit_id', e.target.value)
+                  if (unit) addTenantForm.setValue('property_id', unit.property_id)
                 }}
               >
                 <option value="">— Unassigned —</option>
                 {vacantUnits
-                  .filter(u => !tenantForm.property_id || u.property_id === tenantForm.property_id)
+                  .filter(u => !addPropertyId || u.property_id === addPropertyId)
                   .map(u => <option key={u.id} value={u.id}>Unit {u.unit_number}</option>)}
               </select>
             </FormField>
             <FormField label="Assign Team Member" optional hint={teamMembers.length === 0 ? 'No team members yet. Add a team member first.' : undefined}>
-              <select className="input-base" value={tenantForm.team_member_id} onChange={e => setTenantForm(f => ({ ...f, team_member_id: e.target.value }))}>
+              <select {...addTenantForm.register('team_member_id')} className="input-base">
                 <option value="">— None —</option>
                 {teamMembers.map(m => <option key={m.id} value={m.id}>{m.name} — {m.role}</option>)}
               </select>
             </FormField>
-            {formError && <p className="text-sm text-error">{formError}</p>}
+            {addTenantServerError && <p className="text-sm text-error">{addTenantServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Tenant'}</Button>
+              <Button type="submit" disabled={addTenantForm.formState.isSubmitting} className="flex-1">{addTenantForm.formState.isSubmitting ? 'Adding...' : 'Add Tenant'}</Button>
             </div>
           </form>
         )}
 
         {/* Step 2 — Team Member form */}
         {modalStep === 2 && personType === 'team_member' && (
-          <form onSubmit={handleAddTeamMember} className="space-y-4">
+          <form onSubmit={teamMemberForm.handleSubmit(onAddTeamMember)} className="space-y-4">
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
             <FormField label="Full Name">
-              <input required className="input-base" placeholder="Alex Johnson" value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} />
+              <input {...teamMemberForm.register('name')} className="input-base" placeholder="Alex Johnson" />
+              {teamMemberForm.formState.errors.name && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.name.message}</p>}
             </FormField>
             <FormField label="Role">
-              <input required className="input-base" placeholder="e.g. Property Manager, Leasing Agent" value={teamForm.role} onChange={e => setTeamForm(f => ({ ...f, role: e.target.value }))} />
+              <input {...teamMemberForm.register('role')} className="input-base" placeholder="e.g. Property Manager, Leasing Agent" />
+              {teamMemberForm.formState.errors.role && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.role.message}</p>}
             </FormField>
             <FormField label="Email">
-              <input required type="email" className="input-base" placeholder="alex@yourcompany.com" value={teamForm.email} onChange={e => setTeamForm(f => ({ ...f, email: e.target.value }))} />
+              <input {...teamMemberForm.register('email')} type="email" className="input-base" placeholder="alex@yourcompany.com" />
+              {teamMemberForm.formState.errors.email && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.email.message}</p>}
             </FormField>
             <FormField label="Phone" optional>
-              <input className="input-base" placeholder="+1 (555) 000-0000" value={teamForm.phone} onChange={e => setTeamForm(f => ({ ...f, phone: e.target.value }))} />
+              <input {...teamMemberForm.register('phone')} className="input-base" placeholder="+1 (555) 000-0000" />
             </FormField>
-            {formError && <p className="text-sm text-error">{formError}</p>}
+            {teamServerError && <p className="text-sm text-error">{teamServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Team Member'}</Button>
+              <Button type="submit" disabled={teamMemberForm.formState.isSubmitting} className="flex-1">{teamMemberForm.formState.isSubmitting ? 'Adding...' : 'Add Team Member'}</Button>
             </div>
           </form>
         )}
 
         {/* Step 2 — Vendor form */}
         {modalStep === 2 && personType === 'vendor' && (
-          <form onSubmit={handleAddVendor} className="space-y-4">
+          <form onSubmit={vendorForm.handleSubmit(onAddVendor)} className="space-y-4">
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
             <FormField label="Contact Name">
-              <input required className="input-base" placeholder="Mike Torres" value={vendorForm.name} onChange={e => setVendorForm(f => ({ ...f, name: e.target.value }))} />
+              <input {...vendorForm.register('name')} className="input-base" placeholder="Mike Torres" />
+              {vendorForm.formState.errors.name && <p className="text-error text-xs mt-1">{vendorForm.formState.errors.name.message}</p>}
             </FormField>
             <FormField label="Company">
-              <input required className="input-base" placeholder="Torres HVAC & Plumbing" value={vendorForm.company} onChange={e => setVendorForm(f => ({ ...f, company: e.target.value }))} />
+              <input {...vendorForm.register('company')} className="input-base" placeholder="Torres HVAC & Plumbing" />
+              {vendorForm.formState.errors.company && <p className="text-error text-xs mt-1">{vendorForm.formState.errors.company.message}</p>}
             </FormField>
             <FormField label="Specialty">
-              <select className="input-base" value={vendorForm.specialty} onChange={e => setVendorForm(f => ({ ...f, specialty: e.target.value as VendorRow['specialty'] }))}>
+              <select {...vendorForm.register('specialty')} className="input-base">
                 <option value="plumbing">Plumbing</option>
                 <option value="electrical">Electrical</option>
                 <option value="hvac">HVAC</option>
@@ -868,15 +910,16 @@ export default function PeoplePage() {
               </select>
             </FormField>
             <FormField label="Email">
-              <input required type="email" className="input-base" placeholder="mike@company.com" value={vendorForm.email} onChange={e => setVendorForm(f => ({ ...f, email: e.target.value }))} />
+              <input {...vendorForm.register('email')} type="email" className="input-base" placeholder="mike@company.com" />
+              {vendorForm.formState.errors.email && <p className="text-error text-xs mt-1">{vendorForm.formState.errors.email.message}</p>}
             </FormField>
             <FormField label="Phone" optional>
-              <input className="input-base" placeholder="+1 (555) 000-0000" value={vendorForm.phone} onChange={e => setVendorForm(f => ({ ...f, phone: e.target.value }))} />
+              <input {...vendorForm.register('phone')} className="input-base" placeholder="+1 (555) 000-0000" />
             </FormField>
-            {formError && <p className="text-sm text-error">{formError}</p>}
+            {vendorServerError && <p className="text-sm text-error">{vendorServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Adding...' : 'Add Vendor'}</Button>
+              <Button type="submit" disabled={vendorForm.formState.isSubmitting} className="flex-1">{vendorForm.formState.isSubmitting ? 'Adding...' : 'Add Vendor'}</Button>
             </div>
           </form>
         )}

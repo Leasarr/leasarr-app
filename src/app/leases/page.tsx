@@ -11,6 +11,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createLeaseSchema, editLeaseSchema, type CreateLeaseForm, type EditLeaseForm } from '@/lib/schemas/lease'
 
 type TenantOption = { id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }
 type PropertyOption = { id: string; name: string }
@@ -33,14 +36,6 @@ type LeaseRow = {
   } | null
 }
 
-type EditForm = {
-  end_date: string
-  rent_amount: string
-  security_deposit: string
-  status: string
-  renewal_status: string
-}
-
 export default function LeasesPage() {
   const { profile, loading: authLoading } = useAuth()
   const supabase = createClient()
@@ -51,14 +46,21 @@ export default function LeasesPage() {
   const [tenantOptions, setTenantOptions] = useState<TenantOption[]>([])
   const [propertyOptions, setPropertyOptions] = useState<PropertyOption[]>([])
   const [unitOptions, setUnitOptions] = useState<UnitOption[]>([])
-  const [form, setForm] = useState({ tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' })
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [createServerError, setCreateServerError] = useState('')
+
+  const createLeaseForm = useForm<CreateLeaseForm>({
+    resolver: zodResolver(createLeaseSchema),
+    defaultValues: { tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' },
+  })
+  const tenantId = createLeaseForm.watch('tenant_id')
+  const propertyId = createLeaseForm.watch('property_id')
 
   const [editingLease, setEditingLease] = useState<LeaseRow | null>(null)
-  const [editForm, setEditForm] = useState<EditForm>({ end_date: '', rent_amount: '', security_deposit: '', status: '', renewal_status: '' })
-  const [editError, setEditError] = useState('')
-  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editServerError, setEditServerError] = useState('')
+
+  const editLeaseForm = useForm<EditLeaseForm>({
+    resolver: zodResolver(editLeaseSchema),
+  })
 
   useEffect(() => {
     if (!profile) return
@@ -81,7 +83,8 @@ export default function LeasesPage() {
 
   async function openCreate() {
     setShowCreate(true)
-    setFormError('')
+    setCreateServerError('')
+    createLeaseForm.reset()
     const [tenantsRes, propsRes, unitsRes, activeLeasesRes] = await Promise.all([
       supabase.from('tenants').select('id, first_name, last_name, unit_id, property_id').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
       supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
@@ -96,129 +99,114 @@ export default function LeasesPage() {
 
   function closeCreate() {
     setShowCreate(false)
-    setFormError('')
-    setSubmitting(false)
-    setForm({ tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' })
+    setCreateServerError('')
+    createLeaseForm.reset()
   }
 
   function openEdit(lease: LeaseRow) {
     setEditingLease(lease)
-    setEditForm({
+    editLeaseForm.reset({
       end_date: lease.end_date,
       rent_amount: String(lease.rent_amount),
       security_deposit: String(lease.security_deposit),
       status: lease.status,
       renewal_status: lease.renewal_status ?? '',
     })
-    setEditError('')
+    setEditServerError('')
   }
 
   function closeEdit() {
     setEditingLease(null)
-    setEditError('')
-    setEditSubmitting(false)
+    setEditServerError('')
+    editLeaseForm.reset()
   }
 
-  async function handleEditLease(e: React.FormEvent) {
-    e.preventDefault()
+  async function onEditLease(data: EditLeaseForm) {
     if (!editingLease) return
-    setEditSubmitting(true)
-    setEditError('')
+    setEditServerError('')
 
     const { error } = await supabase.from('leases').update({
-      end_date: editForm.end_date,
-      rent_amount: parseFloat(editForm.rent_amount),
-      security_deposit: parseFloat(editForm.security_deposit),
-      status: editForm.status,
-      renewal_status: editForm.renewal_status || null,
+      end_date: data.end_date,
+      rent_amount: parseFloat(data.rent_amount),
+      security_deposit: parseFloat(data.security_deposit),
+      status: data.status,
+      renewal_status: data.renewal_status || null,
     }).eq('id', editingLease.id)
 
-    if (error) { setEditError(error.message); setEditSubmitting(false); return }
+    if (error) { setEditServerError(error.message); return }
 
-    const { data } = await supabase
+    const { data: rows } = await supabase
       .from('leases')
       .select('id, rent_amount, security_deposit, start_date, end_date, status, renewal_status, tenant:tenants(first_name, last_name), property:properties(name)')
       .in('status', ['active', 'expired'])
       .order('end_date', { ascending: true })
-    setLeases((data as unknown as LeaseRow[]) ?? [])
+    setLeases((rows as unknown as LeaseRow[]) ?? [])
     closeEdit()
   }
 
-  async function handleCreateLease(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setFormError('')
+  async function onCreateLease(data: CreateLeaseForm) {
+    setCreateServerError('')
 
     const { error: leaseError } = await supabase.from('leases').insert({
-      tenant_id: form.tenant_id,
-      unit_id: form.unit_id,
-      property_id: form.property_id,
-      start_date: form.start_date,
-      end_date: form.end_date,
-      rent_amount: parseFloat(form.rent_amount),
-      security_deposit: parseFloat(form.security_deposit),
+      tenant_id: data.tenant_id,
+      unit_id: data.unit_id,
+      property_id: data.property_id,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      rent_amount: parseFloat(data.rent_amount),
+      security_deposit: parseFloat(data.security_deposit),
       status: 'active',
     })
 
-    if (leaseError) { setFormError(leaseError.message); setSubmitting(false); return }
+    if (leaseError) { setCreateServerError(leaseError.message); return }
 
-    await supabase.from('units').update({ status: 'occupied' }).eq('id', form.unit_id)
+    await supabase.from('units').update({ status: 'occupied' }).eq('id', data.unit_id)
 
-    // Refetch leases to get joined tenant/property names
-    const { data } = await supabase
+    const { data: rows } = await supabase
       .from('leases')
       .select('id, rent_amount, security_deposit, start_date, end_date, status, renewal_status, tenant:tenants(first_name, last_name), property:properties(name)')
       .in('status', ['active', 'expired'])
       .order('end_date', { ascending: true })
-    setLeases((data as unknown as LeaseRow[]) ?? [])
+    setLeases((rows as unknown as LeaseRow[]) ?? [])
     closeCreate()
   }
 
-  const selectedTenant = tenantOptions.find(t => t.id === form.tenant_id) ?? null
+  const selectedTenant = tenantOptions.find(t => t.id === tenantId) ?? null
 
   const filteredProperties = selectedTenant?.property_id
     ? propertyOptions.filter(p => p.id === selectedTenant.property_id)
     : propertyOptions
 
-  const filteredUnits = unitOptions.filter(u => !form.property_id || u.property_id === form.property_id)
+  const filteredUnits = unitOptions.filter(u => !propertyId || u.property_id === propertyId)
 
-  const filteredTenants = (!form.tenant_id && form.property_id)
-    ? tenantOptions.filter(t => t.property_id === form.property_id)
+  const filteredTenants = (!tenantId && propertyId)
+    ? tenantOptions.filter(t => t.property_id === propertyId)
     : tenantOptions
 
-  function handleTenantChange(tenantId: string) {
-    const tenant = tenantOptions.find(t => t.id === tenantId) ?? null
+  function handleTenantChange(tid: string) {
+    const tenant = tenantOptions.find(t => t.id === tid) ?? null
     const unit = tenant?.unit_id ? unitOptions.find(u => u.id === tenant.unit_id) ?? null : null
-    setForm(f => ({
-      ...f,
-      tenant_id: tenantId,
-      property_id: tenant?.property_id ?? '',
-      unit_id: tenant?.unit_id ?? '',
-      rent_amount: unit ? String(unit.rent_amount) : f.rent_amount,
-    }))
+    createLeaseForm.setValue('tenant_id', tid)
+    createLeaseForm.setValue('property_id', tenant?.property_id ?? '')
+    createLeaseForm.setValue('unit_id', tenant?.unit_id ?? '')
+    if (unit) createLeaseForm.setValue('rent_amount', String(unit.rent_amount))
   }
 
-  function handlePropertyChange(propertyId: string) {
-    const tenantStillValid = tenantOptions.find(t => t.id === form.tenant_id)?.property_id === propertyId
-    setForm(f => ({
-      ...f,
-      property_id: propertyId,
-      unit_id: '',
-      rent_amount: '',
-      tenant_id: tenantStillValid ? f.tenant_id : '',
-    }))
+  function handlePropertyChange(pid: string) {
+    const tenantStillValid = tenantOptions.find(t => t.id === tenantId)?.property_id === pid
+    createLeaseForm.setValue('property_id', pid)
+    createLeaseForm.setValue('unit_id', '')
+    createLeaseForm.setValue('rent_amount', '')
+    if (!tenantStillValid) createLeaseForm.setValue('tenant_id', '')
   }
 
-  function handleUnitChange(unitId: string) {
-    const unit = unitOptions.find(u => u.id === unitId) ?? null
-    const linkedTenant = unitId ? (tenantOptions.find(t => t.unit_id === unitId) ?? null) : null
-    setForm(f => ({
-      ...f,
-      unit_id: unitId,
-      property_id: unit?.property_id ?? f.property_id,
-      tenant_id: linkedTenant ? linkedTenant.id : f.tenant_id,
-      rent_amount: unit ? String(unit.rent_amount) : f.rent_amount,
-    }))
+  function handleUnitChange(uid: string) {
+    const unit = unitOptions.find(u => u.id === uid) ?? null
+    const linkedTenant = uid ? (tenantOptions.find(t => t.unit_id === uid) ?? null) : null
+    createLeaseForm.setValue('unit_id', uid)
+    if (unit) createLeaseForm.setValue('property_id', unit.property_id)
+    if (linkedTenant) createLeaseForm.setValue('tenant_id', linkedTenant.id)
+    if (unit) createLeaseForm.setValue('rent_amount', String(unit.rent_amount))
   }
 
   if (authLoading || loading) {
@@ -337,7 +325,7 @@ export default function LeasesPage() {
 
       <Modal open={!!editingLease} onClose={closeEdit} title="Edit Lease" size="md">
         {editingLease && (
-          <form onSubmit={handleEditLease} className="space-y-4">
+          <form onSubmit={editLeaseForm.handleSubmit(onEditLease)} className="space-y-4">
             <div className="bg-surface-container-low rounded-xl p-3 mb-2">
               <p className="text-sm font-semibold text-on-surface">
                 {editingLease.property?.name ?? '—'} — {editingLease.tenant ? `${editingLease.tenant.first_name} ${editingLease.tenant.last_name}` : 'Unknown Tenant'}
@@ -346,21 +334,24 @@ export default function LeasesPage() {
             </div>
 
             <FormField label="End Date">
-              <input required type="date" className="input-base" value={editForm.end_date} onChange={e => setEditForm(f => ({ ...f, end_date: e.target.value }))} />
+              <input {...editLeaseForm.register('end_date')} type="date" className="input-base" />
+              {editLeaseForm.formState.errors.end_date && <p className="text-error text-xs mt-1">{editLeaseForm.formState.errors.end_date.message}</p>}
             </FormField>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Monthly Rent ($)">
-                <input required type="number" min="0" step="0.01" className="input-base" value={editForm.rent_amount} onChange={e => setEditForm(f => ({ ...f, rent_amount: e.target.value }))} />
+                <input {...editLeaseForm.register('rent_amount')} type="number" min="0" step="0.01" className="input-base" />
+                {editLeaseForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{editLeaseForm.formState.errors.rent_amount.message}</p>}
               </FormField>
               <FormField label="Security Deposit ($)">
-                <input required type="number" min="0" step="0.01" className="input-base" value={editForm.security_deposit} onChange={e => setEditForm(f => ({ ...f, security_deposit: e.target.value }))} />
+                <input {...editLeaseForm.register('security_deposit')} type="number" min="0" step="0.01" className="input-base" />
+                {editLeaseForm.formState.errors.security_deposit && <p className="text-error text-xs mt-1">{editLeaseForm.formState.errors.security_deposit.message}</p>}
               </FormField>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Status">
-                <select required className="input-base" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                <select {...editLeaseForm.register('status')} className="input-base">
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="expired">Expired</option>
@@ -368,7 +359,7 @@ export default function LeasesPage() {
                 </select>
               </FormField>
               <FormField label="Renewal Status">
-                <select className="input-base" value={editForm.renewal_status} onChange={e => setEditForm(f => ({ ...f, renewal_status: e.target.value }))}>
+                <select {...editLeaseForm.register('renewal_status')} className="input-base">
                   <option value="">— None —</option>
                   <option value="offered">Offered</option>
                   <option value="accepted">Accepted</option>
@@ -377,37 +368,46 @@ export default function LeasesPage() {
               </FormField>
             </div>
 
-            {editError && <p className="text-sm text-error">{editError}</p>}
+            {editServerError && <p className="text-sm text-error">{editServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" type="button" onClick={closeEdit} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={editSubmitting} className="flex-1">{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+              <Button type="submit" disabled={editLeaseForm.formState.isSubmitting} className="flex-1">{editLeaseForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </form>
         )}
       </Modal>
 
       <Modal open={showCreate} onClose={closeCreate} title="Create Lease" size="md">
-        <form onSubmit={handleCreateLease} className="space-y-4">
+        <form onSubmit={createLeaseForm.handleSubmit(onCreateLease)} className="space-y-4">
           <FormField label="Tenant" hint={tenantOptions.length === 0 ? 'No active tenants. Add a tenant first.' : undefined}>
-            <select required className="input-base" value={form.tenant_id} onChange={e => handleTenantChange(e.target.value)}>
+            <select
+              className="input-base"
+              value={tenantId}
+              onChange={e => handleTenantChange(e.target.value)}
+            >
               <option value="">— Select tenant —</option>
               {filteredTenants.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
             </select>
+            {createLeaseForm.formState.errors.tenant_id && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.tenant_id.message}</p>}
           </FormField>
 
           <FormField label="Property">
-            <select required className="input-base" value={form.property_id} onChange={e => handlePropertyChange(e.target.value)}>
+            <select
+              className="input-base"
+              value={propertyId}
+              onChange={e => handlePropertyChange(e.target.value)}
+            >
               <option value="">— Select property —</option>
               {filteredProperties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+            {createLeaseForm.formState.errors.property_id && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.property_id.message}</p>}
           </FormField>
 
-          <FormField label="Unit" hint={form.property_id && filteredUnits.length === 0 ? 'No units in this property.' : undefined}>
+          <FormField label="Unit" hint={propertyId && filteredUnits.length === 0 ? 'No units in this property.' : undefined}>
             <select
-              required
               className="input-base"
-              value={form.unit_id}
-              disabled={!form.property_id}
+              value={createLeaseForm.watch('unit_id')}
+              disabled={!propertyId}
               onChange={e => handleUnitChange(e.target.value)}
             >
               <option value="">— Select unit —</option>
@@ -415,30 +415,35 @@ export default function LeasesPage() {
                 <option key={u.id} value={u.id}>Unit {u.unit_number} {u.status !== 'vacant' ? `(${u.status})` : ''}</option>
               ))}
             </select>
+            {createLeaseForm.formState.errors.unit_id && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.unit_id.message}</p>}
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Start Date">
-              <input required type="date" className="input-base" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+              <input {...createLeaseForm.register('start_date')} type="date" className="input-base" />
+              {createLeaseForm.formState.errors.start_date && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.start_date.message}</p>}
             </FormField>
             <FormField label="End Date">
-              <input required type="date" className="input-base" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+              <input {...createLeaseForm.register('end_date')} type="date" className="input-base" />
+              {createLeaseForm.formState.errors.end_date && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.end_date.message}</p>}
             </FormField>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Monthly Rent ($)">
-              <input required type="number" min="0" step="0.01" className="input-base" placeholder="2500" value={form.rent_amount} onChange={e => setForm(f => ({ ...f, rent_amount: e.target.value }))} />
+              <input {...createLeaseForm.register('rent_amount')} type="number" min="0" step="0.01" className="input-base" placeholder="2500" />
+              {createLeaseForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Security Deposit ($)">
-              <input required type="number" min="0" step="0.01" className="input-base" placeholder="5000" value={form.security_deposit} onChange={e => setForm(f => ({ ...f, security_deposit: e.target.value }))} />
+              <input {...createLeaseForm.register('security_deposit')} type="number" min="0" step="0.01" className="input-base" placeholder="5000" />
+              {createLeaseForm.formState.errors.security_deposit && <p className="text-error text-xs mt-1">{createLeaseForm.formState.errors.security_deposit.message}</p>}
             </FormField>
           </div>
 
-          {formError && <p className="text-sm text-error">{formError}</p>}
+          {createServerError && <p className="text-sm text-error">{createServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={closeCreate} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Creating...' : 'Create Lease'}</Button>
+            <Button type="submit" disabled={createLeaseForm.formState.isSubmitting} className="flex-1">{createLeaseForm.formState.isSubmitting ? 'Creating...' : 'Create Lease'}</Button>
           </div>
         </form>
       </Modal>

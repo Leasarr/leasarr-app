@@ -20,6 +20,10 @@ All domain interfaces live here. Key types: Property, Unit, Tenant, Lease, Payme
 
 Add new interfaces here, not inline in pages.
 
+## Form schemas (`src/lib/schemas/`)
+
+Zod schemas for all forms — one file per domain. Always import both the schema and its inferred type. See conventions.md for the full pattern and all exports.
+
 ## Supabase clients
 
 - `src/lib/supabase/client.ts` — browser; returns empty stub when env vars are absent (mock mode)

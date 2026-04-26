@@ -14,6 +14,9 @@ import { formatDate, formatCurrency, getPriorityColor, getStatusColor, cn } from
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { ImageUploadMultiple } from '@/components/ui/ImageUploadMultiple'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { managerMaintenanceSchema, type ManagerMaintenanceForm } from '@/lib/schemas/maintenance'
 
 type VendorRow = {
   id: string
@@ -50,9 +53,13 @@ export default function MaintenancePage() {
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [tenants, setTenants] = useState<{ id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }[]>([])
-  const [form, setForm] = useState({ tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] as string[] })
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [maintenanceServerError, setMaintenanceServerError] = useState('')
+  const maintenanceForm = useForm<ManagerMaintenanceForm>({
+    resolver: zodResolver(managerMaintenanceSchema),
+    defaultValues: { tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] },
+  })
+  const maintenanceCategory = maintenanceForm.watch('category')
+  const maintenancePriority = maintenanceForm.watch('priority')
   const [vendors, setVendors] = useState<VendorRow[]>([])
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [assigning, setAssigning] = useState(false)
@@ -143,34 +150,31 @@ export default function MaintenancePage() {
     return () => { supabase.removeChannel(channel) }
   }, [profile])
 
-  async function handleSubmit() {
-    if (!form.tenant_id || !form.title || !form.category) { setFormError('Tenant, title, and category are required.'); return }
-    const tenant = tenants.find(t => t.id === form.tenant_id)
-    if (!tenant?.unit_id || !tenant?.property_id) { setFormError('This tenant has no unit assigned. Assign a unit first.'); return }
-    setSubmitting(true)
-    setFormError('')
+  async function onSubmitRequest(data: ManagerMaintenanceForm) {
+    const tenant = tenants.find(t => t.id === data.tenant_id)
+    if (!tenant?.unit_id || !tenant?.property_id) { setMaintenanceServerError('This tenant has no unit assigned. Assign a unit first.'); return }
+    setMaintenanceServerError('')
     const { error } = await supabase.from('maintenance_requests').insert({
-      tenant_id: form.tenant_id,
+      tenant_id: data.tenant_id,
       unit_id: tenant.unit_id,
       property_id: tenant.property_id,
-      title: form.title,
-      category: form.category,
-      priority: form.priority,
-      description: form.description,
-      images: form.images.length > 0 ? form.images : null,
+      title: data.title,
+      category: data.category,
+      priority: data.priority,
+      description: data.description || null,
+      images: data.images && data.images.length > 0 ? data.images : null,
       status: 'open',
     })
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    const { data } = await supabase
+    if (error) { setMaintenanceServerError(error.message); return }
+    const { data: rows } = await supabase
       .from('maintenance_requests')
       .select('id, title, description, category, priority, status, assigned_to, estimated_cost, actual_cost, images, created_at, tenant:tenants(first_name, last_name), unit:units(unit_number)')
       .order('created_at', { ascending: false })
-    const rows = (data as unknown as MaintenanceRow[]) ?? []
-    setRequests(rows)
-    if (rows.length > 0) setSelected(rows[0])
+    const updatedRows = (rows as unknown as MaintenanceRow[]) ?? []
+    setRequests(updatedRows)
+    if (updatedRows.length > 0) setSelected(updatedRows[0])
     setShowModal(false)
-    setForm({ tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] })
-    setSubmitting(false)
+    maintenanceForm.reset()
   }
 
   async function handleAssign(vendor: VendorRow) {
@@ -472,27 +476,20 @@ export default function MaintenancePage() {
       />
 
       {/* Create Modal */}
-      <Modal open={showModal} onClose={() => { setShowModal(false); setFormError('') }} title="New Request" size="lg">
-        <div className="space-y-5">
+      <Modal open={showModal} onClose={() => { maintenanceForm.reset(); setMaintenanceServerError(''); setShowModal(false) }} title="New Request" size="lg">
+        <form onSubmit={maintenanceForm.handleSubmit(onSubmitRequest)} className="space-y-5">
           <FormField label="Tenant">
-            <select
-              className="input-base"
-              value={form.tenant_id}
-              onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))}
-            >
+            <select {...maintenanceForm.register('tenant_id')} className="input-base">
               <option value="">Select tenant...</option>
               {tenants.map(t => (
                 <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
               ))}
             </select>
+            {maintenanceForm.formState.errors.tenant_id && <p className="text-error text-xs mt-1">{maintenanceForm.formState.errors.tenant_id.message}</p>}
           </FormField>
           <FormField label="Title">
-            <input
-              className="input-base"
-              placeholder="e.g. Leaking kitchen faucet"
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            />
+            <input {...maintenanceForm.register('title')} className="input-base" placeholder="e.g. Leaking kitchen faucet" />
+            {maintenanceForm.formState.errors.title && <p className="text-error text-xs mt-1">{maintenanceForm.formState.errors.title.message}</p>}
           </FormField>
           <FormField label="Category">
             <div className="flex flex-wrap gap-2">
@@ -500,10 +497,10 @@ export default function MaintenancePage() {
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, category: cat }))}
+                  onClick={() => maintenanceForm.setValue('category', cat)}
                   className={cn(
                     'px-4 py-2 rounded-full border text-sm font-semibold capitalize transition-colors',
-                    form.category === cat
+                    maintenanceCategory === cat
                       ? 'border-primary bg-primary-fixed text-on-primary-fixed'
                       : 'border-outline-variant/30 text-on-surface-variant hover:border-primary hover:bg-primary-fixed hover:text-on-primary-fixed'
                   )}
@@ -512,17 +509,18 @@ export default function MaintenancePage() {
                 </button>
               ))}
             </div>
+            {maintenanceForm.formState.errors.category && <p className="text-error text-xs mt-1">{maintenanceForm.formState.errors.category.message}</p>}
           </FormField>
           <FormField label="Priority">
             <div className="flex gap-2">
-              {['low', 'medium', 'high', 'emergency'].map(p => (
+              {(['low', 'medium', 'high', 'emergency'] as const).map(p => (
                 <button
                   key={p}
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, priority: p }))}
+                  onClick={() => maintenanceForm.setValue('priority', p)}
                   className={cn(
                     'flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition-colors',
-                    form.priority === p
+                    maintenancePriority === p
                       ? 'border-primary bg-primary-fixed text-on-primary-fixed'
                       : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
                   )}
@@ -532,30 +530,30 @@ export default function MaintenancePage() {
               ))}
             </div>
           </FormField>
-          <FormField label="Description">
-            <textarea
-              className="input-base resize-none"
-              placeholder="Describe the issue in detail..."
-              rows={4}
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            />
+          <FormField label="Description" optional>
+            <textarea {...maintenanceForm.register('description')} className="input-base resize-none" placeholder="Describe the issue in detail..." rows={4} />
           </FormField>
           <FormField label="Photos" optional>
-            <ImageUploadMultiple
-              value={form.images}
-              onChange={images => setForm(f => ({ ...f, images }))}
-              bucket="maintenance-images"
-              path={profile?.id ?? 'uploads'}
-              max={5}
+            <Controller
+              control={maintenanceForm.control}
+              name="images"
+              render={({ field }) => (
+                <ImageUploadMultiple
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  bucket="maintenance-images"
+                  path={profile?.id ?? 'uploads'}
+                  max={5}
+                />
+              )}
             />
           </FormField>
-          {formError && <p className="text-sm text-error">{formError}</p>}
+          {maintenanceServerError && <p className="text-sm text-error">{maintenanceServerError}</p>}
           <div className="pt-2 flex gap-4">
-            <Button type="button" variant="secondary" onClick={() => { setShowModal(false); setFormError('') }} className="flex-1">Cancel</Button>
-            <Button type="button" onClick={handleSubmit} disabled={submitting} className="flex-[2]">{submitting ? 'Submitting...' : 'Submit Request'}</Button>
+            <Button type="button" variant="secondary" onClick={() => { maintenanceForm.reset(); setMaintenanceServerError(''); setShowModal(false) }} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={maintenanceForm.formState.isSubmitting} className="flex-[2]">{maintenanceForm.formState.isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
-        </div>
+        </form>
       </Modal>
     </AppLayout>
   )

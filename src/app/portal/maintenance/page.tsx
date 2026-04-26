@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { formatDate, getPriorityColor, getStatusColor, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { tenantMaintenanceSchema, type TenantMaintenanceForm } from '@/lib/schemas/maintenance'
 
 type MaintenanceRow = {
   id: string
@@ -33,11 +36,17 @@ export default function TenantMaintenancePage() {
   const [loading, setLoading] = useState(false)
 
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', category: '', priority: 'medium', description: '' })
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [formServerError, setFormServerError] = useState('')
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
+
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<TenantMaintenanceForm>({
+    resolver: zodResolver(tenantMaintenanceSchema),
+    defaultValues: { title: '', category: '', priority: 'medium', description: '' },
+  })
+
+  const category = watch('category')
+  const priority = watch('priority')
 
   useEffect(() => {
     if (!profile) return
@@ -96,26 +105,23 @@ export default function TenantMaintenancePage() {
     setCancelling(false)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!tenant?.unit_id || !tenant?.property_id) { setFormError('No unit assigned to your account yet.'); return }
-    setSubmitting(true)
-    setFormError('')
-    const { data, error } = await supabase.from('maintenance_requests').insert({
+  async function onSubmit(data: TenantMaintenanceForm) {
+    if (!tenant?.unit_id || !tenant?.property_id) { setFormServerError('No unit assigned to your account yet.'); return }
+    setFormServerError('')
+    const { data: row, error } = await supabase.from('maintenance_requests').insert({
       tenant_id: tenant.id,
       unit_id: tenant.unit_id,
       property_id: tenant.property_id,
-      title: form.title,
-      category: form.category,
-      priority: form.priority,
-      description: form.description,
+      title: data.title,
+      category: data.category,
+      priority: data.priority,
+      description: data.description,
       status: 'open',
     }).select('id, title, description, category, priority, status, assigned_to, created_at').single()
-    if (error) { setFormError(error.message); setSubmitting(false); return }
-    setRequests(prev => [data as MaintenanceRow, ...prev])
+    if (error) { setFormServerError(error.message); return }
+    setRequests(prev => [row as MaintenanceRow, ...prev])
+    reset()
     setShowForm(false)
-    setForm({ title: '', category: '', priority: 'medium', description: '' })
-    setSubmitting(false)
   }
 
   if (authLoading || loading) {
@@ -134,7 +140,7 @@ export default function TenantMaintenancePage() {
           title="Maintenance"
           subtitle="Your repair requests"
           action={
-            <Button onClick={() => { setShowForm(true); setFormError('') }} size="sm">
+            <Button onClick={() => { reset(); setShowForm(true); setFormServerError('') }} size="sm">
               <span className="material-symbols-outlined text-base">add</span> New Request
             </Button>
           }
@@ -183,31 +189,33 @@ export default function TenantMaintenancePage() {
         )}
       </div>
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="New Maintenance Request" size="md">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal open={showForm} onClose={() => { reset(); setShowForm(false) }} title="New Maintenance Request" size="md">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Title</label>
-            <input required className="input-base" placeholder="e.g. Leaking kitchen faucet" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+            <input {...register('title')} className="input-base" placeholder="e.g. Leaking kitchen faucet" />
+            {errors.title && <p className="text-error text-xs mt-1">{errors.title.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Category</label>
             <div className="flex flex-wrap gap-2">
               {['plumbing', 'electrical', 'hvac', 'structural', 'appliance', 'other'].map(cat => (
-                <button key={cat} type="button" onClick={() => setForm(f => ({ ...f, category: cat }))}
+                <button key={cat} type="button" onClick={() => setValue('category', cat)}
                   className={cn('px-4 py-2 rounded-full border text-sm font-semibold capitalize transition-colors',
-                    form.category === cat ? 'border-primary bg-primary-fixed text-on-primary-fixed' : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
+                    category === cat ? 'border-primary bg-primary-fixed text-on-primary-fixed' : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
                   )}
                 >{cat}</button>
               ))}
             </div>
+            {errors.category && <p className="text-error text-xs mt-1">{errors.category.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Priority</label>
             <div className="flex gap-2">
-              {['low', 'medium', 'high', 'emergency'].map(p => (
-                <button key={p} type="button" onClick={() => setForm(f => ({ ...f, priority: p }))}
+              {(['low', 'medium', 'high', 'emergency'] as const).map(p => (
+                <button key={p} type="button" onClick={() => setValue('priority', p)}
                   className={cn('flex-1 py-2 rounded-xl border text-xs font-bold capitalize transition-colors',
-                    form.priority === p ? 'border-primary bg-primary-fixed text-on-primary-fixed' : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
+                    priority === p ? 'border-primary bg-primary-fixed text-on-primary-fixed' : 'border-outline-variant/30 text-on-surface-variant hover:border-primary'
                   )}
                 >{p}</button>
               ))}
@@ -215,12 +223,13 @@ export default function TenantMaintenancePage() {
           </div>
           <div>
             <label className="block text-sm font-semibold text-on-surface mb-1.5">Description</label>
-            <textarea required className="input-base resize-none" rows={4} placeholder="Describe the issue in detail..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            <textarea {...register('description')} className="input-base resize-none" rows={4} placeholder="Describe the issue in detail..." />
+            {errors.description && <p className="text-error text-xs mt-1">{errors.description.message}</p>}
           </div>
-          {formError && <p className="text-sm text-error">{formError}</p>}
+          {formServerError && <p className="text-sm text-error">{formServerError}</p>}
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={submitting} className="flex-1">{submitting ? 'Submitting...' : 'Submit Request'}</Button>
+            <Button type="button" variant="secondary" onClick={() => { reset(); setShowForm(false) }} className="flex-1">Cancel</Button>
+            <Button type="submit" disabled={isSubmitting} className="flex-1">{isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </form>
       </Modal>
