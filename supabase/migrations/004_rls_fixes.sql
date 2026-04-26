@@ -15,7 +15,7 @@
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, name, email, role)
+  INSERT INTO public.profiles (id, name, email, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
@@ -29,7 +29,7 @@ BEGIN
   ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ─── FIX 2: Tenant maintenance policies ──────────────────────────────────────
 -- The original FOR ALL policy allowed tenants to DELETE maintenance requests,
