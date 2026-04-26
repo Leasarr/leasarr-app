@@ -11,10 +11,11 @@ import { StatusDot } from '@/components/ui/StatusDot'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
 import { FormField } from '@/components/patterns/FormField'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, formatDate, getDaysUntil, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { ImageUploadMultiple } from '@/components/ui/ImageUploadMultiple'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { unitSchema, propertySchema, type UnitForm, type PropertyForm } from '@/lib/schemas/property'
@@ -27,6 +28,7 @@ type DbUnit = {
   sqft: number | null
   rent_amount: number
   status: 'occupied' | 'vacant' | 'maintenance'
+  images: string[]
 }
 
 type PropertyRow = {
@@ -44,6 +46,19 @@ type PropertyRow = {
   units: DbUnit[]
 }
 
+type LeaseDetail = {
+  id: string
+  unit_id: string
+  start_date: string
+  end_date: string
+  rent_amount: number
+  security_deposit: number
+  status: string
+  tenant: { id: string; first_name: string; last_name: string; email: string } | null
+}
+
+type UnitFormTenant = { id: string; first_name: string; last_name: string }
+
 function getStats(p: PropertyRow) {
   const total = p.units.length
   const occupied = p.units.filter(u => u.status === 'occupied').length
@@ -59,19 +74,48 @@ export default function PropertiesPage() {
   const [selected, setSelected] = useState<PropertyRow | null>(null)
   const [detailTab, setDetailTab] = useState<'units' | 'applications'>('units')
   const [loading, setLoading] = useState(false)
+  const [unitLeases, setUnitLeases] = useState<Record<string, LeaseDetail>>({})
 
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showEditProperty, setShowEditProperty] = useState(false)
   const [editPropertyDefaults, setEditPropertyDefaults] = useState<PropertyForm | undefined>()
 
+  // Unit detail modal
+  const [viewingUnit, setViewingUnit] = useState<DbUnit | null>(null)
+
+  // Add unit
   const [showAddUnit, setShowAddUnit] = useState(false)
   const [unitServerError, setUnitServerError] = useState('')
-  const addUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema), defaultValues: { bedrooms: '1', bathrooms: '1', status: 'vacant' } })
+  const addUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema), defaultValues: { bedrooms: '1', bathrooms: '1', status: 'vacant', images: [] } })
+  const [addUnitCreateLease, setAddUnitCreateLease] = useState(false)
+  const [leaseTenantId, setLeaseTenantId] = useState('')
+  const [leaseStartDate, setLeaseStartDate] = useState('')
+  const [leaseEndDate, setLeaseEndDate] = useState('')
+  const [leaseSecurityDeposit, setLeaseSecurityDeposit] = useState('')
+  const [leaseFormError, setLeaseFormError] = useState('')
+  const [unitTenantOptions, setUnitTenantOptions] = useState<UnitFormTenant[]>([])
 
+  // Edit unit
   const [showEditUnit, setShowEditUnit] = useState(false)
   const [editingUnit, setEditingUnit] = useState<DbUnit | null>(null)
   const [editUnitServerError, setEditUnitServerError] = useState('')
   const editUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema) })
+
+  async function fetchUnitLeases(units: DbUnit[]) {
+    const unitIds = units.map(u => u.id)
+    if (!unitIds.length) return
+    const { data } = await supabase
+      .from('leases')
+      .select('id, unit_id, start_date, end_date, rent_amount, security_deposit, status, tenant:tenants(id, first_name, last_name, email)')
+      .in('unit_id', unitIds)
+      .eq('status', 'active')
+    const map: Record<string, LeaseDetail> = {}
+    ;(data ?? []).forEach((l: unknown) => {
+      const lease = l as LeaseDetail
+      map[lease.unit_id] = lease
+    })
+    setUnitLeases(prev => ({ ...prev, ...map }))
+  }
 
   useEffect(() => {
     if (!profile) return
@@ -85,25 +129,32 @@ export default function PropertiesPage() {
       if (data && data.length > 0) {
         setProperties(data)
         setSelected(data[0])
+        await fetchUnitLeases(data.flatMap((p: PropertyRow) => p.units))
       }
       setLoading(false)
     }
     fetchProperties()
   }, [profile])
 
+  async function openAddUnit() {
+    setShowAddUnit(true)
+    setUnitServerError('')
+    setLeaseFormError('')
+    setAddUnitCreateLease(false)
+    setLeaseTenantId(''); setLeaseStartDate(''); setLeaseEndDate(''); setLeaseSecurityDeposit('')
+    addUnitForm.reset({ bedrooms: '1', bathrooms: '1', status: 'vacant', images: [] })
+    const [tenantsRes, activeLeasesRes] = await Promise.all([
+      supabase.from('tenants').select('id, first_name, last_name').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
+      supabase.from('leases').select('tenant_id').eq('status', 'active'),
+    ])
+    const leasedIds = new Set((activeLeasesRes.data ?? []).map((l: { tenant_id: string }) => l.tenant_id))
+    setUnitTenantOptions(((tenantsRes.data ?? []) as UnitFormTenant[]).filter(t => !leasedIds.has(t.id)))
+  }
+
   async function handleAddProperty(data: PropertyForm): Promise<string | null> {
     const { data: row, error } = await supabase
       .from('properties')
-      .insert({
-        name: data.name,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zip: data.zip,
-        type: data.type,
-        image_url: data.image_url || null,
-        manager_id: profile!.id,
-      })
+      .insert({ name: data.name, address: data.address, city: data.city, state: data.state, zip: data.zip, type: data.type, image_url: data.image_url || null, manager_id: profile!.id })
       .select('*, units(*)')
       .single()
     if (error) return error.message
@@ -117,6 +168,14 @@ export default function PropertiesPage() {
   async function onAddUnit(data: UnitForm) {
     if (!selected) return
     setUnitServerError('')
+    setLeaseFormError('')
+
+    if (addUnitCreateLease) {
+      if (!leaseTenantId) { setLeaseFormError('Please select a tenant for the lease'); return }
+      if (!leaseStartDate) { setLeaseFormError('Start date is required'); return }
+      if (!leaseEndDate) { setLeaseFormError('End date is required'); return }
+    }
+
     const { data: row, error } = await supabase
       .from('units')
       .insert({
@@ -126,35 +185,41 @@ export default function PropertiesPage() {
         bathrooms: parseFloat(data.bathrooms),
         sqft: data.sqft ? parseInt(data.sqft) : null,
         rent_amount: parseFloat(data.rent_amount),
-        status: data.status,
+        status: addUnitCreateLease ? 'occupied' : data.status,
+        images: data.images ?? [],
       })
       .select()
       .single()
 
-    if (error) {
-      setUnitServerError(error.message)
-      return
+    if (error) { setUnitServerError(error.message); return }
+    const newUnit = row as DbUnit
+
+    if (addUnitCreateLease) {
+      const { data: leaseRow, error: leaseError } = await supabase.from('leases').insert({
+        tenant_id: leaseTenantId,
+        unit_id: newUnit.id,
+        property_id: selected.id,
+        start_date: leaseStartDate,
+        end_date: leaseEndDate,
+        rent_amount: parseFloat(data.rent_amount),
+        security_deposit: parseFloat(leaseSecurityDeposit || '0'),
+        status: 'active',
+      }).select('id, unit_id, start_date, end_date, rent_amount, security_deposit, status, tenant:tenants(id, first_name, last_name, email)').single()
+      if (leaseError) { setUnitServerError(leaseError.message); return }
+      if (leaseRow) {
+        setUnitLeases(prev => ({ ...prev, [newUnit.id]: leaseRow as unknown as LeaseDetail }))
+      }
     }
 
-    const newUnit = row as DbUnit
     const updatedProperty = { ...selected, units: [...selected.units, newUnit] }
     setSelected(updatedProperty)
     setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
-    addUnitForm.reset()
     setShowAddUnit(false)
   }
 
   function openEditProperty() {
     if (!selected) return
-    setEditPropertyDefaults({
-      name: selected.name,
-      address: selected.address,
-      city: selected.city,
-      state: selected.state,
-      zip: selected.zip,
-      type: selected.type,
-      image_url: selected.image_url ?? null,
-    })
+    setEditPropertyDefaults({ name: selected.name, address: selected.address, city: selected.city, state: selected.state, zip: selected.zip, type: selected.type, image_url: selected.image_url ?? null })
     setShowEditProperty(true)
   }
 
@@ -162,15 +227,7 @@ export default function PropertiesPage() {
     if (!selected) return null
     const { data: row, error } = await supabase
       .from('properties')
-      .update({
-        name: data.name,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zip: data.zip,
-        type: data.type,
-        image_url: data.image_url || null,
-      })
+      .update({ name: data.name, address: data.address, city: data.city, state: data.state, zip: data.zip, type: data.type, image_url: data.image_url || null })
       .eq('id', selected.id)
       .select('*, units(*)')
       .single()
@@ -191,6 +248,7 @@ export default function PropertiesPage() {
       sqft: unit.sqft ? String(unit.sqft) : '',
       rent_amount: String(unit.rent_amount),
       status: unit.status,
+      images: unit.images ?? [],
     })
     setEditUnitServerError('')
     setShowEditUnit(true)
@@ -208,6 +266,7 @@ export default function PropertiesPage() {
         sqft: data.sqft ? parseInt(data.sqft) : null,
         rent_amount: parseFloat(data.rent_amount),
         status: data.status,
+        images: data.images ?? [],
       })
       .eq('id', editingUnit.id)
       .select()
@@ -217,15 +276,12 @@ export default function PropertiesPage() {
     const updatedProperty = { ...selected, units: selected.units.map(u => u.id === editingUnit.id ? updatedUnit : u) }
     setSelected(updatedProperty)
     setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
+    if (viewingUnit?.id === editingUnit.id) setViewingUnit(updatedUnit)
     setShowEditUnit(false)
   }
 
   if (authLoading || loading) {
-    return (
-      <AppLayout>
-        <LoadingState label="Loading properties..." />
-      </AppLayout>
-    )
+    return <AppLayout><LoadingState label="Loading properties..." /></AppLayout>
   }
 
   if (!selected) {
@@ -236,18 +292,9 @@ export default function PropertiesPage() {
           title="No properties yet"
           description="Add your first property to get started."
           size="page"
-          action={
-            <Button onClick={() => setShowAddProperty(true)}>
-              <span className="material-symbols-outlined text-base">add</span> Add Property
-            </Button>
-          }
+          action={<Button onClick={() => setShowAddProperty(true)}><span className="material-symbols-outlined text-base">add</span> Add Property</Button>}
         />
-
-        <AddPropertyModal
-          open={showAddProperty}
-          onClose={() => setShowAddProperty(false)}
-          onSubmit={handleAddProperty}
-        />
+        <AddPropertyModal open={showAddProperty} onClose={() => setShowAddProperty(false)} onSubmit={handleAddProperty} />
       </AppLayout>
     )
   }
@@ -259,106 +306,75 @@ export default function PropertiesPage() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
 
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
             <h1 className="text-2xl md:text-3xl font-headline font-extrabold tracking-tight text-on-surface">Properties</h1>
             <p className="text-on-surface-variant mt-2 font-medium">Manage {properties.length} active real estate assets</p>
             <div className="flex gap-2 mt-2 flex-wrap">
               {propertyTypes.map(type => (
-                <span key={type} className={cn(
-                  'badge capitalize',
-                  type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
-                )}>
-                  {type}
-                </span>
+                <span key={type} className={cn('badge capitalize', type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant')}>{type}</span>
               ))}
             </div>
           </div>
           <div className="flex gap-3">
-            <button className="btn-secondary h-14 px-6">
-              <span className="material-symbols-outlined">filter_list</span> Filter
-            </button>
-            <button onClick={() => setShowAddProperty(true)} className="btn-primary h-14 px-8">
-              <span className="material-symbols-outlined">add</span> Add Property
-            </button>
+            <button className="btn-secondary h-14 px-6"><span className="material-symbols-outlined">filter_list</span> Filter</button>
+            <button onClick={() => setShowAddProperty(true)} className="btn-primary h-14 px-8"><span className="material-symbols-outlined">add</span> Add Property</button>
           </div>
         </div>
 
         <MasterDetail
           list={
             <div className="space-y-4">
-            {properties.map(property => {
-              const stats = getStats(property)
-              return (
-                <button
-                  key={property.id}
-                  onClick={() => { setSelected(property); setDetailTab('units') }}
-                  className={cn(
-                    'w-full bg-surface-container-lowest rounded-xl p-3 group cursor-pointer hover:bg-surface-container-low transition-all text-left',
-                    selected.id === property.id && 'ring-2 ring-primary/30 shadow-md'
-                  )}
-                >
-                  <div className="flex gap-4">
-                    <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container-high">
-                      {property.image_url ? (
-                        <img
-                          src={property.image_url}
-                          alt={property.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="material-symbols-outlined text-outline text-3xl">domain</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-grow flex flex-col justify-center py-1">
-                      <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-bold text-sm text-on-surface leading-tight">{property.name}</h3>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className={cn(
-                            'badge',
-                            stats.occupancy === 100 ? 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' : 'bg-secondary-container text-on-secondary-container'
-                          )}>
-                            {stats.occupancy === 100 ? 'Full' : 'Active'}
-                          </span>
-                          <span className={cn(
-                            'badge capitalize',
-                            property.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
-                          )}>
-                            {property.type}
-                          </span>
-                        </div>
+              {properties.map(property => {
+                const stats = getStats(property)
+                return (
+                  <button
+                    key={property.id}
+                    onClick={() => { setSelected(property); setDetailTab('units') }}
+                    className={cn('w-full bg-surface-container-lowest rounded-xl p-3 group cursor-pointer hover:bg-surface-container-low transition-all text-left', selected.id === property.id && 'ring-2 ring-primary/30 shadow-md')}
+                  >
+                    <div className="flex gap-4">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container-high">
+                        {property.image_url ? (
+                          <img src={property.image_url} alt={property.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="material-symbols-outlined text-outline text-3xl">domain</span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-on-surface-variant text-sm">{stats.total} Units • {stats.occupancy}% Occupied</p>
-                      <div className="flex items-center mt-2">
-                        <div className="flex items-center gap-1 text-primary font-semibold text-xs">
-                          <span className="material-symbols-outlined text-sm">location_on</span>
-                          {property.city}, {property.state}
+                      <div className="flex-grow flex flex-col justify-center py-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <h3 className="font-bold text-sm text-on-surface leading-tight">{property.name}</h3>
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className={cn('badge', stats.occupancy === 100 ? 'bg-tertiary-container/20 text-on-tertiary-fixed-variant' : 'bg-secondary-container text-on-secondary-container')}>
+                              {stats.occupancy === 100 ? 'Full' : 'Active'}
+                            </span>
+                            <span className={cn('badge capitalize', property.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant')}>{property.type}</span>
+                          </div>
+                        </div>
+                        <p className="text-on-surface-variant text-sm">{stats.total} Units • {stats.occupancy}% Occupied</p>
+                        <div className="flex items-center mt-2">
+                          <div className="flex items-center gap-1 text-primary font-semibold text-xs">
+                            <span className="material-symbols-outlined text-sm">location_on</span>
+                            {property.city}, {property.state}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })}
             </div>
           }
           detail={
             <div className="bg-surface-container-low rounded-[2rem] p-8 min-h-[600px] flex flex-col">
 
-              {/* Detail Header */}
               <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-primary font-bold tracking-widest text-xs uppercase">Detail View</span>
-                    <span className={cn(
-                      'badge capitalize',
-                      selected.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant'
-                    )}>
-                      {selected.type}
-                    </span>
+                    <span className={cn('badge capitalize', selected.type === 'commercial' ? 'bg-primary-container/30 text-primary' : 'bg-surface-container-high text-on-surface-variant')}>{selected.type}</span>
                   </div>
                   <h2 className="text-3xl font-headline font-extrabold text-on-surface">{selected.name}</h2>
                   <p className="text-on-surface-variant">{selected.address}, {selected.city}, {selected.state} {selected.zip}</p>
@@ -373,7 +389,6 @@ export default function PropertiesPage() {
                 </div>
               </div>
 
-              {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {[
                   { label: 'Monthly Rent', value: formatCurrency(selectedStats.revenue) },
@@ -388,29 +403,19 @@ export default function PropertiesPage() {
                 ))}
               </div>
 
-              {/* Tab Switcher */}
               <SegmentedControl
-                options={[
-                  { key: 'units', label: 'Units', icon: 'apartment' },
-                  { key: 'applications', label: 'Applications', icon: 'assignment_ind' },
-                ]}
+                options={[{ key: 'units', label: 'Units', icon: 'apartment' }, { key: 'applications', label: 'Applications', icon: 'assignment_ind' }]}
                 value={detailTab}
                 onChange={v => setDetailTab(v as 'units' | 'applications')}
                 className="w-fit mb-6"
               />
 
-              {/* Units Tab */}
               {detailTab === 'units' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
                   <SectionHeader
                     className="mb-6"
                     title="Units Portfolio"
-                    action={
-                      <Button size="sm" onClick={() => setShowAddUnit(true)}>
-                        <span className="material-symbols-outlined text-base">add</span>
-                        Add Unit
-                      </Button>
-                    }
+                    action={<Button size="sm" onClick={openAddUnit}><span className="material-symbols-outlined text-base">add</span>Add Unit</Button>}
                   />
                   {selected.units.length === 0 ? (
                     <EmptyState icon="apartment" title="No units added yet" description="Add the first unit to this property." size="inline" />
@@ -419,21 +424,23 @@ export default function PropertiesPage() {
                       {selected.units.map(unit => (
                         <div
                           key={unit.id}
-                          className="flex items-center justify-between py-3 hover:bg-surface-container-low rounded-xl px-4 transition-colors group"
+                          onClick={() => setViewingUnit(unit)}
+                          className="flex items-center justify-between py-3 hover:bg-surface-container-low rounded-xl px-4 transition-colors group cursor-pointer"
                         >
                           <div className="flex items-center gap-4">
-                            <div className={cn(
-                              'w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm',
-                              unit.status === 'vacant' ? 'bg-tertiary-container/10 text-tertiary' : 'bg-primary-container/10 text-primary'
-                            )}>
-                              {unit.unit_number}
-                            </div>
+                            {unit.images?.[0] ? (
+                              <img src={unit.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                            ) : (
+                              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0', unit.status === 'vacant' ? 'bg-tertiary-container/10 text-tertiary' : 'bg-primary-container/10 text-primary')}>
+                                {unit.unit_number}
+                              </div>
+                            )}
                             <div>
                               <p className="font-bold text-on-surface text-sm">
-                                {unit.bedrooms} Bed • {unit.bathrooms} Bath{unit.sqft ? ` • ${unit.sqft} sqft` : ''}
+                                Unit {unit.unit_number} · {unit.bedrooms} Bed · {unit.bathrooms} Bath{unit.sqft ? ` · ${unit.sqft} sqft` : ''}
                               </p>
                               <p className={cn('text-xs', unit.status === 'vacant' ? 'text-tertiary font-medium' : 'text-on-surface-variant')}>
-                                {unit.status === 'vacant' ? 'Ready for Showing' : unit.status === 'maintenance' ? 'Under Maintenance' : 'Occupied'}
+                                {unit.status === 'vacant' ? 'Ready for Showing' : unit.status === 'maintenance' ? 'Under Maintenance' : unitLeases[unit.id] ? `Tenant: ${unitLeases[unit.id].tenant?.first_name} ${unitLeases[unit.id].tenant?.last_name}` : 'Occupied'}
                               </p>
                             </div>
                           </div>
@@ -446,7 +453,7 @@ export default function PropertiesPage() {
                               </span>
                             </div>
                             <button
-                              onClick={() => openEditUnit(unit)}
+                              onClick={e => { e.stopPropagation(); openEditUnit(unit) }}
                               className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
                             >
                               <span className="material-symbols-outlined text-sm">edit</span>
@@ -459,23 +466,12 @@ export default function PropertiesPage() {
                 </div>
               )}
 
-              {/* Applications Tab */}
               {detailTab === 'applications' && (
                 <div className="flex-grow bg-surface-container-lowest rounded-3xl p-6 shadow-sm">
-                  <SectionHeader
-                    className="mb-6"
-                    title="Rental Applications"
-                    action={
-                      <Button size="sm">
-                        <span className="material-symbols-outlined text-base">add</span>
-                        New Application
-                      </Button>
-                    }
-                  />
+                  <SectionHeader className="mb-6" title="Rental Applications" action={<Button size="sm"><span className="material-symbols-outlined text-base">add</span>New Application</Button>} />
                   <EmptyState icon="assignment_ind" title="No applications yet" description="Applications for this property will appear here." size="inline" />
                 </div>
               )}
-
             </div>
           }
         />
@@ -489,29 +485,120 @@ export default function PropertiesPage() {
         <span className="material-symbols-outlined text-3xl">add_home</span>
       </button>
 
-      {/* Add Property Modal */}
-      <AddPropertyModal
-        open={showAddProperty}
-        onClose={() => setShowAddProperty(false)}
-        onSubmit={handleAddProperty}
-      />
+      <AddPropertyModal open={showAddProperty} onClose={() => setShowAddProperty(false)} onSubmit={handleAddProperty} />
+      <AddPropertyModal open={showEditProperty} onClose={() => setShowEditProperty(false)} onSubmit={handleEditProperty} defaultValues={editPropertyDefaults} title="Edit Property" submitLabel="Save Changes" />
 
-      {/* Edit Property Modal */}
-      <AddPropertyModal
-        open={showEditProperty}
-        onClose={() => setShowEditProperty(false)}
-        onSubmit={handleEditProperty}
-        defaultValues={editPropertyDefaults}
-        title="Edit Property"
-        submitLabel="Save Changes"
-      />
+      {/* ── Unit Detail Modal ── */}
+      {viewingUnit && (
+        <Modal open={!!viewingUnit} onClose={() => setViewingUnit(null)} title={`Unit ${viewingUnit.unit_number}`} size="lg">
+          <div className="space-y-6">
 
-      {/* Edit Unit Modal */}
-      <Modal
-        open={showEditUnit}
-        onClose={() => setShowEditUnit(false)}
-        title={`Edit Unit ${editingUnit?.unit_number ?? ''}`}
-      >
+            {/* Image gallery */}
+            {viewingUnit.images?.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
+                {viewingUnit.images.map((src, i) => (
+                  <img key={i} src={src} alt="" className="h-40 w-56 object-cover rounded-xl flex-shrink-0" />
+                ))}
+              </div>
+            ) : selected?.image_url ? (
+              <img src={selected.image_url} alt={selected.name} className="w-full h-40 object-cover rounded-xl" />
+            ) : (
+              <div className="h-32 rounded-xl bg-surface-container flex items-center justify-center">
+                <span className="material-symbols-outlined text-outline text-4xl">apartment</span>
+              </div>
+            )}
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'Bedrooms', value: String(viewingUnit.bedrooms), icon: 'bed' },
+                { label: 'Bathrooms', value: String(viewingUnit.bathrooms), icon: 'bathtub' },
+                { label: 'Sqft', value: viewingUnit.sqft ? `${viewingUnit.sqft}` : '—', icon: 'square_foot' },
+                { label: 'Monthly Rent', value: formatCurrency(viewingUnit.rent_amount), icon: 'payments' },
+              ].map(s => (
+                <div key={s.label} className="bg-surface-container rounded-xl p-3 text-center">
+                  <span className="material-symbols-outlined text-primary text-lg">{s.icon}</span>
+                  <p className="text-base font-extrabold text-on-surface mt-0.5">{s.value}</p>
+                  <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Status */}
+            <div className="flex items-center gap-2">
+              <StatusDot status={viewingUnit.status} />
+              <span className="text-sm font-semibold text-on-surface capitalize">
+                {viewingUnit.status === 'vacant' ? 'Vacant — Ready for Showing' : viewingUnit.status === 'maintenance' ? 'Under Maintenance' : 'Occupied'}
+              </span>
+            </div>
+
+            {/* Lease Insights */}
+            <div>
+              <p className="text-xs font-bold text-outline uppercase tracking-wider mb-3">Lease Insights</p>
+              {unitLeases[viewingUnit.id] ? (() => {
+                const lease = unitLeases[viewingUnit.id]
+                const days = getDaysUntil(lease.end_date)
+                const isExpiring = days >= 0 && days <= 60
+                const isExpired = days < 0
+                return (
+                  <div className="bg-surface-container rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-primary text-base">person</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-on-surface text-sm">{lease.tenant?.first_name} {lease.tenant?.last_name}</p>
+                        <p className="text-xs text-on-surface-variant">{lease.tenant?.email}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Start</p>
+                        <p className="font-semibold text-on-surface">{formatDate(lease.start_date)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">End</p>
+                        <p className={cn('font-semibold', isExpired || isExpiring ? 'text-error' : 'text-on-surface')}>{formatDate(lease.end_date)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Rent</p>
+                        <p className="font-semibold text-on-surface">{formatCurrency(lease.rent_amount)}/mo</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Deposit</p>
+                        <p className="font-semibold text-on-surface">{formatCurrency(lease.security_deposit)}</p>
+                      </div>
+                    </div>
+                    {(isExpired || isExpiring) && (
+                      <div className="flex items-center gap-2 bg-error-container/20 rounded-xl px-3 py-2">
+                        <span className="material-symbols-outlined text-error text-base">warning</span>
+                        <p className="text-xs font-semibold text-error">
+                          {isExpired ? `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago` : `Expires in ${days} day${days !== 1 ? 's' : ''}`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })() : (
+                <div className="bg-surface-container rounded-2xl p-4 flex items-center gap-3 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-xl">description</span>
+                  <p className="text-sm">No active lease for this unit.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="secondary" type="button" onClick={() => setViewingUnit(null)} className="flex-1">Close</Button>
+              <Button type="button" onClick={() => { setViewingUnit(null); openEditUnit(viewingUnit) }} className="flex-1">
+                <span className="material-symbols-outlined text-base">edit</span> Edit Unit
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Edit Unit Modal ── */}
+      <Modal open={showEditUnit} onClose={() => setShowEditUnit(false)} title={`Edit Unit ${editingUnit?.unit_number ?? ''}`} size="lg">
         <form onSubmit={editUnitForm.handleSubmit(onEditUnit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Unit Number" className="col-span-2">
@@ -520,11 +607,9 @@ export default function PropertiesPage() {
             </FormField>
             <FormField label="Bedrooms">
               <input {...editUnitForm.register('bedrooms')} type="number" min="0" className="input-base" />
-              {editUnitForm.formState.errors.bedrooms && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.bedrooms.message}</p>}
             </FormField>
             <FormField label="Bathrooms">
               <input {...editUnitForm.register('bathrooms')} type="number" min="0" step="0.5" className="input-base" />
-              {editUnitForm.formState.errors.bathrooms && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.bathrooms.message}</p>}
             </FormField>
             <FormField label="Sqft" optional>
               <input {...editUnitForm.register('sqft')} type="number" min="0" className="input-base" />
@@ -541,6 +626,20 @@ export default function PropertiesPage() {
               </select>
             </FormField>
           </div>
+          <FormField label="Unit Photos" optional>
+            <Controller
+              control={editUnitForm.control}
+              name="images"
+              render={({ field }) => (
+                <ImageUploadMultiple
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  bucket="property-images"
+                  path={`units/${editingUnit?.id ?? 'uploads'}`}
+                />
+              )}
+            />
+          </FormField>
           {editUnitServerError && <p className="text-sm text-error">{editUnitServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowEditUnit(false)} className="flex-1">Cancel</Button>
@@ -549,75 +648,90 @@ export default function PropertiesPage() {
         </form>
       </Modal>
 
-      {/* Add Unit Modal */}
-      <Modal
-        open={showAddUnit}
-        onClose={() => { addUnitForm.reset(); setShowAddUnit(false) }}
-        title={`Add Unit — ${selected?.name ?? ''}`}
-      >
+      {/* ── Add Unit Modal ── */}
+      <Modal open={showAddUnit} onClose={() => setShowAddUnit(false)} title={`Add Unit — ${selected?.name ?? ''}`} size="lg">
         <form onSubmit={addUnitForm.handleSubmit(onAddUnit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Unit Number" className="col-span-2">
-              <input
-                {...addUnitForm.register('unit_number')}
-                className="input-base"
-                placeholder="e.g. 1A, 204, G1"
-              />
+              <input {...addUnitForm.register('unit_number')} className="input-base" placeholder="e.g. 1A, 204, G1" />
               {addUnitForm.formState.errors.unit_number && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.unit_number.message}</p>}
             </FormField>
             <FormField label="Bedrooms">
-              <input
-                {...addUnitForm.register('bedrooms')}
-                type="number"
-                min="0"
-                className="input-base"
-              />
-              {addUnitForm.formState.errors.bedrooms && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.bedrooms.message}</p>}
+              <input {...addUnitForm.register('bedrooms')} type="number" min="0" className="input-base" />
             </FormField>
             <FormField label="Bathrooms">
-              <input
-                {...addUnitForm.register('bathrooms')}
-                type="number"
-                min="0"
-                step="0.5"
-                className="input-base"
-              />
-              {addUnitForm.formState.errors.bathrooms && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.bathrooms.message}</p>}
+              <input {...addUnitForm.register('bathrooms')} type="number" min="0" step="0.5" className="input-base" />
             </FormField>
             <FormField label="Sqft" optional>
-              <input
-                {...addUnitForm.register('sqft')}
-                type="number"
-                min="0"
-                className="input-base"
-                placeholder="e.g. 850"
-              />
+              <input {...addUnitForm.register('sqft')} type="number" min="0" className="input-base" placeholder="e.g. 850" />
             </FormField>
             <FormField label="Monthly Rent ($)">
-              <input
-                {...addUnitForm.register('rent_amount')}
-                type="number"
-                min="0"
-                step="0.01"
-                className="input-base"
-                placeholder="e.g. 2500"
-              />
+              <input {...addUnitForm.register('rent_amount')} type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 2500" />
               {addUnitForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Status" className="col-span-2">
-              <select
-                {...addUnitForm.register('status')}
-                className="input-base"
-              >
+              <select {...addUnitForm.register('status')} className="input-base" disabled={addUnitCreateLease}>
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
               </select>
             </FormField>
           </div>
+
+          <FormField label="Unit Photos" optional>
+            <Controller
+              control={addUnitForm.control}
+              name="images"
+              render={({ field }) => (
+                <ImageUploadMultiple
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  bucket="property-images"
+                  path="units/uploads"
+                />
+              )}
+            />
+          </FormField>
+
+          {/* Optional lease section */}
+          <div className="border-t border-outline-variant/20 pt-4">
+            <button
+              type="button"
+              onClick={() => { setAddUnitCreateLease(v => !v); setLeaseFormError('') }}
+              className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              <span className="material-symbols-outlined text-base">{addUnitCreateLease ? 'check_box' : 'check_box_outline_blank'}</span>
+              Attach a lease to this unit
+            </button>
+
+            {addUnitCreateLease && (
+              <div className="mt-4 space-y-4 bg-surface-container rounded-2xl p-4">
+                <FormField label="Tenant">
+                  <select className="input-base" value={leaseTenantId} onChange={e => setLeaseTenantId(e.target.value)}>
+                    <option value="">— Select tenant —</option>
+                    {unitTenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                  </select>
+                  {unitTenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No available tenants. Add a tenant first.</p>}
+                </FormField>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Start Date">
+                    <input type="date" className="input-base" value={leaseStartDate} onChange={e => setLeaseStartDate(e.target.value)} />
+                  </FormField>
+                  <FormField label="End Date">
+                    <input type="date" className="input-base" value={leaseEndDate} onChange={e => setLeaseEndDate(e.target.value)} />
+                  </FormField>
+                </div>
+                <FormField label="Security Deposit ($)">
+                  <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={leaseSecurityDeposit} onChange={e => setLeaseSecurityDeposit(e.target.value)} />
+                </FormField>
+                {leaseFormError && <p className="text-sm text-error">{leaseFormError}</p>}
+              </div>
+            )}
+          </div>
+
           {unitServerError && <p className="text-sm text-error">{unitServerError}</p>}
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => { addUnitForm.reset(); setShowAddUnit(false) }} className="flex-1">Cancel</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowAddUnit(false)} className="flex-1">Cancel</Button>
             <Button type="submit" disabled={addUnitForm.formState.isSubmitting} className="flex-1">{addUnitForm.formState.isSubmitting ? 'Adding...' : 'Add Unit'}</Button>
           </div>
         </form>
@@ -659,48 +773,26 @@ function AddPropertyModal({
     <Modal open={open} onClose={onClose} title={title} size="lg">
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField label="Property Name">
-          <input
-            {...form.register('name')}
-            className="input-base"
-            placeholder="e.g. The Azure Heights"
-          />
+          <input {...form.register('name')} className="input-base" placeholder="e.g. The Azure Heights" />
           {form.formState.errors.name && <p className="text-error text-xs mt-1">{form.formState.errors.name.message}</p>}
         </FormField>
         <FormField label="Street Address">
-          <input
-            {...form.register('address')}
-            className="input-base"
-            placeholder="e.g. 1244 East 86th St"
-          />
+          <input {...form.register('address')} className="input-base" placeholder="e.g. 1244 East 86th St" />
           {form.formState.errors.address && <p className="text-error text-xs mt-1">{form.formState.errors.address.message}</p>}
         </FormField>
         <div className="grid grid-cols-2 gap-4">
           <FormField label="City">
-            <input
-              {...form.register('city')}
-              className="input-base"
-              placeholder="e.g. New York"
-            />
+            <input {...form.register('city')} className="input-base" placeholder="e.g. New York" />
             {form.formState.errors.city && <p className="text-error text-xs mt-1">{form.formState.errors.city.message}</p>}
           </FormField>
           <FormField label="State">
-            <input
-              {...form.register('state')}
-              className="input-base"
-              placeholder="e.g. NY"
-              maxLength={2}
-              onChange={e => form.setValue('state', e.target.value.toUpperCase())}
-            />
+            <input {...form.register('state')} className="input-base" placeholder="e.g. NY" maxLength={2} onChange={e => form.setValue('state', e.target.value.toUpperCase())} />
             {form.formState.errors.state && <p className="text-error text-xs mt-1">{form.formState.errors.state.message}</p>}
           </FormField>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <FormField label="ZIP Code">
-            <input
-              {...form.register('zip')}
-              className="input-base"
-              placeholder="e.g. 10028"
-            />
+            <input {...form.register('zip')} className="input-base" placeholder="e.g. 10028" />
             {form.formState.errors.zip && <p className="text-error text-xs mt-1">{form.formState.errors.zip.message}</p>}
           </FormField>
           <FormField label="Type">
@@ -717,13 +809,7 @@ function AddPropertyModal({
             control={form.control}
             name="image_url"
             render={({ field }) => (
-              <ImageUpload
-                value={field.value ?? null}
-                onChange={field.onChange}
-                bucket="property-images"
-                path="uploads"
-                height="h-40"
-              />
+              <ImageUpload value={field.value ?? null} onChange={field.onChange} bucket="property-images" path="uploads" height="h-40" />
             )}
           />
         </FormField>

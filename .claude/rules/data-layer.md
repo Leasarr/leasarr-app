@@ -21,7 +21,7 @@ All domain interfaces live here — never define DB-backed types inline in pages
 | Interface | Notes |
 |---|---|
 | `Profile` | Auth user profile; `role: 'admin' \| 'manager' \| 'tenant'` |
-| `Property`, `Unit` | Core property objects; Unit includes `updated_at` |
+| `Property`, `Unit` | Core property objects; Unit includes `updated_at` and `images: string[]` |
 | `Tenant` | Includes `profile_id` (auth link) and `team_member_id` |
 | `Lease`, `LeaseDocument` | Lease lifecycle + document attachments |
 | `Payment` | Includes `stripe_payment_intent_id` |

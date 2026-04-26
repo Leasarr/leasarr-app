@@ -7,6 +7,7 @@ export const unitSchema = z.object({
   sqft: z.string().optional(),
   rent_amount: z.string().min(1, 'Rent amount is required'),
   status: z.enum(['vacant', 'occupied', 'maintenance']),
+  images: z.array(z.string()).optional(),
 })
 
 export const propertySchema = z.object({

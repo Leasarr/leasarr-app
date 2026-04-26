@@ -41,6 +41,13 @@ const { user, profile, session, loading, signOut } = useAuth()
 
 `profile` shape: `{ id, name, email, role: 'admin' | 'manager' | 'tenant', avatar_url, phone, created_at, updated_at }`
 
+## Avatar display priority
+
+`AppLayout` and `ProfileSettingsModal` resolve the displayed avatar in this order:
+1. `user.user_metadata.avatar_url` — Google OAuth profile photo
+2. `profile.avatar_url` — manually uploaded via Profile Settings
+3. Name initials fallback
+
 ## Middleware route rules
 
 - **Public** (no auth required): `/auth/login`, `/auth/register`, `/auth/callback`, `/auth/reset-password`, `/auth/update-password`, `/auth/set-role`

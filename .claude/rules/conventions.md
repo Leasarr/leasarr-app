@@ -78,7 +78,7 @@ One file per domain. Always import the schema and its inferred type together:
 |---|---|
 | `auth.ts` | `loginSchema`, `registerSchema`, `resetPasswordSchema`, `updatePasswordSchema` |
 | `people.ts` | `teamMemberSchema`, `vendorSchema`, `tenantSchema`, `editTenantSchema` |
-| `property.ts` | `unitSchema`, `propertySchema` |
+| `property.ts` | `unitSchema` (includes `images?: string[]`), `propertySchema` |
 | `payment.ts` | `editPaymentSchema`, `recordPaymentSchema` |
 | `maintenance.ts` | `tenantMaintenanceSchema`, `managerMaintenanceSchema` |
 | `lease.ts` | `createLeaseSchema`, `editLeaseSchema` |

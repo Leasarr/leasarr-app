@@ -11,7 +11,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/auth/register` | public | Manager/tenant role selector |
 | `/auth/callback` | public | Supabase OAuth |
 | `/dashboard` | manager | KPIs, occupancy, activity feed |
-| `/properties` | manager | List/detail grid; CRUD for properties and units |
+| `/properties` | manager | List/detail grid; CRUD for properties and units; unit detail modal with images, lease insights, and inline lease creation |
 | `/people` | manager | All/Tenants/Team/Vendors tabs; mobile: list hides when tenant selected |
 | `/payments` | manager | Full CRUD; auto-fills from active lease |
 | `/maintenance` | manager | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
@@ -49,6 +49,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `supabase/migrations/007_notification_triggers.sql` — Payment and lease notification triggers (payment confirmed, payment overdue, lease created, lease terminated).
 - `supabase/migrations/008_rls_tenant_manager_profile.sql` — Allows tenants to SELECT their property manager's profile row (needed by tenant portal).
 - `supabase/migrations/009_tenant_profile_autolink.sql` — `link_profile_to_tenant` trigger: fires after `profiles` INSERT, matches by email, sets `tenants.profile_id` so the portal loads the correct unit/lease on first login.
+- `supabase/migrations/010_storage_policies.sql` — Creates `avatars`, `property-images`, `maintenance-images` buckets; sets storage.objects RLS (authenticated upload/update/delete, public read).
+- `supabase/migrations/011_fix_profile_update_rls.sql` — Replaces migration 005's self-referential `WITH CHECK` subquery (caused profile updates to fail) with a simple own-row policy + `BEFORE UPDATE` trigger that blocks role changes except for `service_role`.
 
 ## API routes
 
@@ -63,7 +65,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 ## Supabase
 
-- **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`. `profiles.role` is locked against self-update (migration 005) — role changes must go through `/api/auth/set-role`.
+- **RLS** — scoped by `manager_id = auth.uid()` or `profile_id = auth.uid()`. `profiles.role` is locked via a `BEFORE UPDATE` trigger (migration 011, replaces migration 005's broken `WITH CHECK`) — role changes must go through `/api/auth/set-role`. Storage buckets (`avatars`, `property-images`, `maintenance-images`) use authenticated-write / public-read policies (migration 010).
 - **Realtime** — `maintenance_requests`, `notifications`
 - **Triggers** — `handle_new_user` (creates `profiles` row on `auth.users` INSERT, `SET search_path = public` required); `link_profile_to_tenant` (links new profile to existing tenant record by email on `profiles` INSERT); manager notified on new maintenance request; tenant notified on request update, payment confirmed/overdue, lease created/terminated
 
