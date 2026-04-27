@@ -1,7 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/', '/pricing', '/about', '/auth/login', '/auth/register', '/auth/callback', '/auth/reset-password', '/auth/set-role']
+// Marketing pages — open to everyone regardless of auth state
+const OPEN_ROUTES = ['/', '/pricing', '/about']
+// Auth pages — accessible when logged out; logged-in users are redirected to their home
+const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/reset-password']
+const PUBLIC_ROUTES = [...OPEN_ROUTES, ...AUTH_ROUTES, '/auth/callback', '/auth/set-role']
 const ALWAYS_ALLOW = ['/auth/callback', '/auth/update-password', '/auth/set-role', '/api/stripe', '/api/notifications']
 
 const MANAGER_ROUTES = [
@@ -20,8 +24,8 @@ function handleMockAuth(request: NextRequest) {
   if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return NextResponse.next()
 
   if (isPublic) {
-    // Already "logged in" via mock cookie → redirect to role home
-    if (mockRole) {
+    const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r))
+    if (isAuthRoute && mockRole) {
       return NextResponse.redirect(
         new URL(mockRole === 'tenant' ? '/portal' : '/dashboard', request.url)
       )
@@ -89,9 +93,10 @@ export async function middleware(request: NextRequest) {
   // Callback must always run — never redirect mid-OAuth
   if (ALWAYS_ALLOW.some(r => pathname.startsWith(r))) return response
 
-  // Already logged in and hitting a public route → redirect to role home
   if (isPublic) {
-    if (user) {
+    const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r))
+    // Auth pages (login/register) redirect logged-in users to their home
+    if (isAuthRoute && user) {
       const role = user.user_metadata?.role as string
       return NextResponse.redirect(
         new URL(role === 'tenant' ? '/portal' : '/dashboard', request.url)
