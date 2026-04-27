@@ -40,7 +40,12 @@ const { user, profile, session, loading, signOut, updateProfile } = useAuth()
 
 ## Middleware route rules
 
-- **Public**: `/auth/login`, `/auth/register`, `/auth/callback`, `/auth/reset-password`, `/auth/update-password`, `/auth/set-role`
-- **Manager**: `/dashboard`, `/people`, `/payments`, `/maintenance`, `/leases`, `/properties`, `/communication`, `/reports`, `/notifications`
-- **Tenant**: `/portal`
-- Unauthenticated → `/auth/login?redirectTo=<path>` · Wrong role → role's home
+Three distinct route tiers — defined by `OPEN_ROUTES`, `AUTH_ROUTES`, and `ALWAYS_ALLOW` in `src/middleware.ts`:
+
+- **Open** (`/pricing`, `/about`) — anyone can visit, logged-in or not. No redirect.
+- **Homepage** (`/`) — behaves like an auth route: logged-in users are redirected to their dashboard; logged-out users see the marketing homepage.
+- **Auth routes** (`/auth/login`, `/auth/register`, `/auth/reset-password`) — logged-out only; logged-in users redirected to their home.
+- **Always allow** (`/auth/callback`, `/auth/update-password`, `/auth/set-role`, `/api/stripe`, `/api/notifications`) — never redirected.
+- **Manager routes** (`/dashboard`, `/people`, `/payments`, `/maintenance`, `/leases`, `/properties`, `/communication`, `/reports`, `/notifications`) — manager role only; tenant → `/portal`.
+- **Tenant routes** (`/portal`) — tenant role only; manager → `/dashboard`.
+- Unauthenticated on a protected route → `/auth/login?redirectTo=<path>`
