@@ -47,6 +47,7 @@ Always use — don't reimplement inline.
 | `<ConfirmModal>` (`ui/ConfirmModal`) | `open`, `onClose`, `title`, `body?`, `confirmLabel?`, `onConfirm`, `loading?`, `destructive?` |
 | `<ImageUpload>` (`ui/ImageUpload`) | Single image upload; `value`, `onChange(url\|null)`, `bucket`, `path`, `shape`: square/circle, `height`, `className`; compresses to 1200px JPEG; mock-safe |
 | `<ImageUploadMultiple>` (`ui/ImageUploadMultiple`) | Multi-image upload grid; `value: string[]`, `onChange(urls)`, `bucket`, `path`, `max` (default 5); compresses each; mock-safe |
+| `<Modal>` (`ui/Modal`) | Generic modal shell; `open`, `onClose`, `title`, `size?: sm\|md\|lg` (default `md`), `children`; Escape key closes |
 
 ### Patterns
 

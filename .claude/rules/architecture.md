@@ -16,6 +16,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/payments` | manager | Full CRUD; auto-fills from active lease |
 | `/maintenance` | manager | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
 | `/leases` | manager | Full CRUD; smart form (tenant↔property↔unit auto-population; filters units without active lease) |
+| `/settings` | manager | Three sections (Profile, Billing, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; email notification prefs |
+| `/tenants` | manager | Master-detail tenant list; add tenant form; per-tenant tabs for payments, lease, maintenance (not in sidebar nav) |
 | `/communication` | manager | Mock data — V2 |
 | `/reports` | manager | Mock data — V2 |
 | `/notifications` | manager | Groups, per-row delete, mark read, real-time |
@@ -26,7 +28,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 ## Key files
 
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: sidebar + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials.
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: collapsible sidebar (icon-only `w-16` collapsed, `w-64` pinned-open; pin state persisted to `localStorage`; hover temporarily expands) + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials. "Profile & Settings" links to `/settings` page (no longer a modal).
 - `src/context/AuthContext.tsx` — `useAuth()` → `{ user, profile, session, loading, signOut, updateProfile }`
 - `src/context/ThemeContext.tsx` — `useTheme()` → `{ theme, setTheme }`. `dark` class on `<html>`.
 - `src/middleware.ts` — Public: `/auth/*`. Manager: all manager routes. Tenant: `/portal`. API routes open to authenticated users; webhook routes always unauthenticated.

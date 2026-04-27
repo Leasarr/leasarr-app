@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
-import ProfileSettingsModal from '@/components/profile/ProfileSettingsModal'
 import { NOTIFICATION_TYPE_META } from '@/lib/notificationMeta'
 
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
@@ -26,13 +25,15 @@ type NotificationRow = {
   created_at: string
 }
 
-type NotificationContentProps = {
+function NotificationContent({
+  notifications,
+  onMarkAllRead,
+  allHref,
+}: {
   notifications: NotificationRow[]
   onMarkAllRead: () => void
   allHref: string
-}
-
-function NotificationContent({ notifications, onMarkAllRead, allHref }: NotificationContentProps) {
+}) {
   const unread = notifications.filter(n => !n.read)
   return (
     <DropdownMenu.Content
@@ -125,8 +126,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
-  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  // pinned = user locked sidebar open; hovered = temporary hover expansion
+  const [pinned, setPinned] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('sidebar_pinned') === 'true'
+  })
+  const [hovered, setHovered] = useState(false)
+  const isExpanded = pinned || hovered
+
+  function togglePin() {
+    setPinned(p => {
+      const next = !p
+      localStorage.setItem('sidebar_pinned', String(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!profile) return
@@ -145,26 +160,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const channel = supabase
       .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
-        (payload: { new: NotificationRow }) => {
-          setNotifications(prev => [payload.new, ...prev])
-        }
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { new: NotificationRow }) => setNotifications(prev => [payload.new, ...prev])
       )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
-        (payload: { new: NotificationRow }) => {
-          setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n))
-        }
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { new: NotificationRow }) => setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n))
       )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
-        (payload: { old: { id: string } }) => {
-          setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
-        }
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `profile_id=eq.${profile.id}` },
+        (payload: { old: { id: string } }) => setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
       )
       .subscribe()
 
@@ -173,24 +176,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   async function handleMarkAllRead() {
     if (!profile) return
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('profile_id', profile.id)
-      .eq('read', false)
+    await supabase.from('notifications').update({ read: true }).eq('profile_id', profile.id).eq('read', false)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
-
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
   const baseBottomNav = isTenant ? TENANT_BOTTOM_NAV : MANAGER_BOTTOM_NAV
   const moreNavItems = navItems.filter(item => !baseBottomNav.some(b => b.href === item.href))
-  const bottomNav = [
-    ...baseBottomNav,
-    { icon: 'grid_view', label: 'More', action: () => setMoreOpen(true) },
-  ]
+  const bottomNav = [...baseBottomNav, { icon: 'grid_view', label: 'More', action: () => setMoreOpen(true) }]
 
   const displayName = profile?.name ?? profile?.email ?? '...'
   const initials = profile?.name ? getInitials(profile.name) : '?'
@@ -202,82 +197,92 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/')
   }
 
+  const AvatarBubble = ({ size = 8 }: { size?: number }) => avatarUrl ? (
+    <img src={avatarUrl} alt="" className={cn(`w-${size} h-${size}`, 'rounded-full object-cover')} />
+  ) : (
+    <div className={cn(`w-${size} h-${size}`, 'rounded-full primary-gradient flex items-center justify-center flex-shrink-0')}>
+      <span className="text-on-primary text-xs font-bold">{initials}</span>
+    </div>
+  )
+
   return (
-    <div className="min-h-screen flex bg-surface overflow-x-hidden">
-      {/* ── Desktop Sidebar ── */}
-      <aside className="hidden lg:flex flex-col w-64 bg-surface-container-lowest border-r border-outline-variant/20 fixed left-0 top-0 h-screen z-40">
+    <div className="min-h-screen flex flex-col bg-surface overflow-x-hidden">
+
+      {/* ── Full-width Top Bar ── */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 glass-dark border-b border-outline-variant/20 flex items-center justify-between px-4 lg:px-5">
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-outline-variant/20">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl primary-gradient flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-lg">domain</span>
-            </div>
-            <span className="text-xl font-headline font-extrabold text-primary tracking-tight">Leasarr</span>
+        <Link href={isTenant ? '/portal' : '/dashboard'} className="flex items-center gap-2.5 shrink-0">
+          <div className="w-8 h-8 rounded-xl primary-gradient flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-base">domain</span>
           </div>
-        </div>
+          <span className="text-lg font-headline font-extrabold text-primary tracking-tight">Leasarr</span>
+        </Link>
 
-        {/* Nav Items */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
-            if (!item.href) return null
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
-                  isActive
-                    ? 'bg-primary-fixed text-on-primary-fixed'
-                    : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                )}
-              >
-                <span className={cn('material-symbols-outlined text-xl', isActive && 'material-symbols-filled')}>
-                  {item.icon}
-                </span>
-                {item.label}
-                {item.href === '/communication' && (
-                  <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
+        {/* Right controls */}
+        <div className="flex items-center gap-1">
+          {/* Theme switcher — desktop only */}
+          <div className="hidden lg:block">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
+                  <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                    {theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'brightness_auto'}
+                  </span>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-44 z-50" sideOffset={8} align="end">
+                  {THEME_OPTIONS.map(opt => (
+                    <DropdownMenu.Item
+                      key={opt.value}
+                      onSelect={() => setTheme(opt.value)}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer outline-none transition-colors',
+                        theme === opt.value ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-base">{opt.icon}</span>
+                      {opt.label}
+                      {theme === opt.value && <span className="material-symbols-outlined text-sm ml-auto material-symbols-filled">check</span>}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
 
-        {/* User Profile */}
-        <div className="px-4 py-4 border-t border-outline-variant/20">
+          {/* Notifications */}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-surface-container cursor-pointer transition-colors text-left">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full primary-gradient flex items-center justify-center shrink-0">
-                    <span className="text-on-primary text-xs font-bold">{initials}</span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
-                  <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>
-                </div>
-                <span className="material-symbols-outlined text-outline text-base">expand_more</span>
+              <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
+                <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface" />}
               </button>
             </DropdownMenu.Trigger>
-
             <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-52 z-50"
-                sideOffset={8}
-                align="start"
-              >
-                <DropdownMenu.Item
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer outline-none transition-colors"
-                  onSelect={() => setProfileSettingsOpen(true)}
-                >
-                  <span className="material-symbols-outlined text-base">manage_accounts</span>
-                  Profile & Settings
+              <NotificationContent notifications={notifications} onMarkAllRead={handleMarkAllRead} allHref={isTenant ? '/portal/notifications' : '/notifications'} />
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+
+          {/* Profile avatar dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="ml-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <AvatarBubble size={8} />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-56 z-50" sideOffset={10} align="end">
+                <div className="px-3 py-2.5 mb-1">
+                  <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
+                  <p className="text-[11px] text-on-surface-variant">{roleLabel}</p>
+                </div>
+                <DropdownMenu.Separator className="h-px bg-outline-variant/20 mx-1.5 mb-1" />
+                <DropdownMenu.Item asChild>
+                  <Link href="/settings" className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer outline-none transition-colors">
+                    <span className="material-symbols-outlined text-base">manage_accounts</span>
+                    Profile &amp; Settings
+                  </Link>
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-error hover:bg-error-container cursor-pointer outline-none transition-colors"
@@ -290,102 +295,85 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
         </div>
-      </aside>
+      </header>
 
-      {/* ── Main Content ── */}
-      <main className="flex-1 lg:ml-64 min-h-screen">
-        {/* Mobile Top Bar */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-outline-variant/20 h-16 flex items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl primary-gradient flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-base">domain</span>
-            </div>
-            <span className="text-lg font-headline font-extrabold text-primary">Leasarr</span>
-          </div>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
-                <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
-                {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />}
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <NotificationContent notifications={notifications} onMarkAllRead={handleMarkAllRead} allHref={isTenant ? '/portal/notifications' : '/notifications'} />
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        </header>
-
-        {/* Desktop Top Bar */}
-        <header className="hidden lg:flex fixed top-0 left-64 right-0 z-30 glass-dark border-b border-outline-variant/20 h-14 items-center justify-between px-8">
-          <div className="flex items-center gap-2 text-on-surface-variant text-sm">
-            <span className="material-symbols-outlined text-base">home</span>
-            <span>/</span>
-            <span className="font-semibold text-on-surface capitalize">
-              {pathname === '/portal' ? 'Home' : pathname.split('/').filter(Boolean).map(s => s === 'portal' ? null : s).filter(Boolean).join(' / ') || pathname.split('/')[1] || 'Dashboard'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Theme switcher */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors">
-                  <span className="material-symbols-outlined text-on-surface-variant text-xl">
-                    {theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'brightness_auto'}
-                  </span>
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal p-1.5 w-44 z-50"
-                  sideOffset={8}
-                  align="end"
+      <div className="flex flex-1 pt-14">
+        {/* ── Desktop Sidebar ── */}
+        <aside
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className={cn(
+            'hidden lg:flex flex-col fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)]',
+            'bg-surface-container-lowest border-r border-outline-variant/20',
+            'transition-[width] duration-200 ease-in-out overflow-hidden',
+            isExpanded ? 'w-64' : 'w-16',
+            // overlay shadow when hover-expanded but not pinned
+            isExpanded && !pinned && 'shadow-[4px_0_24px_rgba(0,0,0,0.08)]'
+          )}
+        >
+          {/* Nav items */}
+          <nav className="flex-1 px-2 pt-8 pb-3 space-y-0.5 overflow-y-auto">
+            {navItems.map(item => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
+              if (!item.href) return null
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={!isExpanded ? item.label : undefined}
+                  className={cn(
+                    'flex items-center rounded-xl text-sm font-semibold transition-all duration-150',
+                    isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center py-2.5',
+                    isActive
+                      ? 'bg-primary-fixed text-on-primary-fixed'
+                      : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  )}
                 >
-                  {THEME_OPTIONS.map(opt => (
-                    <DropdownMenu.Item
-                      key={opt.value}
-                      onSelect={() => setTheme(opt.value)}
-                      className={cn(
-                        'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer outline-none transition-colors',
-                        theme === opt.value
-                          ? 'bg-primary-fixed text-on-primary-fixed'
-                          : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                      )}
-                    >
-                      <span className="material-symbols-outlined text-base">{opt.icon}</span>
-                      {opt.label}
-                      {theme === opt.value && (
-                        <span className="material-symbols-outlined text-sm ml-auto material-symbols-filled">check</span>
-                      )}
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+                  <span className={cn('material-symbols-outlined text-xl flex-shrink-0', isActive && 'material-symbols-filled')}>
+                    {item.icon}
+                  </span>
+                  <span className={cn(
+                    'whitespace-nowrap transition-[opacity,max-width] duration-200 overflow-hidden',
+                    isExpanded ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'
+                  )}>
+                    {item.label}
+                  </span>
+                  {item.href === '/communication' && isExpanded && (
+                    <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+                  )}
+                </Link>
+              )
+            })}
+          </nav>
 
-            {/* Notifications */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors relative">
-                  <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
-                  {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface" />}
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <NotificationContent notifications={notifications} onMarkAllRead={handleMarkAllRead} allHref={isTenant ? '/portal/notifications' : '/notifications'} />
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+          {/* Collapse / expand toggle */}
+          <div className={cn('flex items-center py-2.5 border-t border-outline-variant/10 shrink-0', isExpanded ? 'px-3 justify-end' : 'justify-center')}>
+            <button
+              onClick={togglePin}
+              title={pinned ? 'Collapse sidebar' : 'Pin sidebar open'}
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface-container text-on-surface-variant transition-colors"
+            >
+              <span className="material-symbols-outlined text-xl">
+                {pinned ? 'left_panel_close' : 'left_panel_open'}
+              </span>
+            </button>
           </div>
-        </header>
+        </aside>
 
-        {/* Page Content */}
-        <div className="pt-16 lg:pt-14 pb-24 lg:pb-8 min-h-screen animate-slide-up">
+        {/* ── Page Content ── */}
+        <main className={cn(
+          'flex-1 pb-24 lg:pb-8 min-h-[calc(100vh-3.5rem)] animate-slide-up transition-[margin] duration-200',
+          pinned ? 'lg:ml-64' : 'lg:ml-16'
+        )}>
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
 
-      {/* ── Mobile Bottom Nav ── */}
+      {/* ── Mobile Bottom Nav — icons only ── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 rounded-t-3xl shadow-nav">
-        <div className="flex justify-around items-center h-20 px-2 pb-safe">
+        <div className="grid pb-safe" style={{ gridTemplateColumns: `repeat(${bottomNav.length}, 1fr)` }}>
           {bottomNav.map(item => {
             const isActive = item.action
               ? moreOpen
@@ -394,34 +382,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 : (pathname === item.href || pathname.startsWith((item.href ?? '') + '/'))
 
             const className = cn(
-              'flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-150 active:scale-90',
-              isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'text-on-surface-variant hover:text-on-surface'
+              'flex flex-col items-center justify-center gap-0.5 h-16 w-full transition-all duration-150 active:scale-90',
+              isActive ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
             )
 
             const content = (
               <>
-                <span className={cn('material-symbols-outlined text-[22px]', isActive && 'material-symbols-filled')}>
-                  {item.icon}
-                </span>
-                <span className="font-headline font-semibold text-[10px] tracking-wide">{item.label}</span>
+                <span className={cn('material-symbols-outlined text-[22px]', isActive && 'material-symbols-filled')}>{item.icon}</span>
+                <span className="font-semibold text-[10px] tracking-wide">{item.label}</span>
               </>
             )
 
-            if (item.action) {
-              return (
-                <button key={item.label} onClick={item.action} className={className}>
-                  {content}
-                </button>
-              )
-            }
-
+            if (item.action) return <button key={item.label} onClick={item.action} className={className}>{content}</button>
             if (!item.href) return null
-
-            return (
-              <Link key={item.href} href={item.href} className={className}>
-                {content}
-              </Link>
-            )
+            return <Link key={item.href} href={item.href} className={className}>{content}</Link>
           })}
         </div>
       </nav>
@@ -431,28 +405,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="lg:hidden fixed inset-0 z-[60] flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
           <div className="relative bg-surface-container-lowest rounded-t-3xl shadow-modal pb-safe">
-            {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 rounded-full bg-outline-variant/40" />
             </div>
 
             {/* User info */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/10">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-10 h-10 rounded-full primary-gradient flex items-center justify-center shrink-0">
-                  <span className="text-on-primary text-sm font-bold">{initials}</span>
-                </div>
-              )}
+              <AvatarBubble size={10} />
               <div>
                 <p className="text-sm font-semibold text-on-surface">{displayName}</p>
                 <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>
               </div>
             </div>
 
-            {/* Nav grid */}
-            <div className="grid grid-cols-3 gap-2 px-4 py-4">
+            {/* Nav grid — icons only */}
+            <div className="grid gap-2 px-4 py-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(7.5rem, 1fr))' }}>
               {moreNavItems.map(item => {
                 if (!item.href) return null
                 const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
@@ -461,8 +428,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMoreOpen(false)}
+                    title={item.label}
                     className={cn(
-                      'flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl transition-colors',
+                      'flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-2xl transition-colors',
                       isActive ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
                     )}
                   >
@@ -473,15 +441,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               })}
             </div>
 
-            {/* Actions */}
+            {/* Actions — keep labels */}
             <div className="px-4 pb-6 space-y-1 border-t border-outline-variant/10 pt-3">
-              <button
-                onClick={() => { setMoreOpen(false); setProfileSettingsOpen(true) }}
+              <Link
+                href="/settings"
+                onClick={() => setMoreOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
               >
                 <span className="material-symbols-outlined text-base">manage_accounts</span>
                 Profile &amp; Settings
-              </button>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-error hover:bg-error-container transition-colors"
@@ -493,12 +462,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       )}
-
-      <ProfileSettingsModal
-        open={profileSettingsOpen}
-        onClose={() => setProfileSettingsOpen(false)}
-        onSignOut={handleLogout}
-      />
     </div>
   )
 }

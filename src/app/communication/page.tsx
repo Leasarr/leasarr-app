@@ -75,7 +75,7 @@ export default function CommunicationPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-3.5rem)] lg:-mb-8 max-w-7xl mx-auto overflow-hidden">
+      <div className="flex flex-col md:flex-row h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-3.5rem)] lg:-mb-8 overflow-hidden">
 
         {/* ── Sidebar ── */}
         <aside className="w-full md:w-96 flex flex-col bg-surface md:bg-surface-container-low border-r border-outline-variant/20 overflow-hidden flex-shrink-0">
