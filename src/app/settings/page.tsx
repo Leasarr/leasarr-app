@@ -138,7 +138,7 @@ function ProfileSection() {
   async function removePhoto() {
     setRemovingPhoto(true)
     try {
-      await updateProfile({ avatar_url: null })
+      await updateProfile({ avatar_url: undefined })
     } finally {
       setRemovingPhoto(false)
     }
