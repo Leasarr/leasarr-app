@@ -38,7 +38,8 @@ Always use — don't reimplement inline.
 
 | Component | Variants / Props |
 |---|---|
-| `<Button>` (`ui/Button`) | variants: `primary` `secondary` `ghost` `chip` `destructive`; sizes: `sm` `md` `lg`; non-chip: `min-h-[44px]` |
+| `<Button>` (`ui/Button`) | variants: `primary` `secondary` `ghost` `chip` `destructive`; sizes: `sm` `md` `lg`; non-chip: `min-h-[44px]`; props: `loading` (built-in spinner + disables), `iconLeft` / `iconRight` (material symbol name); built-in `disabled:opacity-50` + focus ring |
+| `<Tooltip>` (`ui/Tooltip`) | CSS-only hint bubble; props: `content`, `side` (top/bottom), `disabled?`. Wrap disabled buttons to explain why. |
 | `<Badge>` (`ui/Badge`) | variants: `primary` `secondary` `tertiary` `neutral` `success` `warning` `error` |
 | `<Card>` (`ui/Card`) | `padding` sm/md/lg; `radius` sm/md; `surface` lowest/low; `shadow` |
 | `<SegmentedControl>` (`ui/SegmentedControl`) | In-page view toggle; `options` (`{key,label,icon?}[]`), `value`, `onChange` |
@@ -96,8 +97,9 @@ const form = useForm<MyForm>({
 <input {...form.register('field')} className="input-base" />
 {form.formState.errors.field && <p className="text-error text-xs mt-1">{form.formState.errors.field.message}</p>}
 
-// Submit button
-<Button type="submit" disabled={form.formState.isSubmitting}>
+// Submit button — use `loading` (not `disabled`) for in-flight state.
+// The `loading` prop disables the button, dims the label, and renders the spinner.
+<Button type="submit" loading={form.formState.isSubmitting}>
   {form.formState.isSubmitting ? 'Saving...' : 'Save'}
 </Button>
 
@@ -165,5 +167,7 @@ The `onSubmit` callback returns `null` on success or an error string on failure 
 
 ### Other rules
 - Inputs: `.input-base`. Destructive actions: always `<ConfirmModal>`.
+- Buttons: never render a manual `progress_activity` span — use `loading` prop. Never render a leading material-symbol span — use `iconLeft` / `iconRight`.
+- For controls disabled by a non-obvious reason (e.g. seat exhaustion), wrap in `<Tooltip>` so hover/focus reveals why.
 - Numeric fields use `z.string()` in schemas and are parsed (`parseFloat`/`parseInt`) in `onSubmit`.
 - Multiple forms on one page: use named instances (`addUnitForm`, `editUnitForm`) rather than destructuring.

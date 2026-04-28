@@ -643,7 +643,7 @@ export default function PropertiesPage() {
           {editUnitServerError && <p className="text-sm text-error">{editUnitServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowEditUnit(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editUnitForm.formState.isSubmitting} className="flex-1">{editUnitForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" loading={editUnitForm.formState.isSubmitting} className="flex-1">{editUnitForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
@@ -732,7 +732,7 @@ export default function PropertiesPage() {
           {unitServerError && <p className="text-sm text-error">{unitServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowAddUnit(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={addUnitForm.formState.isSubmitting} className="flex-1">{addUnitForm.formState.isSubmitting ? 'Adding...' : 'Add Unit'}</Button>
+            <Button type="submit" loading={addUnitForm.formState.isSubmitting} className="flex-1">{addUnitForm.formState.isSubmitting ? 'Adding...' : 'Add Unit'}</Button>
           </div>
         </form>
       </Modal>
@@ -816,7 +816,7 @@ function AddPropertyModal({
         {serverError && <p className="text-sm text-error">{serverError}</p>}
         <div className="flex gap-3 pt-2">
           <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
-          <Button type="submit" disabled={form.formState.isSubmitting} className="flex-1">{form.formState.isSubmitting ? 'Saving...' : submitLabel}</Button>
+          <Button type="submit" loading={form.formState.isSubmitting} className="flex-1">{form.formState.isSubmitting ? 'Saving...' : submitLabel}</Button>
         </div>
       </form>
     </Modal>

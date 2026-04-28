@@ -127,6 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
+  const [ownerName, setOwnerName] = useState<string | null>(null)
   // pinned = user locked sidebar open; hovered = temporary hover expansion
   const [pinned, setPinned] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -142,6 +143,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return next
     })
   }
+
+  useEffect(() => {
+    if (!profile) return
+
+    async function checkTeamMembership() {
+      const { data } = await supabase
+        .from('team_members')
+        .select('manager_id')
+        .eq('profile_id', profile!.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (data?.manager_id) {
+        const { data: owner } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.manager_id)
+          .single()
+        setOwnerName(owner?.name ?? null)
+      }
+    }
+
+    checkTeamMembership()
+  }, [profile?.id])
 
   useEffect(() => {
     if (!profile) return
@@ -276,6 +301,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="px-3 py-2.5 mb-1">
                   <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
                   <p className="text-[11px] text-on-surface-variant">{roleLabel}</p>
+                  {ownerName && (
+                    <p className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[10px]">group</span>
+                      Team member of {ownerName}
+                    </p>
+                  )}
                 </div>
                 <DropdownMenu.Separator className="h-px bg-outline-variant/20 mx-1.5 mb-1" />
                 <DropdownMenu.Item asChild>

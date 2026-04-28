@@ -229,7 +229,7 @@ export default function TenantMaintenancePage() {
           {formServerError && <p className="text-sm text-error">{formServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => { reset(); setShowForm(false) }} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={isSubmitting} className="flex-1">{isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
+            <Button type="submit" loading={isSubmitting} className="flex-1">{isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </form>
       </Modal>

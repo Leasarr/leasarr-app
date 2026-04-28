@@ -404,7 +404,7 @@ export default function PaymentsPage() {
           {recordServerError && <p className="text-sm text-error">{recordServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowRecord(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={recordPaymentForm.formState.isSubmitting} className="flex-1">{recordPaymentForm.formState.isSubmitting ? 'Saving...' : 'Record Payment'}</Button>
+            <Button type="submit" loading={recordPaymentForm.formState.isSubmitting} className="flex-1">{recordPaymentForm.formState.isSubmitting ? 'Saving...' : 'Record Payment'}</Button>
           </div>
         </form>
       </Modal>
@@ -464,7 +464,7 @@ export default function PaymentsPage() {
           {editServerError && <p className="text-sm text-error">{editServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowEdit(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editPaymentForm.formState.isSubmitting} className="flex-1">{editPaymentForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" loading={editPaymentForm.formState.isSubmitting} className="flex-1">{editPaymentForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>

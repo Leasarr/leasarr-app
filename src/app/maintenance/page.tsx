@@ -551,7 +551,7 @@ export default function MaintenancePage() {
           {maintenanceServerError && <p className="text-sm text-error">{maintenanceServerError}</p>}
           <div className="pt-2 flex gap-4">
             <Button type="button" variant="secondary" onClick={() => { maintenanceForm.reset(); setMaintenanceServerError(''); setShowModal(false) }} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={maintenanceForm.formState.isSubmitting} className="flex-[2]">{maintenanceForm.formState.isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
+            <Button type="submit" loading={maintenanceForm.formState.isSubmitting} className="flex-[2]">{maintenanceForm.formState.isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </form>
       </Modal>

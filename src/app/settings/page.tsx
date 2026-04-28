@@ -9,16 +9,23 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { ImageUpload } from '@/components/ui/ImageUpload'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import Modal from '@/components/ui/Modal'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { LoadingState } from '@/components/patterns/LoadingState'
-import { cn, formatDate, formatCurrency } from '@/lib/utils'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { FormField } from '@/components/patterns/FormField'
+import { cn, formatDate, formatCurrency, getInitials } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { PLANS, type PlanKey } from '@/lib/stripe/plans'
+import { useSeats } from '@/hooks/useSeats'
+import { inviteTeamMemberSchema, type InviteTeamMemberForm } from '@/lib/schemas/people'
 import type { Subscription } from '@/types'
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-type Section = 'profile' | 'billing' | 'notifications'
+type Section = 'profile' | 'billing' | 'team' | 'notifications'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -41,9 +48,10 @@ type PasswordForm = z.infer<typeof passwordSchema>
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const ALL_SECTIONS: { key: Section; icon: string; label: string; description: string }[] = [
+const ALL_SECTIONS: { key: Section; icon: string; label: string; description: string; managerOnly?: boolean }[] = [
   { key: 'profile', icon: 'person', label: 'Profile', description: 'Name, email, avatar, password' },
-  { key: 'billing', icon: 'credit_card', label: 'Billing', description: 'Subscription and plan' },
+  { key: 'billing', icon: 'credit_card', label: 'Billing', description: 'Subscription and plan', managerOnly: true },
+  { key: 'team', icon: 'group', label: 'Team', description: 'Invite and manage team members', managerOnly: true },
   { key: 'notifications', icon: 'notifications', label: 'Notifications', description: 'Email notification preferences' },
 ]
 
@@ -201,8 +209,7 @@ function ProfileSection() {
           </div>
           {profileError && <p className="text-sm text-error">{profileError}</p>}
           <div className="flex justify-end">
-            <Button type="submit" variant="primary" size="md" disabled={profileState === 'saving'}>
-              {profileState === 'saving' && <span className="material-symbols-outlined text-base animate-spin mr-1">progress_activity</span>}
+            <Button type="submit" variant="primary" size="md" loading={profileState === 'saving'}>
               {profileState === 'saved' ? 'Saved ✓' : profileState === 'saving' ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -242,8 +249,7 @@ function ProfileSection() {
             </div>
             {passwordError && <p className="text-sm text-error">{passwordError}</p>}
             <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={passwordState === 'saving'}>
-                {passwordState === 'saving' && <span className="material-symbols-outlined text-base animate-spin mr-1">progress_activity</span>}
+              <Button type="submit" variant="primary" size="md" loading={passwordState === 'saving'}>
                 {passwordState === 'saved' ? 'Updated ✓' : passwordState === 'saving' ? 'Updating...' : 'Update Password'}
               </Button>
             </div>
@@ -257,6 +263,7 @@ function ProfileSection() {
 function BillingSection() {
   const { profile } = useAuth()
   const supabase = createClient()
+  const seats = useSeats()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
@@ -341,6 +348,12 @@ function BillingSection() {
               {subscription.current_period_end && (
                 <p className="text-xs text-on-surface-variant mt-1">
                   Renews {formatDate(subscription.current_period_end)}
+                </p>
+              )}
+              {!seats.loading && (
+                <p className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">group</span>
+                  {seats.used} of {seats.max} seat{seats.max !== 1 ? 's' : ''} used
                 </p>
               )}
             </div>
@@ -479,17 +492,340 @@ function BillingPlansDisplay({
               <Button
                 variant={isCurrent ? 'secondary' : isPopular ? 'primary' : 'secondary'}
                 size="sm"
-                disabled={isCurrent || isLoading}
+                disabled={isCurrent}
+                loading={isLoading}
                 onClick={() => !isCurrent && onUpgrade(planKey)}
                 className="w-full"
               >
-                {isLoading && <span className="material-symbols-outlined text-base animate-spin mr-1">progress_activity</span>}
                 {isCurrent ? 'Current Plan' : isLoading ? 'Loading...' : 'Upgrade'}
               </Button>
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+type TeamMemberRow = {
+  id: string
+  name: string
+  role: string
+  email: string
+  status: 'pending' | 'active' | 'inactive'
+  profile_id: string | null
+  invited_email: string | null
+  invited_at: string | null
+}
+
+function TeamSection() {
+  const { profile } = useAuth()
+  const supabase = createClient()
+  const seats = useSeats()
+
+  const [members, setMembers] = useState<TeamMemberRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isOwner, setIsOwner] = useState(true)
+  const [ownerName, setOwnerName] = useState('')
+  const [inviteError, setInviteError] = useState('')
+  const [showInvite, setShowInvite] = useState(false)
+  const [revokeTarget, setRevokeTarget] = useState<TeamMemberRow | null>(null)
+  const [revoking, setRevoking] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const inviteForm = useForm<InviteTeamMemberForm>({
+    resolver: zodResolver(inviteTeamMemberSchema),
+  })
+
+  useEffect(() => {
+    if (!profile) return
+    async function load() {
+      setLoading(true)
+
+      // Check if current user is a team member (not an owner)
+      const { data: memberOf } = await supabase
+        .from('team_members')
+        .select('manager_id')
+        .eq('profile_id', profile!.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (memberOf?.manager_id) {
+        const { data: owner } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', memberOf.manager_id)
+          .single()
+        setIsOwner(false)
+        setOwnerName(owner?.name ?? 'your manager')
+        setLoading(false)
+        return
+      }
+
+      const { data } = await supabase
+        .from('team_members')
+        .select('id, name, role, email, status, profile_id, invited_email, invited_at')
+        .eq('manager_id', profile!.id)
+        .order('created_at', { ascending: false })
+
+      setMembers((data ?? []) as TeamMemberRow[])
+      setLoading(false)
+    }
+    load()
+  }, [profile?.id])
+
+  async function onInvite(data: InviteTeamMemberForm) {
+    setInviteError('')
+    // Name is filled in by the invitee on signup (or pulled from their auth provider).
+    // Send a placeholder derived from the email so the row has a non-null display value.
+    const placeholderName = data.email.split('@')[0]
+    const res = await fetch('/api/team/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email, role: data.role, name: placeholderName }),
+    })
+    const json = await res.json()
+    if (!res.ok) { setInviteError(json.error ?? 'Failed to send invite'); return }
+    inviteForm.reset()
+    setShowInvite(false)
+    const { data: updated } = await supabase
+      .from('team_members')
+      .select('id, name, role, email, status, profile_id, invited_email, invited_at')
+      .eq('manager_id', profile!.id)
+      .order('created_at', { ascending: false })
+    setMembers((updated ?? []) as TeamMemberRow[])
+  }
+
+  async function handleRevoke() {
+    if (!revokeTarget) return
+    setRevoking(true)
+    const res = await fetch('/api/team/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: revokeTarget.id }),
+    })
+    setRevoking(false)
+    if (res.ok) {
+      setMembers(prev => prev.map(m => m.id === revokeTarget.id ? { ...m, status: 'inactive', profile_id: null } : m))
+    }
+    setRevokeTarget(null)
+  }
+
+  async function handleResend(member: TeamMemberRow) {
+    setActionLoading(member.id)
+    await fetch('/api/team/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: member.id }),
+    })
+    setActionLoading(null)
+  }
+
+  async function handleReInvite(member: TeamMemberRow) {
+    setActionLoading(member.id)
+    const res = await fetch('/api/team/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: member.id }),
+    })
+    if (res.ok) {
+      setMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: 'pending' } : m))
+    }
+    setActionLoading(null)
+  }
+
+  if (loading) return <LoadingState size="panel" />
+
+  // Team member view — they can't manage the team
+  if (!isOwner) {
+    return (
+      <Card padding="md">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary-container/30 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-primary text-xl">group</span>
+          </div>
+          <div>
+            <p className="font-bold text-on-surface">You&apos;re a team member</p>
+            <p className="text-sm text-on-surface-variant">You&apos;re operating under <strong>{ownerName}</strong>&apos;s account</p>
+          </div>
+        </div>
+        <p className="text-xs text-on-surface-variant">Team management is handled by the account owner. Contact {ownerName} to update team access.</p>
+      </Card>
+    )
+  }
+
+  const statusPill = {
+    pending:  'bg-warning-container text-on-warning-container',
+    active:   'bg-secondary-container text-on-secondary-container',
+    inactive: 'bg-surface-container-high text-on-surface-variant',
+  }
+
+  return (
+    <div className="space-y-6">
+
+      {/* Seat usage */}
+      <Card padding="md">
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <p className="text-sm font-bold text-on-surface">Seat usage</p>
+          <div className="flex items-center gap-3 ml-auto">
+            {!seats.loading && (
+              <span className="text-sm font-semibold text-on-surface-variant">
+                {seats.used} / {seats.max} seat{seats.max !== 1 ? 's' : ''}
+              </span>
+            )}
+            {!seats.loading && (
+              <Tooltip
+                content="No seats available — upgrade your plan to invite more"
+                disabled={seats.available > 0}
+              >
+                <Button
+                  variant="primary"
+                  size="sm"
+                  iconLeft="person_add"
+                  onClick={() => setShowInvite(true)}
+                  disabled={seats.available === 0}
+                >
+                  Invite
+                </Button>
+              </Tooltip>
+            )}
+          </div>
+        </div>
+        {!seats.loading && (
+          <>
+            <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all', seats.available === 0 ? 'bg-error' : 'bg-primary')}
+                style={{ width: `${Math.min(100, (seats.used / seats.max) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-on-surface-variant mt-2">
+              {seats.available === 0
+                ? <>No seats available — <Link href="#" onClick={() => {}} className="text-primary font-semibold hover:underline">upgrade your plan</Link> to invite more</>
+                : `${seats.available} seat${seats.available !== 1 ? 's' : ''} available`}
+            </p>
+          </>
+        )}
+      </Card>
+
+      {/* Member list */}
+      <Card padding="md">
+        <p className="text-sm font-bold text-on-surface mb-4">
+          Team members
+          <span className="ml-2 text-xs font-normal text-on-surface-variant">
+            ({members.filter(m => m.status === 'active').length} active)
+          </span>
+        </p>
+
+        {members.length === 0 ? (
+          <EmptyState
+            icon="group_add"
+            title="No team members yet"
+            description="Invite your first team member above."
+            size="inline"
+          />
+        ) : (
+          <div className="divide-y divide-outline-variant/10 -mx-1">
+            {members.map(member => {
+              const isLoading = actionLoading === member.id
+              return (
+                <div key={member.id} className="flex items-center gap-3 py-3 px-1">
+                  <div className="w-9 h-9 rounded-xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {getInitials(member.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-on-surface truncate">{member.name}</p>
+                    <p className="text-xs text-on-surface-variant truncate">{member.role} · {member.invited_email ?? member.email}</p>
+                  </div>
+                  <span className={cn('badge flex-shrink-0', statusPill[member.status])}>
+                    {member.status === 'pending' ? 'Pending' : member.status === 'active' ? 'Active' : 'Inactive'}
+                  </span>
+                  <div className="flex-shrink-0">
+                    {member.status === 'pending' && (
+                      <button
+                        disabled={isLoading}
+                        onClick={() => handleResend(member)}
+                        className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                      >
+                        {isLoading ? 'Sending...' : 'Resend'}
+                      </button>
+                    )}
+                    {member.status === 'active' && (
+                      <button
+                        onClick={() => setRevokeTarget(member)}
+                        className="text-xs font-semibold text-error hover:underline"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                    {member.status === 'inactive' && (
+                      <button
+                        disabled={isLoading || seats.available === 0}
+                        onClick={() => handleReInvite(member)}
+                        className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                      >
+                        {isLoading ? 'Sending...' : 'Re-invite'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Modal
+        open={showInvite}
+        onClose={() => { setShowInvite(false); setInviteError(''); inviteForm.reset() }}
+        title="Invite team member"
+        size="md"
+      >
+        <form onSubmit={inviteForm.handleSubmit(onInvite)} className="space-y-4">
+          <FormField label="Email" hint="An invite link will be sent to this address. They'll set their name on signup.">
+            <input
+              {...inviteForm.register('email')}
+              type="email"
+              className="input-base"
+              placeholder="alex@yourcompany.com"
+              autoFocus
+            />
+            {inviteForm.formState.errors.email && (
+              <p className="text-error text-xs mt-1">{inviteForm.formState.errors.email.message}</p>
+            )}
+          </FormField>
+          <FormField label="Role">
+            <input
+              {...inviteForm.register('role')}
+              className="input-base"
+              placeholder="e.g. Property Manager"
+            />
+            {inviteForm.formState.errors.role && (
+              <p className="text-error text-xs mt-1">{inviteForm.formState.errors.role.message}</p>
+            )}
+          </FormField>
+          {inviteError && <p className="text-sm text-error">{inviteError}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" size="md" onClick={() => { setShowInvite(false); setInviteError(''); inviteForm.reset() }}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="md" loading={inviteForm.formState.isSubmitting}>
+              {inviteForm.formState.isSubmitting ? 'Sending...' : 'Send Invite'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        open={Boolean(revokeTarget)}
+        onClose={() => setRevokeTarget(null)}
+        title="Revoke access"
+        body={`Remove ${revokeTarget?.name ?? 'this team member'}'s access? They can be re-invited later.`}
+        confirmLabel="Revoke"
+        onConfirm={handleRevoke}
+        loading={revoking}
+        destructive
+      />
     </div>
   )
 }
@@ -585,7 +921,7 @@ export default function SettingsPage() {
   const backHref = isTenant ? '/portal' : '/dashboard'
   const backLabel = isTenant ? 'Back to Portal' : 'Back to Dashboard'
   const navItems = isTenant
-    ? ALL_SECTIONS.filter(s => s.key !== 'billing')
+    ? ALL_SECTIONS.filter(s => !s.managerOnly)
     : ALL_SECTIONS
 
   const activeMeta = navItems.find(n => n.key === activeSection)
@@ -699,6 +1035,7 @@ export default function SettingsPage() {
               </div>
               {activeSection === 'profile' && <ProfileSection />}
               {activeSection === 'billing' && <BillingSection />}
+              {activeSection === 'team' && <TeamSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
             </div>
           )}

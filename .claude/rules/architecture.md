@@ -19,6 +19,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/auth/login` | Public; demo banner in mock mode |
 | `/auth/register` | Public; manager/tenant role selector |
 | `/auth/callback` | Supabase OAuth callback |
+| `/auth/accept-invite` | Public; team invite token exchange — invitee signs up and is auto-linked to the manager's account |
 
 ### App — manager
 
@@ -30,7 +31,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/payments` | Full CRUD; auto-fills from active lease |
 | `/maintenance` | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
 | `/leases` | Full CRUD; smart form (tenant↔property↔unit auto-population; filters units without active lease) |
-| `/settings` | Three sections (Profile, Billing, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; email notification prefs |
+| `/settings` | Four sections (Profile, Billing, Team, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs |
 | `/tenants` | Master-detail tenant list; add tenant form; per-tenant tabs for payments, lease, maintenance (not in sidebar nav) |
 | `/communication` | Mock data — V2 |
 | `/reports` | Mock data — V2 |
@@ -60,6 +61,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/lib/schemas/` — Zod schemas per domain: `auth`, `people`, `property`, `payment`, `maintenance`, `lease`.
 - `src/types/index.ts` — All domain interfaces. Never define DB-backed types inline in pages.
 - `src/data/mock.ts` — Mock fallback; used by /communication and /reports only.
+- `src/hooks/useSeats.ts` — Reads the active subscription's plan, returns `{ used, max, available, loading }`. Used to gate team-invite UI.
 
 ### Marketing site
 - `src/components/marketing/layout.tsx` — `<MarketingLayout>` wraps all marketing pages with `<Nav>` + `<Footer>`.
@@ -85,12 +87,18 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `009_tenant_profile_autolink.sql` | Auto-links new profiles to existing tenant records by email on sign-up |
 | `010_storage_policies.sql` | Creates `avatars`, `property-images`, `maintenance-images` buckets; storage RLS |
 | `011_fix_profile_update_rls.sql` | Replaces broken `WITH CHECK` subquery with `BEFORE UPDATE` trigger for role-lock |
+| `012_team_accounts.sql` | Adds `team_members.profile_id`, `invited_email`, `invite_token`, `accepted_at`; auto-link trigger on profile insert |
+| `013_team_rls.sql` | `auth_manager_id()` helper; broadens RLS so linked team members read/write the owner's data |
 
 ## API routes
 
 | Route | Method | Purpose |
 |---|---|---|
 | `/api/auth/set-role` | POST | Updates `profiles.role` via service role (bypasses RLS); called after Google OAuth register |
+| `/api/team/invite` | POST | Creates a `team_members` row with `invite_token`; sends invite email; gated by `useSeats` |
+| `/api/team/resend-invite` | POST | Regenerates and resends invite email for a pending team member |
+| `/api/team/revoke` | POST | Sets `status = 'inactive'` and clears `profile_id`; revokes login access |
+| `/api/team/accept-invite` | POST | Token exchange after invitee signs up; links `profile_id` and flips status to `active` |
 | `/api/stripe/checkout` | POST | Creates Stripe Checkout session |
 | `/api/stripe/portal` | POST | Creates Stripe Billing Portal session |
 | `/api/stripe/webhook` | POST | Handles Stripe events → updates `subscriptions`; sends billing emails |
@@ -99,9 +107,9 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 ## Supabase
 
-- **RLS** — `manager_id = auth.uid()` or `profile_id = auth.uid()`. Role changes via `/api/auth/set-role` only (migration 011 trigger blocks direct updates). Storage: authenticated write, public read (migration 010).
+- **RLS** — `manager_id = auth_manager_id()` (helper from migration 013 — returns the owner's id for linked team members, own id for owners) or `profile_id = auth.uid()`. Role changes via `/api/auth/set-role` only (migration 011 trigger blocks direct updates). Storage: authenticated write, public read (migration 010).
 - **Realtime** — `maintenance_requests`, `notifications`
-- **Triggers** — `handle_new_user` (profile on auth signup); `link_profile_to_tenant` (auto-links by email); maintenance/payment/lease notification triggers; `prevent_role_change` (blocks role self-update)
+- **Triggers** — `handle_new_user` (profile on auth signup); `link_profile_to_tenant` (auto-links by email); `link_profile_to_team_member` (auto-links team invites by email on signup); maintenance/payment/lease notification triggers; `prevent_role_change` (blocks role self-update)
 
 ## Stripe
 
