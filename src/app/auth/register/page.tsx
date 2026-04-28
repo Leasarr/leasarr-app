@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClient } from '@/lib/supabase/client'
@@ -12,23 +12,35 @@ type Role = 'manager' | 'tenant'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  const inviteToken = searchParams.get('invite') ?? ''
+  const inviteEmail = searchParams.get('email') ?? ''
+  const isInvite = Boolean(inviteToken)
 
   const [role, setRole] = useState<Role>('manager')
   const [serverError, setServerError] = useState('')
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   })
 
+  useEffect(() => {
+    if (inviteEmail) setValue('email', inviteEmail)
+  }, [inviteEmail])
+
   const onSubmit = async (data: RegisterForm) => {
     setServerError('')
+
+    // Invited users always sign up as managers (they access via team membership)
+    const effectiveRole: Role = isInvite ? 'manager' : role
 
     const { error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        data: { name: data.name, role },
+        data: { name: data.name, role: effectiveRole },
       },
     })
 
@@ -37,7 +49,14 @@ export default function RegisterPage() {
       return
     }
 
-    router.push(role === 'tenant' ? '/portal' : '/dashboard')
+    // If this is an invite signup, the trigger (migration 012) auto-links
+    // the new profile to the team_members row. Redirect to accept-invite
+    // page so it can also handle already-linked users gracefully.
+    if (isInvite) {
+      router.push(`/auth/accept-invite?token=${encodeURIComponent(inviteToken)}&email=${encodeURIComponent(data.email)}`)
+    } else {
+      router.push(effectiveRole === 'tenant' ? '/portal' : '/dashboard')
+    }
     router.refresh()
   }
 
@@ -56,39 +75,47 @@ export default function RegisterPage() {
 
         {/* Card */}
         <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-modal">
-          <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">Create account</h2>
-          <p className="text-on-surface-variant text-sm mb-6">Choose your account type to get started</p>
+          <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">
+            {isInvite ? 'Accept invitation' : 'Create account'}
+          </h2>
+          <p className="text-on-surface-variant text-sm mb-6">
+            {isInvite
+              ? `Create your account to join the team${inviteEmail ? ` (${inviteEmail})` : ''}`
+              : 'Choose your account type to get started'}
+          </p>
 
-          {/* Role selector */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {([
-              { value: 'manager', icon: 'domain', label: 'Property Manager', sub: 'Manage properties & tenants' },
-              { value: 'tenant', icon: 'person', label: 'Tenant', sub: 'View your lease & pay rent' },
-            ] as const).map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setRole(opt.value)}
-                className={cn(
-                  'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 text-center transition-all duration-150',
-                  role === opt.value
-                    ? 'border-primary bg-primary-fixed text-on-primary-fixed'
-                    : 'border-outline-variant text-on-surface-variant hover:border-primary/40 hover:bg-surface-container'
-                )}
-              >
-                <span className={cn(
-                  'material-symbols-outlined text-3xl',
-                  role === opt.value && 'material-symbols-filled'
-                )}>
-                  {opt.icon}
-                </span>
-                <div>
-                  <p className="text-sm font-bold">{opt.label}</p>
-                  <p className="text-[10px] opacity-70 leading-tight mt-0.5">{opt.sub}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+          {/* Role selector — hidden for invite sign-ups */}
+          {!isInvite && (
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {([
+                { value: 'manager', icon: 'domain', label: 'Property Manager', sub: 'Manage properties & tenants' },
+                { value: 'tenant', icon: 'person', label: 'Tenant', sub: 'View your lease & pay rent' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setRole(opt.value)}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 text-center transition-all duration-150',
+                    role === opt.value
+                      ? 'border-primary bg-primary-fixed text-on-primary-fixed'
+                      : 'border-outline-variant text-on-surface-variant hover:border-primary/40 hover:bg-surface-container'
+                  )}
+                >
+                  <span className={cn(
+                    'material-symbols-outlined text-3xl',
+                    role === opt.value && 'material-symbols-filled'
+                  )}>
+                    {opt.icon}
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold">{opt.label}</p>
+                    <p className="text-[10px] opacity-70 leading-tight mt-0.5">{opt.sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
 
           {serverError && (
             <div className="mb-5 p-3 bg-error-container rounded-xl flex items-center gap-2">
@@ -166,7 +193,7 @@ export default function RegisterPage() {
                   </svg>
                   Creating account...
                 </span>
-              ) : `Create ${role === 'tenant' ? 'Tenant' : 'Manager'} Account`}
+              ) : isInvite ? 'Create Account & Join Team' : `Create ${role === 'tenant' ? 'Tenant' : 'Manager'} Account`}
             </button>
           </form>
         </div>

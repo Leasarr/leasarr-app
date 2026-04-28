@@ -375,7 +375,7 @@ export default function LeasesPage() {
             {editServerError && <p className="text-sm text-error">{editServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button variant="secondary" type="button" onClick={closeEdit} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={editLeaseForm.formState.isSubmitting} className="flex-1">{editLeaseForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+              <Button type="submit" loading={editLeaseForm.formState.isSubmitting} className="flex-1">{editLeaseForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </form>
         )}
@@ -446,7 +446,7 @@ export default function LeasesPage() {
           {createServerError && <p className="text-sm text-error">{createServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={closeCreate} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={createLeaseForm.formState.isSubmitting} className="flex-1">{createLeaseForm.formState.isSubmitting ? 'Creating...' : 'Create Lease'}</Button>
+            <Button type="submit" loading={createLeaseForm.formState.isSubmitting} className="flex-1">{createLeaseForm.formState.isSubmitting ? 'Creating...' : 'Create Lease'}</Button>
           </div>
         </form>
       </Modal>

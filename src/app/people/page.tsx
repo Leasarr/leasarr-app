@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { Tooltip } from '@/components/ui/Tooltip'
 import { TabBar } from '@/components/ui/TabBar'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { LoadingState } from '@/components/patterns/LoadingState'
@@ -15,7 +16,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { teamMemberSchema, vendorSchema, tenantSchema, editTenantSchema, type TeamMemberForm, type VendorForm, type TenantForm, type EditTenantForm } from '@/lib/schemas/people'
+import { inviteTeamMemberSchema, vendorSchema, tenantSchema, editTenantSchema, type InviteTeamMemberForm, type VendorForm, type TenantForm, type EditTenantForm } from '@/lib/schemas/people'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { useSeats } from '@/hooks/useSeats'
 
 // ── DB row types ───────────────────────────────────────────────────────────────
 
@@ -42,7 +45,10 @@ type TeamMemberRow = {
   role: string
   email: string
   phone: string | null
-  status: 'active' | 'inactive'
+  status: 'pending' | 'active' | 'inactive'
+  profile_id: string | null
+  invited_email: string | null
+  invited_at: string | null
   created_at: string
 }
 
@@ -130,10 +136,14 @@ export default function PeoplePage() {
   })
   const addPropertyId = addTenantForm.watch('property_id')
 
-  const teamMemberForm = useForm<TeamMemberForm>({ resolver: zodResolver(teamMemberSchema) })
+  const inviteForm = useForm<InviteTeamMemberForm>({ resolver: zodResolver(inviteTeamMemberSchema) })
   const vendorForm = useForm<VendorForm>({ resolver: zodResolver(vendorSchema), defaultValues: { specialty: 'general' } })
   const [teamServerError, setTeamServerError] = useState('')
   const [vendorServerError, setVendorServerError] = useState('')
+  const [revokeTarget, setRevokeTarget] = useState<TeamMemberRow | null>(null)
+  const [revoking, setRevoking] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const seats = useSeats()
 
   // ── Fetch all people
   useEffect(() => {
@@ -199,7 +209,7 @@ export default function PeoplePage() {
     setPersonType(null)
     setAddTenantServerError('')
     addTenantForm.reset()
-    teamMemberForm.reset()
+    inviteForm.reset()
     setTeamServerError('')
     vendorForm.reset()
     setVendorServerError('')
@@ -293,20 +303,62 @@ export default function PeoplePage() {
     closeModal()
   }
 
-  async function onAddTeamMember(data: TeamMemberForm) {
+  async function onInviteTeamMember(data: InviteTeamMemberForm) {
     setTeamServerError('')
-    const { data: row, error } = await supabase.from('team_members').insert({
-      name: data.name,
-      role: data.role,
-      email: data.email,
-      phone: data.phone || null,
-      manager_id: profile!.id,
-      status: 'active',
-    }).select('*').single()
-    if (error) { setTeamServerError(error.message); return }
-    setTeamMembers(prev => [row as TeamMemberRow, ...prev])
+    const res = await fetch('/api/team/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email, role: data.role, name: data.email.split('@')[0] }),
+    })
+    const json = await res.json()
+    if (!res.ok) { setTeamServerError(json.error ?? 'Failed to send invite'); return }
+    // Refresh team members list
+    const { data: teamRes } = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('manager_id', profile!.id)
+      .order('created_at', { ascending: false })
+    setTeamMembers((teamRes ?? []) as TeamMemberRow[])
     setActiveTab('team')
     closeModal()
+  }
+
+  async function handleRevoke() {
+    if (!revokeTarget) return
+    setRevoking(true)
+    const res = await fetch('/api/team/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: revokeTarget.id }),
+    })
+    setRevoking(false)
+    if (res.ok) {
+      setTeamMembers(prev => prev.map(m => m.id === revokeTarget.id ? { ...m, status: 'inactive', profile_id: null } : m))
+    }
+    setRevokeTarget(null)
+  }
+
+  async function handleResendInvite(member: TeamMemberRow) {
+    setActionLoading(member.id)
+    await fetch('/api/team/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: member.id }),
+    })
+    setActionLoading(null)
+  }
+
+  async function handleReInvite(member: TeamMemberRow) {
+    setActionLoading(member.id)
+    const res = await fetch('/api/team/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_member_id: member.id }),
+    })
+    if (res.ok) {
+      setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: 'pending' } : m))
+    }
+    setActionLoading(null)
   }
 
   async function onAddVendor(data: VendorForm) {
@@ -576,34 +628,102 @@ export default function PeoplePage() {
         {activeTab === 'team' && (
           loading ? (
             <LoadingState size="panel" />
-          ) : filteredTeam.length === 0 ? (
-            <EmptyState
-              icon="badge"
-              title={search ? `No team members match "${search}"` : 'No team members yet'}
-              size="panel"
-              action={!search ? <Button onClick={openAddPerson} size="sm">Add Team Member</Button> : undefined}
-            />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredTeam.map(member => (
-                <div key={member.id} className="bg-surface-container-lowest rounded-2xl p-6 shadow-card hover:shadow-md transition-all">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 rounded-2xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xl">{getInitials(member.name)}</div>
-                    <span className={cn('badge', member.status === 'active' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant')}>{member.status}</span>
-                  </div>
-                  <h3 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h3>
-                  <p className="text-xs font-semibold text-primary mb-4">{member.role}</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-on-surface-variant"><span className="material-symbols-outlined text-sm text-outline">mail</span>{member.email}</div>
-                    {member.phone && <div className="flex items-center gap-2 text-xs text-on-surface-variant"><span className="material-symbols-outlined text-sm text-outline">call</span>{member.phone}</div>}
-                  </div>
-                  <div className="mt-5 flex gap-2">
-                    <button className="flex-1 py-2.5 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors">Message</button>
-                    <button className="flex-1 py-2.5 rounded-xl bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-colors">View Profile</button>
-                  </div>
+            <>
+              {/* Seat counter */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  {!seats.loading && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-xl">
+                      <span className="material-symbols-outlined text-base text-primary">group</span>
+                      <span className="text-sm font-semibold text-on-surface">
+                        {seats.used} of {seats.max} seat{seats.max !== 1 ? 's' : ''} used
+                      </span>
+                      {seats.available === 0 && (
+                        <a href="/settings" className="text-xs font-bold text-primary hover:underline ml-1">Upgrade</a>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+
+              {filteredTeam.length === 0 ? (
+                <EmptyState
+                  icon="badge"
+                  title={search ? `No team members match "${search}"` : 'No team members yet'}
+                  description={!search ? 'Invite team members to give them access to your portfolio.' : undefined}
+                  size="panel"
+                  action={!search ? (
+                    <Tooltip content="No seats available — upgrade your plan to invite more" disabled={seats.available > 0}>
+                      <Button onClick={openAddPerson} size="sm" disabled={seats.available === 0}>Invite Team Member</Button>
+                    </Tooltip>
+                  ) : undefined}
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredTeam.map(member => {
+                    const statusColors = {
+                      pending:  'bg-warning-container text-on-warning-container' as string,
+                      active:   'bg-secondary-container text-on-secondary-container' as string,
+                      inactive: 'bg-surface-container-high text-on-surface-variant' as string,
+                    }
+                    const isLoading = actionLoading === member.id
+                    return (
+                      <div key={member.id} className="bg-surface-container-lowest rounded-2xl p-6 shadow-card hover:shadow-md transition-all">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="w-14 h-14 rounded-2xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-xl">{getInitials(member.name)}</div>
+                          <span className={cn('badge', statusColors[member.status] ?? statusColors.inactive)}>
+                            {member.status === 'pending' ? 'Pending invite' : member.status}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-on-surface text-base mb-0.5">{member.name}</h3>
+                        <p className="text-xs font-semibold text-primary mb-3">{member.role}</p>
+                        <div className="space-y-1.5 mb-5">
+                          <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                            <span className="material-symbols-outlined text-sm text-outline">mail</span>
+                            <span className="truncate">{member.invited_email ?? member.email}</span>
+                          </div>
+                          {member.invited_at && member.status === 'pending' && (
+                            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                              <span className="material-symbols-outlined text-sm text-outline">schedule</span>
+                              Invited {formatDate(member.invited_at)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {member.status === 'pending' && (
+                            <button
+                              disabled={isLoading}
+                              onClick={() => handleResendInvite(member)}
+                              className="flex-1 py-2.5 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors disabled:opacity-50"
+                            >
+                              {isLoading ? 'Sending...' : 'Resend invite'}
+                            </button>
+                          )}
+                          {member.status === 'active' && (
+                            <button
+                              onClick={() => setRevokeTarget(member)}
+                              className="flex-1 py-2.5 rounded-xl bg-error-container/30 text-error text-xs font-bold hover:bg-error-container/60 transition-colors"
+                            >
+                              Revoke access
+                            </button>
+                          )}
+                          {member.status === 'inactive' && (
+                            <button
+                              disabled={isLoading || seats.available === 0}
+                              onClick={() => handleReInvite(member)}
+                              className="flex-1 py-2.5 rounded-xl bg-primary-container/20 text-primary text-xs font-bold hover:bg-primary-container/40 transition-colors disabled:opacity-50"
+                            >
+                              {isLoading ? 'Sending...' : seats.available === 0 ? 'Upgrade to re-invite' : 'Re-invite'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )
         )}
 
@@ -715,10 +835,22 @@ export default function PeoplePage() {
           {editTenantServerError && <p className="text-sm text-error">{editTenantServerError}</p>}
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowEditTenant(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={editTenantForm.formState.isSubmitting} className="flex-1">{editTenantForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+            <Button type="submit" loading={editTenantForm.formState.isSubmitting} className="flex-1">{editTenantForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
       </Modal>
+
+      {/* ── Revoke Confirm Modal ── */}
+      <ConfirmModal
+        open={Boolean(revokeTarget)}
+        onClose={() => setRevokeTarget(null)}
+        title="Revoke access"
+        body={`Remove ${revokeTarget?.name ?? 'this team member'}'s access to your account? They can be re-invited later.`}
+        confirmLabel="Revoke"
+        onConfirm={handleRevoke}
+        loading={revoking}
+        destructive
+      />
 
       {/* ── Add Person Modal ── */}
       <Modal open={showAddPerson} onClose={closeModal} title={modalStep === 1 ? 'Add Person' : personType === 'tenant' ? 'New Tenant' : personType === 'team_member' ? 'New Team Member' : 'New Vendor'} size="md">
@@ -731,22 +863,29 @@ export default function PeoplePage() {
               { type: 'tenant' as PersonType,      icon: 'person',    label: 'Tenant',       desc: 'A renter living in one of your properties' },
               { type: 'team_member' as PersonType, icon: 'badge',     label: 'Team Member',  desc: 'Staff who help manage your portfolio' },
               { type: 'vendor' as PersonType,      icon: 'handyman',  label: 'Vendor',       desc: 'Contractors and service providers' },
-            ]).map(opt => (
-              <button
-                key={opt.type}
-                onClick={() => selectType(opt.type)}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border border-outline-variant/30 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:bg-primary-container/20 transition-colors flex-shrink-0">
-                  <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary">{opt.icon}</span>
-                </div>
-                <div>
-                  <p className="font-bold text-on-surface">{opt.label}</p>
-                  <p className="text-xs text-on-surface-variant">{opt.desc}</p>
-                </div>
-                <span className="material-symbols-outlined text-outline-variant ml-auto">chevron_right</span>
-              </button>
-            ))}
+            ]).map(opt => {
+              const isDisabled = opt.type === 'team_member' && !seats.loading && seats.available === 0
+              return (
+                <button
+                  key={opt.type}
+                  onClick={() => selectType(opt.type)}
+                  disabled={isDisabled}
+                  title={isDisabled ? 'No seats available — upgrade your plan to invite more team members' : undefined}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-outline-variant/30 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-outline-variant/30 disabled:hover:bg-transparent"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center group-hover:bg-primary-container/20 transition-colors flex-shrink-0">
+                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary">{opt.icon}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-on-surface">{opt.label}</p>
+                    <p className="text-xs text-on-surface-variant">
+                      {isDisabled ? 'No seats available — upgrade your plan' : opt.desc}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-outline-variant ml-auto">chevron_right</span>
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -818,36 +957,37 @@ export default function PeoplePage() {
             {addTenantServerError && <p className="text-sm text-error">{addTenantServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={addTenantForm.formState.isSubmitting} className="flex-1">{addTenantForm.formState.isSubmitting ? 'Adding...' : 'Add Tenant'}</Button>
+              <Button type="submit" loading={addTenantForm.formState.isSubmitting} className="flex-1">{addTenantForm.formState.isSubmitting ? 'Adding...' : 'Add Tenant'}</Button>
             </div>
           </form>
         )}
 
-        {/* Step 2 — Team Member form */}
+        {/* Step 2 — Team Member invite form */}
         {modalStep === 2 && personType === 'team_member' && (
-          <form onSubmit={teamMemberForm.handleSubmit(onAddTeamMember)} className="space-y-4">
+          <form onSubmit={inviteForm.handleSubmit(onInviteTeamMember)} className="space-y-4">
             <button type="button" onClick={() => setModalStep(1)} className="flex items-center gap-1 text-xs font-semibold text-primary mb-2 hover:underline">
               <span className="material-symbols-outlined text-sm">arrow_back</span> Back
             </button>
-            <FormField label="Full Name">
-              <input {...teamMemberForm.register('name')} className="input-base" placeholder="Alex Johnson" />
-              {teamMemberForm.formState.errors.name && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.name.message}</p>}
+            {seats.available === 0 && !seats.loading && (
+              <div className="p-3 bg-warning-container/50 rounded-xl text-sm text-on-surface">
+                <span className="font-semibold">No seats available.</span>{' '}
+                <a href="/settings" className="font-bold text-primary hover:underline">Upgrade your plan</a> to invite more team members.
+              </div>
+            )}
+            <FormField label="Email" hint="An invite link will be sent to this address. They'll set their name on signup.">
+              <input {...inviteForm.register('email')} type="email" className="input-base" placeholder="alex@yourcompany.com" disabled={seats.available === 0} />
+              {inviteForm.formState.errors.email && <p className="text-error text-xs mt-1">{inviteForm.formState.errors.email.message}</p>}
             </FormField>
             <FormField label="Role">
-              <input {...teamMemberForm.register('role')} className="input-base" placeholder="e.g. Property Manager, Leasing Agent" />
-              {teamMemberForm.formState.errors.role && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.role.message}</p>}
-            </FormField>
-            <FormField label="Email">
-              <input {...teamMemberForm.register('email')} type="email" className="input-base" placeholder="alex@yourcompany.com" />
-              {teamMemberForm.formState.errors.email && <p className="text-error text-xs mt-1">{teamMemberForm.formState.errors.email.message}</p>}
-            </FormField>
-            <FormField label="Phone" optional>
-              <input {...teamMemberForm.register('phone')} className="input-base" placeholder="+1 (555) 000-0000" />
+              <input {...inviteForm.register('role')} className="input-base" placeholder="e.g. Property Manager, Leasing Agent" disabled={seats.available === 0} />
+              {inviteForm.formState.errors.role && <p className="text-error text-xs mt-1">{inviteForm.formState.errors.role.message}</p>}
             </FormField>
             {teamServerError && <p className="text-sm text-error">{teamServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={teamMemberForm.formState.isSubmitting} className="flex-1">{teamMemberForm.formState.isSubmitting ? 'Adding...' : 'Add Team Member'}</Button>
+              <Button type="submit" loading={inviteForm.formState.isSubmitting} disabled={seats.available === 0} className="flex-1">
+                {inviteForm.formState.isSubmitting ? 'Sending invite...' : 'Send Invite'}
+              </Button>
             </div>
           </form>
         )}
@@ -886,7 +1026,7 @@ export default function PeoplePage() {
             {vendorServerError && <p className="text-sm text-error">{vendorServerError}</p>}
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">Cancel</Button>
-              <Button type="submit" disabled={vendorForm.formState.isSubmitting} className="flex-1">{vendorForm.formState.isSubmitting ? 'Adding...' : 'Add Vendor'}</Button>
+              <Button type="submit" loading={vendorForm.formState.isSubmitting} className="flex-1">{vendorForm.formState.isSubmitting ? 'Adding...' : 'Add Vendor'}</Button>
             </div>
           </form>
         )}

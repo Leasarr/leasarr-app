@@ -85,12 +85,68 @@ export async function POST(request: NextRequest) {
 
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription
+      const previousSub = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined
+
+      // Determine the new plan key from the price ID
+      const priceId = sub.items.data[0]?.price?.id
+      let newPlanKey: PlanKey | undefined
+      for (const [key, config] of Object.entries(PLANS)) {
+        if (config.monthlyPriceId === priceId || config.annualPriceId === priceId) {
+          newPlanKey = key as PlanKey
+          break
+        }
+      }
+
       await supabase.from('subscriptions')
         .update({
+          plan: newPlanKey ?? undefined,
           status: sub.status as string,
           current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
         })
         .eq('stripe_subscription_id', sub.id)
+
+      // Seat downgrade: deactivate excess team members (most recently accepted first)
+      if (newPlanKey && previousSub?.items) {
+        const managerId = await getManagerIdFromSubscription(sub.id)
+        if (managerId) {
+          const newSeatLimit = PLANS[newPlanKey].seatLimit
+          const maxTeamMembers = newSeatLimit - 1 // owner takes 1 seat
+
+          const { data: activeMembers } = await supabase
+            .from('team_members')
+            .select('id, name, email, invited_email')
+            .eq('manager_id', managerId)
+            .eq('status', 'active')
+            .order('accepted_at', { ascending: false })
+
+          if (activeMembers && activeMembers.length > maxTeamMembers) {
+            const excess = activeMembers.slice(maxTeamMembers)
+            const excessIds = excess.map(m => m.id)
+
+            await supabase
+              .from('team_members')
+              .update({ status: 'inactive', profile_id: null, invite_token: null })
+              .in('id', excessIds)
+
+            const ownerProfile = await getManagerProfile(managerId)
+            if (ownerProfile?.email) {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+              const removedNames = excess.map(m => m.name).join(', ')
+              await resend.emails.send({
+                from: process.env.RESEND_FROM_EMAIL!,
+                to: ownerProfile.email,
+                subject: 'Team members removed due to plan change',
+                html: emailHtml(
+                  'Team access updated',
+                  `Hi ${ownerProfile.name}, your plan was changed to ${PLANS[newPlanKey].name} (${newSeatLimit} seat${newSeatLimit !== 1 ? 's' : ''}). To stay within your new limit, the following team members were deactivated: ${removedNames}. You can re-invite them if you upgrade again.`,
+                  'Manage Billing',
+                  `${appUrl}/settings`
+                ),
+              })
+            }
+          }
+        }
+      }
       break
     }
 

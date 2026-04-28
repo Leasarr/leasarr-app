@@ -226,7 +226,12 @@ export interface TeamMember {
   email: string
   phone?: string
   avatar_url?: string
-  status: 'active' | 'inactive'
+  status: 'pending' | 'active' | 'inactive'
+  profile_id?: string | null
+  invited_email?: string | null
+  invite_token?: string | null
+  invited_at?: string | null
+  accepted_at?: string | null
   created_at: string
   updated_at: string
 }
