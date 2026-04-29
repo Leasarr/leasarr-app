@@ -291,7 +291,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       ? 'bg-warning-container text-on-warning-container'
                       : 'bg-success-container text-on-success-container'
                 )}>
-                  {isExpired ? 'Trial ended' : `${daysLeft}d left`}
+                  {isExpired ? 'Trial ended' : daysLeft !== null ? `${daysLeft}d left` : 'Trial active'}
                 </span>
               </Tooltip>
               <Link

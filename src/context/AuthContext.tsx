@@ -73,11 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event: import('@supabase/supabase-js').AuthChangeEvent, session: import('@supabase/supabase-js').Session | null) => {
+      (event: import('@supabase/supabase-js').AuthChangeEvent, session: import('@supabase/supabase-js').Session | null) => {
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
-          fetchProfile(session.user.id)
+          // TOKEN_REFRESHED fires on tab refocus — profile data hasn't changed, skip the re-fetch
+          if (event !== 'TOKEN_REFRESHED') {
+            fetchProfile(session.user.id)
+          }
         } else {
           setProfile(null)
           setLoading(false)

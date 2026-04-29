@@ -63,7 +63,8 @@ export function useSubscription(): SubscriptionInfo {
       const daysLeft = trialEnd
         ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         : null
-      const isTrialing = status === 'trialing' && !!trialEnd && trialEnd > now
+      // Treat null trial_end as still-active trial (data fix below handles this)
+      const isTrialing = status === 'trialing' && (!trialEnd || trialEnd > now)
       const isActive = status === 'active'
       const isExpired = status === 'trialing' && !!trialEnd && trialEnd <= now
 
