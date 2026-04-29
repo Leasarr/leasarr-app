@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
-import { PLANS, type PlanKey } from '@/lib/stripe/plans'
+import { PLANS } from '@/lib/stripe/plans'
+import { useSubscription } from '@/hooks/useSubscription'
 
 export interface SeatInfo {
   used: number
@@ -15,12 +16,13 @@ export interface SeatInfo {
 export function useSeats(): SeatInfo {
   const { profile } = useAuth()
   const supabase = createClient()
+  const { plan, loading: subLoading } = useSubscription()
   const [used, setUsed] = useState(0)
   const [max, setMax] = useState(1)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!profile) return
+    if (!profile || subLoading) return
 
     async function fetchSeats() {
       setLoading(true)
@@ -28,7 +30,7 @@ export function useSeats(): SeatInfo {
       const [subRes, teamRes] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('plan, extra_seats')
+          .select('extra_seats')
           .eq('manager_id', profile!.id)
           .maybeSingle(),
         supabase
@@ -38,8 +40,7 @@ export function useSeats(): SeatInfo {
           .eq('status', 'active'),
       ])
 
-      const planKey = subRes.data?.plan as PlanKey | undefined
-      const planConfig = planKey ? PLANS[planKey] : null
+      const planConfig = plan ? PLANS[plan] : null
       const seatLimit = planConfig ? planConfig.seatLimit : 1
       const extraSeats = subRes.data?.extra_seats ?? 0
       const maxSeats = seatLimit + extraSeats
@@ -53,7 +54,7 @@ export function useSeats(): SeatInfo {
     }
 
     fetchSeats()
-  }, [profile?.id])
+  }, [profile?.id, plan, subLoading])
 
   return { used, max, available: Math.max(0, max - used), loading }
 }

@@ -31,7 +31,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/payments` | Full CRUD; auto-fills from active lease |
 | `/maintenance` | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
 | `/leases` | Full CRUD; smart form (tenant↔property↔unit auto-population; filters units without active lease) |
-| `/settings` | Four sections (Profile, Billing, Team, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs |
+| `/settings` | Four sections (Profile, Billing, Team, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs; supports `?section=billing\|profile\|team\|notifications` deep-link |
 | `/tenants` | Master-detail tenant list; add tenant form; per-tenant tabs for payments, lease, maintenance (not in sidebar nav) |
 | `/communication` | Live Supabase data; sidebar toggles Messages/Broadcast; messages tab: ConversationList + ChatPanel with realtime; broadcast tab: BroadcastPanel + AnnouncementHistory; NewChatModal for starting conversations |
 | `/reports` | Mock data — V2 |
@@ -50,7 +50,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 ## Key files
 
 ### App
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: collapsible sidebar (icon-only `w-16` collapsed, `w-64` pinned-open; pin state persisted to `localStorage`; hover temporarily expands) + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials. "Profile & Settings" links to `/settings` page (no longer a modal).
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: collapsible sidebar (icon-only `w-16` collapsed, `w-64` pinned-open; pin state persisted to `localStorage`; hover temporarily expands) + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials. "Profile & Settings" links to `/settings` page (no longer a modal). Trial pill + "Upgrade" button in top bar for trialing managers (desktop only); pill color: green > 14 days, amber ≤ 14, red ≤ 7 / expired.
 - `src/context/AuthContext.tsx` — `useAuth()` → `{ user, profile, session, loading, signOut, updateProfile }`
 - `src/context/ThemeContext.tsx` — `useTheme()` → `{ theme, setTheme }`. `dark` class on `<html>`.
 - `src/middleware.ts` — Three-tier route model: **open** (`/`, `/pricing`, `/about` — everyone including logged-in users, except `/` redirects logged-in users to their home); **auth** (`/auth/login`, `/auth/register` — unauthenticated only; logged-in users redirected); **protected** (manager + tenant routes). API routes open to authenticated users; webhook routes always unauthenticated.
@@ -62,7 +62,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/lib/schemas/` — Zod schemas per domain: `auth`, `people`, `property`, `payment`, `maintenance`, `lease`.
 - `src/types/index.ts` — All domain interfaces. Never define DB-backed types inline in pages.
 - `src/data/mock.ts` — Mock fallback; used by /reports only.
-- `src/hooks/useSeats.ts` — Reads the active subscription's plan, returns `{ used, max, available, loading }`. Used to gate team-invite UI.
+- `src/hooks/useSubscription.ts` — `useSubscription()` → `{ plan, status, trialEnd, daysLeft, isTrialing, isActive, isExpired, loading }`. Single source of truth for subscription state; used by AppLayout trial pill and any feature gating.
+- `src/hooks/useSeats.ts` — Reads plan from `useSubscription`, returns `{ used, max, available, loading }`. Used to gate team-invite UI.
 
 ### Marketing site
 - `src/components/marketing/layout.tsx` — `<MarketingLayout>` wraps all marketing pages with `<Nav>` + `<Footer>`.
@@ -95,6 +96,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `016_tenant_conversation_insert.sql` | Allows tenants to INSERT conversations (RLS was previously SELECT-only) |
 | `017_tenant_link_on_tenant_insert.sql` | Trigger + backfill: links existing profiles to tenant records by email on tenant INSERT (reverse of 009) |
 | `018_tenant_invited_at.sql` | Adds `invited_at timestamptz` to `tenants`; tracks when manager last sent portal invite |
+| `019_trial_setup.sql` | Trigger: auto-creates `subscriptions` row (`status='trialing'`, `trial_end = now() + 30 days`) on manager profile INSERT; backfills existing managers |
 
 ## API routes
 

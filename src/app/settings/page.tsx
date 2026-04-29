@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -336,6 +337,7 @@ function BillingSection() {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
   const [checkoutLoading, setCheckoutLoading] = useState<PlanKey | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [billingError, setBillingError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile || MOCK_AUTH) { setLoading(false); return }
@@ -352,6 +354,7 @@ function BillingSection() {
   }, [profile])
 
   async function handleUpgrade(plan: PlanKey) {
+    setBillingError(null)
     setCheckoutLoading(plan)
     try {
       const res = await fetch('/api/stripe/checkout', {
@@ -359,19 +362,31 @@ function BillingSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan, interval: billingInterval }),
       })
-      const { url } = await res.json()
-      if (url) window.location.href = url
+      const json = await res.json()
+      if (!res.ok || !json.url) {
+        setBillingError(json.error ?? 'Failed to start checkout. Check your Stripe configuration.')
+        return
+      }
+      window.location.href = json.url
+    } catch {
+      setBillingError('Network error. Please try again.')
     } finally {
       setCheckoutLoading(null)
     }
   }
 
   async function handleManageBilling() {
+    setBillingError(null)
     setPortalLoading(true)
     try {
       const res = await fetch('/api/stripe/portal', { method: 'POST' })
-      const { url } = await res.json()
-      if (url) window.location.href = url
+      const json = await res.json()
+      if (!res.ok || !json.url) {
+        setBillingError(json.error ?? 'Failed to open billing portal.')
+        setPortalLoading(false)
+        return
+      }
+      window.location.href = json.url
     } finally {
       setPortalLoading(false)
     }
@@ -454,6 +469,13 @@ function BillingSection() {
             </div>
           </div>
         </Card>
+      )}
+
+      {billingError && (
+        <div className="flex items-start gap-2.5 bg-error-container/30 border border-error/20 rounded-xl px-4 py-3">
+          <span className="material-symbols-outlined text-error text-base shrink-0 mt-0.5">warning</span>
+          <p className="text-sm text-on-surface-variant">{billingError}</p>
+        </div>
       )}
 
       {/* Plans */}
@@ -978,10 +1000,16 @@ function NotificationsSection() {
 
 export default function SettingsPage() {
   const { profile, loading } = useAuth()
+  const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState<Section | null>(null)
 
   useEffect(() => {
-    if (window.innerWidth >= 1024) setActiveSection('profile')
+    const section = searchParams.get('section') as Section | null
+    if (section && ALL_SECTIONS.some(s => s.key === section)) {
+      setActiveSection(section)
+    } else if (window.innerWidth >= 1024) {
+      setActiveSection('profile')
+    }
   }, [])
 
   const isTenant = profile?.role === 'tenant'

@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTheme, type Theme } from '@/context/ThemeContext'
 import { NOTIFICATION_TYPE_META } from '@/lib/notificationMeta'
+import { useSubscription } from '@/hooks/useSubscription'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light' },
@@ -228,6 +230,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
+  const { isTrialing, isExpired, daysLeft } = useSubscription()
+
   const unreadCount = notifications.filter(n => !n.read).length
   const isTenant = profile?.role === 'tenant'
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
@@ -268,6 +272,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Right controls */}
         <div className="flex items-center gap-1">
+          {/* Trial pill + upgrade — managers on trial, desktop only */}
+          {!isTenant && (isTrialing || isExpired) && (
+            <div className="hidden lg:flex items-center gap-2">
+              <Tooltip
+                content={
+                  isExpired
+                    ? 'Your free trial has ended. Upgrade to continue.'
+                    : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial.`
+                }
+                side="bottom"
+              >
+                <span className={cn(
+                  'text-xs font-semibold px-2.5 py-1 rounded-full cursor-default',
+                  isExpired || (daysLeft !== null && daysLeft <= 7)
+                    ? 'bg-error-container text-on-error-container'
+                    : daysLeft !== null && daysLeft <= 14
+                      ? 'bg-warning-container text-on-warning-container'
+                      : 'bg-success-container text-on-success-container'
+                )}>
+                  {isExpired ? 'Trial ended' : `${daysLeft}d left`}
+                </span>
+              </Tooltip>
+              <Link
+                href="/settings?section=billing"
+                className="text-xs font-bold px-3 py-1.5 rounded-full primary-gradient text-on-primary hover:opacity-90 transition-opacity"
+              >
+                Upgrade
+              </Link>
+            </div>
+          )}
+
           {/* Theme switcher — desktop only */}
           <div className="hidden lg:block">
             <DropdownMenu.Root>
