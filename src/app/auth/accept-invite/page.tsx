@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 
 type State = 'loading' | 'accepting' | 'success' | 'error' | 'needs-signup'
 
-export default function AcceptInvitePage() {
+function AcceptInviteInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
@@ -153,5 +153,13 @@ export default function AcceptInvitePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense>
+      <AcceptInviteInner />
+    </Suspense>
   )
 }
