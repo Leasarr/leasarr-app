@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
+import { PostHogProvider } from '@/components/PostHogProvider'
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -40,12 +41,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('leasarr-theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')})()` }} />
       </head>
       <body className="bg-surface font-body text-on-surface antialiased">
-        <ThemeProvider>
-          <AuthProvider>
-            {children}
-            <Toaster position="top-right" richColors />
-          </AuthProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+            </AuthProvider>
+          </ThemeProvider>
+        </PostHogProvider>
       </body>
     </html>
   )
