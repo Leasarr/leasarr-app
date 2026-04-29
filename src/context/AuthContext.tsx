@@ -5,6 +5,23 @@ import type { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 
+const PROFILE_CACHE_KEY = 'leasarr_profile'
+
+function readCachedProfile(): Profile | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    return raw ? (JSON.parse(raw) as Profile) : null
+  } catch { return null }
+}
+
+function writeCachedProfile(p: Profile | null) {
+  try {
+    if (p) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p))
+    else localStorage.removeItem(PROFILE_CACHE_KEY)
+  } catch {}
+}
+
 interface AuthContextValue {
   user: User | null
   profile: Profile | null
@@ -40,9 +57,10 @@ function buildMockProfile(role: Profile['role']): Profile {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  // Seed from localStorage so returning users skip the auth spinner entirely
+  const [profile, setProfile] = useState<Profile | null>(readCachedProfile)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => readCachedProfile() === null)
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -50,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single()
+    writeCachedProfile(data as Profile | null)
     setProfile(data)
     setLoading(false)
   }
@@ -92,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   async function signOut() {
+    writeCachedProfile(null)
     if (MOCK_AUTH) {
       document.cookie = 'mock_role=; path=/; max-age=0'
       window.location.href = '/'
@@ -102,7 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone' | 'avatar_url'>>) {
     if (MOCK_AUTH) {
-      setProfile(prev => (prev ? { ...prev, ...data } : prev))
+      setProfile(prev => {
+        const next = prev ? { ...prev, ...data } : prev
+        writeCachedProfile(next)
+        return next
+      })
       return
     }
     if (!user) throw new Error('Not authenticated')
@@ -113,7 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select()
       .single()
     if (error) throw error
-    if (updated) setProfile(updated as Profile)
+    if (updated) {
+      writeCachedProfile(updated as Profile)
+      setProfile(updated as Profile)
+    }
   }
 
   return (

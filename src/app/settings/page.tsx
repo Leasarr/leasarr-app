@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -998,7 +998,7 @@ function NotificationsSection() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function SettingsPage() {
+function SettingsPageInner() {
   const { profile, loading } = useAuth()
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState<Section | null>(null)
@@ -1145,5 +1145,13 @@ export default function SettingsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
   )
 }

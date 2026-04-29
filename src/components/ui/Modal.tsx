@@ -7,11 +7,12 @@ interface ModalProps {
   open: boolean
   onClose: () => void
   title: string
+  titleAction?: React.ReactNode
   size?: 'sm' | 'md' | 'lg'
   children: React.ReactNode
 }
 
-export default function Modal({ open, onClose, title, size = 'md', children }: ModalProps) {
+export default function Modal({ open, onClose, title, titleAction, size = 'md', children }: ModalProps) {
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -37,7 +38,10 @@ export default function Modal({ open, onClose, title, size = 'md', children }: M
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-outline-variant/30">
-          <h2 className="text-lg font-headline font-bold text-on-surface">{title}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-headline font-bold text-on-surface">{title}</h2>
+            {titleAction}
+          </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"

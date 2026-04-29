@@ -15,6 +15,7 @@ import { formatCurrency, formatDate, getInitials, getStatusColor, cn } from '@/l
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { useForm } from 'react-hook-form'
+import { useDraftForm } from '@/hooks/useDraftForm'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { inviteTeamMemberSchema, vendorSchema, tenantSchema, editTenantSchema, type InviteTeamMemberForm, type VendorForm, type TenantForm, type EditTenantForm } from '@/lib/schemas/people'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
@@ -136,6 +137,7 @@ export default function PeoplePage() {
     resolver: zodResolver(tenantSchema),
     defaultValues: { first_name: '', last_name: '', email: '', phone: '', avatar_url: null, move_in_date: '', property_id: '', unit_id: '', team_member_id: '' },
   })
+  const { clearDraft: clearTenantDraft, hasDraft: hasTenantDraft } = useDraftForm(addTenantForm, 'add-tenant')
   const addPropertyId = addTenantForm.watch('property_id')
 
   const inviteForm = useForm<InviteTeamMemberForm>({ resolver: zodResolver(inviteTeamMemberSchema) })
@@ -210,7 +212,6 @@ export default function PeoplePage() {
     setModalStep(1)
     setPersonType(null)
     setAddTenantServerError('')
-    addTenantForm.reset()
     inviteForm.reset()
     setTeamServerError('')
     vendorForm.reset()
@@ -312,6 +313,7 @@ export default function PeoplePage() {
     setTenants(prev => [newRow, ...prev])
     setSelectedTenant(newRow)
     setActiveTab('tenants')
+    clearTenantDraft()
     closeModal()
   }
 
@@ -916,7 +918,17 @@ export default function PeoplePage() {
       />
 
       {/* ── Add Person Modal ── */}
-      <Modal open={showAddPerson} onClose={closeModal} title={modalStep === 1 ? 'Add Person' : personType === 'tenant' ? 'New Tenant' : personType === 'team_member' ? 'New Team Member' : 'New Vendor'} size="md">
+      <Modal
+        open={showAddPerson}
+        onClose={closeModal}
+        title={modalStep === 1 ? 'Add Person' : personType === 'tenant' ? 'New Tenant' : personType === 'team_member' ? 'New Team Member' : 'New Vendor'}
+        size="md"
+        titleAction={modalStep === 2 && personType === 'tenant' && hasTenantDraft && (
+          <button onClick={clearTenantDraft} className="text-xs font-semibold text-on-surface-variant hover:text-error transition-colors">
+            Start fresh
+          </button>
+        )}
+      >
 
         {/* Step 1 — Type selection */}
         {modalStep === 1 && (

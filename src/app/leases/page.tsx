@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createLeaseSchema, editLeaseSchema, type CreateLeaseForm, type EditLeaseForm } from '@/lib/schemas/lease'
+import { useDraftForm } from '@/hooks/useDraftForm'
 
 type TenantOption = { id: string; first_name: string; last_name: string; unit_id: string | null; property_id: string | null }
 type PropertyOption = { id: string; name: string }
@@ -52,6 +53,7 @@ export default function LeasesPage() {
     resolver: zodResolver(createLeaseSchema),
     defaultValues: { tenant_id: '', property_id: '', unit_id: '', start_date: '', end_date: '', rent_amount: '', security_deposit: '' },
   })
+  const { clearDraft: clearLeaseDraft, hasDraft: hasLeaseDraft } = useDraftForm(createLeaseForm, 'create-lease')
   const tenantId = createLeaseForm.watch('tenant_id')
   const propertyId = createLeaseForm.watch('property_id')
 
@@ -84,7 +86,6 @@ export default function LeasesPage() {
   async function openCreate() {
     setShowCreate(true)
     setCreateServerError('')
-    createLeaseForm.reset()
     const [tenantsRes, propsRes, unitsRes, activeLeasesRes] = await Promise.all([
       supabase.from('tenants').select('id, first_name, last_name, unit_id, property_id').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
       supabase.from('properties').select('id, name').eq('manager_id', profile!.id).order('name'),
@@ -102,7 +103,6 @@ export default function LeasesPage() {
   function closeCreate() {
     setShowCreate(false)
     setCreateServerError('')
-    createLeaseForm.reset()
   }
 
   function openEdit(lease: LeaseRow) {
@@ -170,6 +170,7 @@ export default function LeasesPage() {
       .in('status', ['active', 'expired'])
       .order('end_date', { ascending: true })
     setLeases((rows as unknown as LeaseRow[]) ?? [])
+    clearLeaseDraft()
     closeCreate()
   }
 
@@ -381,7 +382,17 @@ export default function LeasesPage() {
         )}
       </Modal>
 
-      <Modal open={showCreate} onClose={closeCreate} title="Create Lease" size="md">
+      <Modal
+        open={showCreate}
+        onClose={closeCreate}
+        title="Create Lease"
+        size="md"
+        titleAction={hasLeaseDraft && (
+          <button onClick={clearLeaseDraft} className="text-xs font-semibold text-on-surface-variant hover:text-error transition-colors">
+            Start fresh
+          </button>
+        )}
+      >
         <form onSubmit={createLeaseForm.handleSubmit(onCreateLease)} className="space-y-4">
           <FormField label="Tenant" hint={tenantOptions.length === 0 ? 'No active tenants. Add a tenant first.' : undefined}>
             <select

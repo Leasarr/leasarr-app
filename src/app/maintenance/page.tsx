@@ -17,6 +17,7 @@ import { ImageUploadMultiple } from '@/components/ui/ImageUploadMultiple'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { managerMaintenanceSchema, type ManagerMaintenanceForm } from '@/lib/schemas/maintenance'
+import { useDraftForm } from '@/hooks/useDraftForm'
 
 type VendorRow = {
   id: string
@@ -58,6 +59,7 @@ export default function MaintenancePage() {
     resolver: zodResolver(managerMaintenanceSchema),
     defaultValues: { tenant_id: '', title: '', category: '', priority: 'medium', description: '', images: [] },
   })
+  const { clearDraft: clearMaintenanceDraft, hasDraft: hasMaintenanceDraft } = useDraftForm(maintenanceForm, 'create-maintenance')
   const maintenanceCategory = maintenanceForm.watch('category')
   const maintenancePriority = maintenanceForm.watch('priority')
   const [vendors, setVendors] = useState<VendorRow[]>([])
@@ -173,8 +175,8 @@ export default function MaintenancePage() {
     const updatedRows = (rows as unknown as MaintenanceRow[]) ?? []
     setRequests(updatedRows)
     if (updatedRows.length > 0) setSelected(updatedRows[0])
+    clearMaintenanceDraft()
     setShowModal(false)
-    maintenanceForm.reset()
   }
 
   async function handleAssign(vendor: VendorRow) {
@@ -476,7 +478,17 @@ export default function MaintenancePage() {
       />
 
       {/* Create Modal */}
-      <Modal open={showModal} onClose={() => { maintenanceForm.reset(); setMaintenanceServerError(''); setShowModal(false) }} title="New Request" size="lg">
+      <Modal
+        open={showModal}
+        onClose={() => { setMaintenanceServerError(''); setShowModal(false) }}
+        title="New Request"
+        size="lg"
+        titleAction={hasMaintenanceDraft && (
+          <button onClick={clearMaintenanceDraft} className="text-xs font-semibold text-on-surface-variant hover:text-error transition-colors">
+            Start fresh
+          </button>
+        )}
+      >
         <form onSubmit={maintenanceForm.handleSubmit(onSubmitRequest)} className="space-y-5">
           <FormField label="Tenant">
             <select {...maintenanceForm.register('tenant_id')} className="input-base">
@@ -550,7 +562,7 @@ export default function MaintenancePage() {
           </FormField>
           {maintenanceServerError && <p className="text-sm text-error">{maintenanceServerError}</p>}
           <div className="pt-2 flex gap-4">
-            <Button type="button" variant="secondary" onClick={() => { maintenanceForm.reset(); setMaintenanceServerError(''); setShowModal(false) }} className="flex-1">Cancel</Button>
+            <Button type="button" variant="secondary" onClick={() => { setMaintenanceServerError(''); setShowModal(false) }} className="flex-1">Cancel</Button>
             <Button type="submit" loading={maintenanceForm.formState.isSubmitting} className="flex-[2]">{maintenanceForm.formState.isSubmitting ? 'Submitting...' : 'Submit Request'}</Button>
           </div>
         </form>
