@@ -43,6 +43,7 @@ export interface Unit {
   sqft?: number
   rent_amount: number
   status: 'occupied' | 'vacant' | 'maintenance'
+  images?: string[]
   created_at: string
   updated_at: string
   property?: Property
