@@ -285,25 +285,39 @@ function ProfileSection() {
           <span className="material-symbols-outlined text-error text-xl">warning</span>
           <p className="text-sm font-bold text-error">Danger Zone</p>
         </div>
-        <p className="text-sm text-on-surface-variant mb-4">
-          Permanently delete your account and all associated data. If you have an active lease, your manager will still see your tenant record.
-        </p>
-        {deleteError && <p className="text-sm text-error mb-3">{deleteError}</p>}
-        <Button
-          variant="destructive"
-          size="md"
-          onClick={() => setShowDeleteConfirm(true)}
-          iconLeft="delete_forever"
-        >
-          Delete Account
-        </Button>
+
+        {profile?.role === 'manager' ? (
+          <>
+            <p className="text-sm text-on-surface-variant mb-4">
+              Manager accounts cannot be self-deleted — your account is linked to properties, tenants, leases, and payments. Contact support to close your account.
+            </p>
+            <Button variant="destructive" size="md" disabled iconLeft="delete_forever">
+              Delete Account
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-on-surface-variant mb-4">
+              Permanently delete your login access. Your lease and payment history will remain visible to your manager. You can re-register with the same email at any time to restore portal access.
+            </p>
+            {deleteError && <p className="text-sm text-error mb-3">{deleteError}</p>}
+            <Button
+              variant="destructive"
+              size="md"
+              onClick={() => setShowDeleteConfirm(true)}
+              iconLeft="delete_forever"
+            >
+              Delete Account
+            </Button>
+          </>
+        )}
       </div>
 
       <ConfirmModal
         open={showDeleteConfirm}
         onClose={() => { setShowDeleteConfirm(false); setDeleteError('') }}
         title="Delete your account?"
-        body="This will permanently delete your account. You can re-register with the same email at any time and your tenant data will be restored. This action cannot be undone."
+        body="This will remove your login access. Your lease and payment history stays with your manager. Re-register with the same email at any time to restore access."
         confirmLabel="Yes, delete my account"
         onConfirm={deleteAccount}
         loading={deleteLoading}

@@ -12,6 +12,17 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Managers cannot self-delete — too much linked data would cascade
+  const { data: profile } = await serviceRole
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role === 'manager') {
+    return NextResponse.json({ error: 'Manager accounts cannot be self-deleted. Contact support.' }, { status: 403 })
+  }
+
   // Nullify profile_id on any tenant records so re-registration auto-links again
   await serviceRole
     .from('tenants')
