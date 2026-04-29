@@ -10,6 +10,8 @@ import { registerSchema, type RegisterForm } from '@/lib/schemas/auth'
 
 type Role = 'manager' | 'tenant'
 
+const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 function RegisterInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -21,6 +23,7 @@ function RegisterInner() {
 
   const [role, setRole] = useState<Role>('manager')
   const [serverError, setServerError] = useState('')
+  const [checkEmail, setCheckEmail] = useState(false)
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -33,10 +36,20 @@ function RegisterInner() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError('')
 
-    // Invited users always sign up as managers (they access via team membership)
     const effectiveRole: Role = isInvite ? 'manager' : role
 
-    const { error } = await supabase.auth.signUp({
+    if (MOCK_AUTH) {
+      await new Promise(r => setTimeout(r, 600))
+      document.cookie = `mock_role=${effectiveRole}; path=/; max-age=86400`
+      if (isInvite) {
+        router.push(`/auth/accept-invite?token=${encodeURIComponent(inviteToken)}&email=${encodeURIComponent(data.email)}`)
+      } else {
+        router.push(effectiveRole === 'tenant' ? '/portal' : '/dashboard')
+      }
+      return
+    }
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -45,13 +58,26 @@ function RegisterInner() {
     })
 
     if (error) {
-      setServerError(error.message)
+      // Surface a helpful hint when the email is already taken via Google OAuth
+      if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
+        const isGmail = data.email.toLowerCase().endsWith('@gmail.com')
+        setServerError(
+          isGmail
+            ? 'This email is already registered. Try "Sign up with Google" instead, or use a different email.'
+            : 'This email is already registered. Try signing in instead.'
+        )
+      } else {
+        setServerError(error.message)
+      }
       return
     }
 
-    // If this is an invite signup, the trigger (migration 012) auto-links
-    // the new profile to the team_members row. Redirect to accept-invite
-    // page so it can also handle already-linked users gracefully.
+    // session is null when Supabase email confirmation is required
+    if (!signUpData.session) {
+      setCheckEmail(true)
+      return
+    }
+
     if (isInvite) {
       router.push(`/auth/accept-invite?token=${encodeURIComponent(inviteToken)}&email=${encodeURIComponent(data.email)}`)
     } else {
@@ -75,6 +101,22 @@ function RegisterInner() {
 
         {/* Card */}
         <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-modal">
+
+          {checkEmail ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary-container/30 flex items-center justify-center mx-auto mb-5">
+                <span className="material-symbols-outlined text-3xl text-primary">mark_email_unread</span>
+              </div>
+              <h2 className="text-xl font-headline font-extrabold text-on-surface mb-2">Check your inbox</h2>
+              <p className="text-sm text-on-surface-variant mb-6">
+                We sent a confirmation link to your email. Click it to activate your account, then come back to sign in.
+              </p>
+              <a href="/auth/login" className="btn-primary w-full block text-center py-3 rounded-xl">
+                Go to sign in
+              </a>
+            </div>
+          ) : (
+          <>
           <h2 className="text-2xl font-headline font-extrabold text-on-surface mb-1">
             {isInvite ? 'Accept invitation' : 'Create account'}
           </h2>
@@ -196,6 +238,8 @@ function RegisterInner() {
               ) : isInvite ? 'Create Account & Join Team' : `Create ${role === 'tenant' ? 'Tenant' : 'Manager'} Account`}
             </button>
           </form>
+          </>
+          )}
         </div>
 
         <p className="text-center text-sm text-on-surface-variant mt-6">
