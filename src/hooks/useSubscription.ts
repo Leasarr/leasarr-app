@@ -35,10 +35,21 @@ export function useSubscription(): SubscriptionInfo {
 
     async function fetch() {
       setLoading(true)
+
+      // Team members don't own a subscription row — resolve to the account owner's ID
+      let managerId = profile!.id
+      const { data: teamRow } = await supabase
+        .from('team_members')
+        .select('manager_id')
+        .eq('profile_id', profile!.id)
+        .eq('status', 'active')
+        .maybeSingle()
+      if (teamRow?.manager_id) managerId = teamRow.manager_id
+
       const { data: row } = await supabase
         .from('subscriptions')
         .select('plan, status, trial_end')
-        .eq('manager_id', profile!.id)
+        .eq('manager_id', managerId)
         .maybeSingle()
 
       if (!row) {

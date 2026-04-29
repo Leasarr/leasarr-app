@@ -422,7 +422,7 @@ function BillingSection() {
             <div>
               <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Current Plan</p>
               <p className="text-2xl font-headline font-extrabold text-on-surface capitalize">
-                {subscription.plan ?? 'Free'}
+                {subscription.plan ?? (subscription.status === 'trialing' ? 'Trial' : 'Free')}
               </p>
               {subscription.billing_interval && (
                 <p className="text-sm text-on-surface-variant mt-0.5 capitalize">{subscription.billing_interval} billing</p>
