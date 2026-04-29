@@ -10,7 +10,7 @@ paths:
 
 ## Mock data (`src/data/mock.ts`)
 
-Fallback for `/communication` and `/reports`. Dashboard auto-falls back when Supabase env vars are absent. All other pages use live Supabase data.
+Fallback for `/reports`. Dashboard auto-falls back when Supabase env vars are absent. All other pages use live Supabase data.
 
 ## Types (`src/types/index.ts`)
 
@@ -24,7 +24,8 @@ All domain interfaces live here — never define DB-backed types inline in pages
 | `Lease`, `LeaseDocument` | Lease lifecycle + document attachments |
 | `Payment` | Includes `stripe_payment_intent_id` |
 | `MaintenanceRequest` | Full lifecycle with cost tracking |
-| `Conversation`, `Message` | V2 — mock only |
+| `Conversation`, `Message` | Live — used by `/communication` (manager) and `/portal/messages` (tenant); realtime via `postgres_changes` |
+| `Announcement` | Live — used by `/communication` broadcast tab |
 | `TeamMember`, `Vendor` | Include `manager_id`, `created_at`, `updated_at` |
 | `Notification` | `type: 'maintenance' \| 'payment' \| 'lease'`; links to `profile_id` |
 | `Subscription` | Mirrors `subscriptions` table |

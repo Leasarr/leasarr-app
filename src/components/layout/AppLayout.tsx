@@ -103,6 +103,7 @@ const TENANT_NAV_ITEMS: NavItem[] = [
   { href: '/portal', icon: 'home', label: 'Home', exact: true },
   { href: '/portal/maintenance', icon: 'build', label: 'Maintenance' },
   { href: '/portal/lease', icon: 'description', label: 'Lease' },
+  { href: '/portal/messages', icon: 'chat', label: 'Messages' },
   { href: '/portal/notifications', icon: 'notifications', label: 'Notifications' },
 ]
 
@@ -114,6 +115,7 @@ const MANAGER_BOTTOM_NAV: NavItem[] = [
 
 const TENANT_BOTTOM_NAV: NavItem[] = [
   { href: '/portal', icon: 'home', label: 'Home', exact: true },
+  { href: '/portal/messages', icon: 'chat', label: 'Messages' },
   { href: '/portal/maintenance', icon: 'build', label: 'Maintenance' },
   { href: '/portal/lease', icon: 'description', label: 'Lease' },
 ]
@@ -126,6 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [conversationUnread, setConversationUnread] = useState(0)
   const [moreOpen, setMoreOpen] = useState(false)
   const [ownerName, setOwnerName] = useState<string | null>(null)
   // pinned = user locked sidebar open; hovered = temporary hover expansion
@@ -198,6 +201,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return () => { supabase.removeChannel(channel) }
   }, [profile])
+
+  useEffect(() => {
+    if (!profile || profile.role === 'tenant') return
+
+    async function fetchConvUnread() {
+      const { data } = await supabase.from('conversations').select('unread_count')
+      if (data) setConversationUnread(data.reduce((s: number, c: { unread_count: number }) => s + (c.unread_count ?? 0), 0))
+    }
+
+    fetchConvUnread()
+
+    const channel = supabase
+      .channel('nav-conversations')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' },
+        () => { fetchConvUnread() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile?.id, profile?.role])
 
   async function handleMarkAllRead() {
     if (!profile) return
@@ -362,8 +385,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
                   )}
                 >
-                  <span className={cn('material-symbols-outlined text-xl flex-shrink-0', isActive && 'material-symbols-filled')}>
-                    {item.icon}
+                  <span className="relative flex-shrink-0">
+                    <span className={cn('material-symbols-outlined text-xl', isActive && 'material-symbols-filled')}>
+                      {item.icon}
+                    </span>
+                    {item.href === '/communication' && !isExpanded && conversationUnread > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full border border-surface-container-lowest" />
+                    )}
                   </span>
                   <span className={cn(
                     'whitespace-nowrap transition-[opacity,max-width] duration-200 overflow-hidden',
@@ -371,8 +399,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   )}>
                     {item.label}
                   </span>
-                  {item.href === '/communication' && isExpanded && (
-                    <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+                  {item.href === '/communication' && isExpanded && conversationUnread > 0 && (
+                    <span className="ml-auto bg-primary text-on-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">{conversationUnread}</span>
                   )}
                 </Link>
               )

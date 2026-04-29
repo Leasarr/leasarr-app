@@ -192,9 +192,9 @@ export default function TenantPortalPage() {
               <h4 className="font-bold text-sm text-on-surface">Property Manager</h4>
               <p className="text-xs text-on-surface-variant">{manager.name} • Available</p>
             </div>
-            <button className="w-10 h-10 rounded-full bg-primary-container/20 text-primary flex items-center justify-center active:scale-90 transition-all hover:bg-primary-fixed hover:text-on-primary-fixed">
+            <Link href="/portal/messages" className="w-10 h-10 rounded-full bg-primary-container/20 text-primary flex items-center justify-center active:scale-90 transition-all hover:bg-primary-fixed hover:text-on-primary-fixed">
               <span className="material-symbols-outlined text-sm material-symbols-filled">chat_bubble</span>
-            </button>
+            </Link>
           </section>
         )}
 
