@@ -19,9 +19,10 @@ function RegisterInner() {
 
   const inviteToken = searchParams.get('invite') ?? ''
   const inviteEmail = searchParams.get('email') ?? ''
+  const roleParam = searchParams.get('role') as Role | null
   const isInvite = Boolean(inviteToken)
 
-  const [role, setRole] = useState<Role>('manager')
+  const [role, setRole] = useState<Role>(roleParam === 'tenant' ? 'tenant' : 'manager')
   const [serverError, setServerError] = useState('')
   const [checkEmail, setCheckEmail] = useState(false)
 
@@ -36,7 +37,7 @@ function RegisterInner() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError('')
 
-    const effectiveRole: Role = isInvite ? 'manager' : role
+    const effectiveRole: Role = isInvite ? 'manager' : (roleParam === 'tenant' ? 'tenant' : role)
 
     if (MOCK_AUTH) {
       await new Promise(r => setTimeout(r, 600))

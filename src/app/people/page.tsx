@@ -31,9 +31,11 @@ type TenantRow = {
   avatar_url: string | null
   unit_id: string | null
   property_id: string | null
+  profile_id: string | null
   team_member_id: string | null
   status: 'active' | 'inactive' | 'pending'
   credit_score: number | null
+  invited_at: string | null
   created_at: string
   property: { name: string } | null
   unit: { unit_number: string } | null
@@ -297,8 +299,18 @@ export default function PeoplePage() {
     if (data.unit_id) {
       await supabase.from('units').update({ status: 'occupied' }).eq('id', data.unit_id)
     }
-    setTenants(prev => [row as TenantRow, ...prev])
-    setSelectedTenant(row as TenantRow)
+    const newRow = row as TenantRow
+    if (data.email) {
+      const now = new Date().toISOString()
+      fetch('/api/tenant/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: newRow.id, tenant_email: data.email, tenant_first_name: data.first_name, tenant_last_name: data.last_name }),
+      })
+      newRow.invited_at = now
+    }
+    setTenants(prev => [newRow, ...prev])
+    setSelectedTenant(newRow)
     setActiveTab('tenants')
     closeModal()
   }
@@ -357,6 +369,21 @@ export default function PeoplePage() {
     })
     if (res.ok) {
       setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: 'pending' } : m))
+    }
+    setActionLoading(null)
+  }
+
+  async function handleResendTenantInvite(tenant: TenantRow) {
+    setActionLoading(tenant.id)
+    const res = await fetch('/api/tenant/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenant_id: tenant.id, tenant_email: tenant.email, tenant_first_name: tenant.first_name, tenant_last_name: tenant.last_name }),
+    })
+    if (res.ok) {
+      const now = new Date().toISOString()
+      setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, invited_at: now } : t))
+      setSelectedTenant(prev => prev?.id === tenant.id ? { ...prev, invited_at: now } : prev)
     }
     setActionLoading(null)
   }
@@ -523,7 +550,14 @@ export default function PeoplePage() {
                         <span className="truncate">{tenant.property.name}{tenant.unit ? ` · Unit ${tenant.unit.unit_number}` : ''}</span>
                       </p>
                     )}
-                    trailing={<span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>}
+                    trailing={
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={cn('badge', getStatusColor(tenant.status))}>{tenant.status}</span>
+                        {!tenant.profile_id && tenant.invited_at && (
+                          <span className="badge bg-warning/15 text-warning text-[10px]">Invite pending</span>
+                        )}
+                      </div>
+                    }
                     selected={selectedTenant?.id === tenant.id}
                     onClick={() => { setSelectedTenant(tenant); setTenantDetailTab('payments') }}
                   />
@@ -540,9 +574,15 @@ export default function PeoplePage() {
                             ? <img src={selectedTenant.avatar_url} alt="" className="w-16 h-16 rounded-2xl object-cover" />
                             : <div className="w-16 h-16 rounded-2xl bg-secondary-container text-primary flex items-center justify-center text-2xl font-bold">{getInitials(`${selectedTenant.first_name} ${selectedTenant.last_name}`)}</div>
                           }
-                          <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-lg">
-                            <span className="material-symbols-outlined text-xs material-symbols-filled">verified</span>
-                          </div>
+                          {selectedTenant.profile_id ? (
+                            <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-lg shadow-lg">
+                              <span className="material-symbols-outlined text-xs material-symbols-filled">verified</span>
+                            </div>
+                          ) : (
+                            <div className="absolute -bottom-1 -right-1 bg-warning text-white p-1 rounded-lg shadow-lg">
+                              <span className="material-symbols-outlined text-xs">schedule</span>
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0">
                           <h2 className="text-xl font-headline font-extrabold tracking-tight text-on-surface truncate">{selectedTenant.first_name} {selectedTenant.last_name}</h2>
@@ -577,6 +617,29 @@ export default function PeoplePage() {
                       ))}
                     </div>
                   </div>
+                  {!selectedTenant.profile_id && (
+                    <div className="flex items-center justify-between gap-4 px-4 py-3 bg-warning/10 border border-warning/30 rounded-2xl">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="material-symbols-outlined text-warning text-base flex-shrink-0">schedule</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-on-surface">No account yet</p>
+                          <p className="text-xs text-on-surface-variant truncate">
+                            {selectedTenant.invited_at
+                              ? `Invite sent ${formatDate(selectedTenant.invited_at)}`
+                              : 'No invite sent'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={actionLoading === selectedTenant.id}
+                        onClick={() => handleResendTenantInvite(selectedTenant)}
+                      >
+                        {selectedTenant.invited_at ? 'Resend' : 'Send invite'}
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex gap-3">
                     {(['payments', 'maintenance'] as const).map(tab => (
                       <button key={tab} onClick={() => setTenantDetailTab(tab)} className={cn('px-6 py-3 rounded-xl text-sm font-bold transition-all', tenantDetailTab === tab ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high')}>

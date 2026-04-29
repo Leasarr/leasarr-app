@@ -93,6 +93,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `014_unit_images.sql` | Adds `images` column to `units` table |
 | `015_communications.sql` | `announcements` table + RLS; managers CRUD own announcements |
 | `016_tenant_conversation_insert.sql` | Allows tenants to INSERT conversations (RLS was previously SELECT-only) |
+| `017_tenant_link_on_tenant_insert.sql` | Trigger + backfill: links existing profiles to tenant records by email on tenant INSERT (reverse of 009) |
+| `018_tenant_invited_at.sql` | Adds `invited_at timestamptz` to `tenants`; tracks when manager last sent portal invite |
 
 ## API routes
 
@@ -108,12 +110,13 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/api/stripe/webhook` | POST | Handles Stripe events → updates `subscriptions`; sends billing emails |
 | `/api/notifications/email` | POST | Supabase webhook on `notifications` INSERT → sends email |
 | `/api/notifications/welcome` | POST | Supabase webhook on `profiles` INSERT → sends welcome email |
+| `/api/tenant/invite` | POST | Sends portal invite email to tenant via Resend; stamps `tenants.invited_at`; accepts `tenant_id`, `tenant_email`, `tenant_first_name`, `tenant_last_name` |
 
 ## Supabase
 
 - **RLS** — `manager_id = auth_manager_id()` (helper from migration 013 — returns the owner's id for linked team members, own id for owners) or `profile_id = auth.uid()`. Role changes via `/api/auth/set-role` only (migration 011 trigger blocks direct updates). Storage: authenticated write, public read (migration 010).
 - **Realtime** — `maintenance_requests`, `notifications`, `messages`, `conversations`
-- **Triggers** — `handle_new_user` (profile on auth signup); `link_profile_to_tenant` (auto-links by email); `link_profile_to_team_member` (auto-links team invites by email on signup); maintenance/payment/lease notification triggers; `prevent_role_change` (blocks role self-update)
+- **Triggers** — `handle_new_user` (profile on auth signup); `link_profile_to_tenant` (auto-links by email on profile INSERT — migration 009); `link_tenant_to_profile` (auto-links on tenant INSERT for existing accounts — migration 017); `link_profile_to_team_member` (auto-links team invites by email on signup); maintenance/payment/lease notification triggers; `prevent_role_change` (blocks role self-update)
 
 ## Stripe
 
