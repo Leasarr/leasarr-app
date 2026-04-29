@@ -81,7 +81,7 @@ const DEFAULT_PREFS: NotificationPrefs = {
 // ─── Sub-sections ─────────────────────────────────────────────────────────────
 
 function ProfileSection() {
-  const { user, profile, updateProfile } = useAuth()
+  const { user, profile, updateProfile, signOut } = useAuth()
   const supabase = createClient()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
@@ -91,6 +91,9 @@ function ProfileSection() {
   const [passwordState, setPasswordState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [passwordError, setPasswordError] = useState('')
   const [removingPhoto, setRemovingPhoto] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -149,6 +152,24 @@ function ProfileSection() {
       await updateProfile({ avatar_url: undefined })
     } finally {
       setRemovingPhoto(false)
+    }
+  }
+
+  async function deleteAccount() {
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' })
+      if (!res.ok) {
+        const { error } = await res.json()
+        setDeleteError(error ?? 'Something went wrong')
+        setDeleteLoading(false)
+        return
+      }
+      await signOut()
+    } catch {
+      setDeleteError('Something went wrong')
+      setDeleteLoading(false)
     }
   }
 
@@ -219,6 +240,7 @@ function ProfileSection() {
       {/* Password card */}
       <Card padding="md">
         <p className="text-sm font-bold text-on-surface mb-1">Change Password</p>
+
         {MOCK_AUTH ? (
           <div className="flex items-start gap-2.5 bg-tertiary-container/20 border border-outline-variant/20 rounded-xl px-3 py-2.5 mt-3">
             <span className="material-symbols-outlined text-tertiary text-base shrink-0 mt-0.5">info</span>
@@ -256,6 +278,37 @@ function ProfileSection() {
           </form>
         )}
       </Card>
+
+      {/* Danger Zone */}
+      <div className="border border-error/30 rounded-2xl p-6 bg-error-container/5">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="material-symbols-outlined text-error text-xl">warning</span>
+          <p className="text-sm font-bold text-error">Danger Zone</p>
+        </div>
+        <p className="text-sm text-on-surface-variant mb-4">
+          Permanently delete your account and all associated data. If you have an active lease, your manager will still see your tenant record.
+        </p>
+        {deleteError && <p className="text-sm text-error mb-3">{deleteError}</p>}
+        <Button
+          variant="destructive"
+          size="md"
+          onClick={() => setShowDeleteConfirm(true)}
+          iconLeft="delete_forever"
+        >
+          Delete Account
+        </Button>
+      </div>
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => { setShowDeleteConfirm(false); setDeleteError('') }}
+        title="Delete your account?"
+        body="This will permanently delete your account. You can re-register with the same email at any time and your tenant data will be restored. This action cannot be undone."
+        confirmLabel="Yes, delete my account"
+        onConfirm={deleteAccount}
+        loading={deleteLoading}
+        destructive
+      />
     </div>
   )
 }
