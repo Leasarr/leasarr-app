@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import AppLayout from '@/components/layout/AppLayout'
 import Modal from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -69,6 +70,7 @@ function getStats(p: PropertyRow) {
 
 export default function PropertiesPage() {
   const { profile, loading: authLoading } = useAuth()
+  const router = useRouter()
   const supabase = createClient()
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [selected, setSelected] = useState<PropertyRow | null>(null)
@@ -87,7 +89,8 @@ export default function PropertiesPage() {
   const [showAddUnit, setShowAddUnit] = useState(false)
   const [unitServerError, setUnitServerError] = useState('')
   const addUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema), defaultValues: { bedrooms: '1', bathrooms: '1', status: 'vacant', images: [] } })
-  const [addUnitCreateLease, setAddUnitCreateLease] = useState(false)
+  const addStatus = addUnitForm.watch('status')
+  const addUnitCreateLease = addStatus === 'occupied'
   const [leaseTenantId, setLeaseTenantId] = useState('')
   const [leaseStartDate, setLeaseStartDate] = useState('')
   const [leaseEndDate, setLeaseEndDate] = useState('')
@@ -100,6 +103,32 @@ export default function PropertiesPage() {
   const [editingUnit, setEditingUnit] = useState<DbUnit | null>(null)
   const [editUnitServerError, setEditUnitServerError] = useState('')
   const editUnitForm = useForm<UnitForm>({ resolver: zodResolver(unitSchema) })
+  const editStatus = editUnitForm.watch('status')
+  const [editLeaseTenantId, setEditLeaseTenantId] = useState('')
+  const [editLeaseStartDate, setEditLeaseStartDate] = useState('')
+  const [editLeaseEndDate, setEditLeaseEndDate] = useState('')
+  const [editLeaseSecurityDeposit, setEditLeaseSecurityDeposit] = useState('')
+  const [editLeaseFormError, setEditLeaseFormError] = useState('')
+
+  // Attach lease from unit detail modal
+  const [attachLeaseExpanded, setAttachLeaseExpanded] = useState(false)
+  const [attachLeaseTenantId, setAttachLeaseTenantId] = useState('')
+  const [attachLeaseStartDate, setAttachLeaseStartDate] = useState('')
+  const [attachLeaseEndDate, setAttachLeaseEndDate] = useState('')
+  const [attachLeaseSecurityDeposit, setAttachLeaseSecurityDeposit] = useState('')
+  const [attachLeaseFormError, setAttachLeaseFormError] = useState('')
+  const [attachLeaseLoading, setAttachLeaseLoading] = useState(false)
+  const [attachLeaseTenantOptions, setAttachLeaseTenantOptions] = useState<UnitFormTenant[]>([])
+
+  // Reassign lease (shared between unit detail modal and edit unit modal)
+  const [reassignExpanded, setReassignExpanded] = useState(false)
+  const [reassignTenantId, setReassignTenantId] = useState('')
+  const [reassignStartDate, setReassignStartDate] = useState('')
+  const [reassignEndDate, setReassignEndDate] = useState('')
+  const [reassignSecurityDeposit, setReassignSecurityDeposit] = useState('')
+  const [reassignFormError, setReassignFormError] = useState('')
+  const [reassignLoading, setReassignLoading] = useState(false)
+  const [reassignTenantOptions, setReassignTenantOptions] = useState<UnitFormTenant[]>([])
 
   async function fetchUnitLeases(units: DbUnit[]) {
     const unitIds = units.map(u => u.id)
@@ -136,19 +165,23 @@ export default function PropertiesPage() {
     fetchProperties()
   }, [profile])
 
-  async function openAddUnit() {
-    setShowAddUnit(true)
-    setUnitServerError('')
-    setLeaseFormError('')
-    setAddUnitCreateLease(false)
-    setLeaseTenantId(''); setLeaseStartDate(''); setLeaseEndDate(''); setLeaseSecurityDeposit('')
-    addUnitForm.reset({ bedrooms: '1', bathrooms: '1', status: 'vacant', images: [] })
+  async function fetchAvailableTenants(): Promise<UnitFormTenant[]> {
     const [tenantsRes, activeLeasesRes] = await Promise.all([
       supabase.from('tenants').select('id, first_name, last_name').eq('manager_id', profile!.id).eq('status', 'active').order('first_name'),
       supabase.from('leases').select('tenant_id').eq('status', 'active'),
     ])
     const leasedIds = new Set((activeLeasesRes.data ?? []).map((l: { tenant_id: string }) => l.tenant_id))
-    setUnitTenantOptions(((tenantsRes.data ?? []) as UnitFormTenant[]).filter(t => !leasedIds.has(t.id)))
+    return ((tenantsRes.data ?? []) as UnitFormTenant[]).filter(t => !leasedIds.has(t.id))
+  }
+
+  async function openAddUnit() {
+    setShowAddUnit(true)
+    setUnitServerError('')
+    setLeaseFormError('')
+    setLeaseTenantId(''); setLeaseStartDate(''); setLeaseEndDate(''); setLeaseSecurityDeposit('')
+    addUnitForm.reset({ bedrooms: '1', bathrooms: '1', status: 'vacant', images: [] })
+    const tenants = await fetchAvailableTenants()
+    setUnitTenantOptions(tenants)
   }
 
   async function handleAddProperty(data: PropertyForm): Promise<string | null> {
@@ -170,7 +203,7 @@ export default function PropertiesPage() {
     setUnitServerError('')
     setLeaseFormError('')
 
-    if (addUnitCreateLease) {
+    if (data.status === 'occupied') {
       if (!leaseTenantId) { setLeaseFormError('Please select a tenant for the lease'); return }
       if (!leaseStartDate) { setLeaseFormError('Start date is required'); return }
       if (!leaseEndDate) { setLeaseFormError('End date is required'); return }
@@ -185,7 +218,7 @@ export default function PropertiesPage() {
         bathrooms: parseFloat(data.bathrooms),
         sqft: data.sqft ? parseInt(data.sqft) : null,
         rent_amount: parseFloat(data.rent_amount),
-        status: addUnitCreateLease ? 'occupied' : data.status,
+        status: data.status,
         images: data.images ?? [],
       })
       .select()
@@ -194,7 +227,7 @@ export default function PropertiesPage() {
     if (error) { setUnitServerError(error.message); return }
     const newUnit = row as DbUnit
 
-    if (addUnitCreateLease) {
+    if (data.status === 'occupied') {
       const { data: leaseRow, error: leaseError } = await supabase.from('leases').insert({
         tenant_id: leaseTenantId,
         unit_id: newUnit.id,
@@ -239,7 +272,7 @@ export default function PropertiesPage() {
     return null
   }
 
-  function openEditUnit(unit: DbUnit) {
+  async function openEditUnit(unit: DbUnit) {
     setEditingUnit(unit)
     editUnitForm.reset({
       unit_number: unit.unit_number,
@@ -251,12 +284,26 @@ export default function PropertiesPage() {
       images: unit.images ?? [],
     })
     setEditUnitServerError('')
+    setEditLeaseTenantId(''); setEditLeaseStartDate(''); setEditLeaseEndDate(''); setEditLeaseSecurityDeposit(''); setEditLeaseFormError('')
     setShowEditUnit(true)
+    if (unit.status === 'occupied' && !unitLeases[unit.id]) {
+      const tenants = await fetchAvailableTenants()
+      setUnitTenantOptions(tenants)
+    }
   }
 
   async function onEditUnit(data: UnitForm) {
     if (!selected || !editingUnit) return
     setEditUnitServerError('')
+    setEditLeaseFormError('')
+
+    const needsLease = data.status === 'occupied' && !unitLeases[editingUnit.id]
+    if (needsLease) {
+      if (!editLeaseTenantId) { setEditLeaseFormError('Please select a tenant for the lease'); return }
+      if (!editLeaseStartDate) { setEditLeaseFormError('Start date is required'); return }
+      if (!editLeaseEndDate) { setEditLeaseFormError('End date is required'); return }
+    }
+
     const { data: row, error } = await supabase
       .from('units')
       .update({
@@ -273,11 +320,115 @@ export default function PropertiesPage() {
       .single()
     if (error) { setEditUnitServerError(error.message); return }
     const updatedUnit = row as DbUnit
+
+    if (needsLease) {
+      const { data: leaseRow, error: leaseError } = await supabase.from('leases').insert({
+        tenant_id: editLeaseTenantId,
+        unit_id: editingUnit.id,
+        property_id: selected.id,
+        start_date: editLeaseStartDate,
+        end_date: editLeaseEndDate,
+        rent_amount: parseFloat(data.rent_amount),
+        security_deposit: parseFloat(editLeaseSecurityDeposit || '0'),
+        status: 'active',
+      }).select('id, unit_id, start_date, end_date, rent_amount, security_deposit, status, tenant:tenants(id, first_name, last_name, email)').single()
+      if (leaseError) { setEditUnitServerError(leaseError.message); return }
+      if (leaseRow) {
+        setUnitLeases(prev => ({ ...prev, [editingUnit.id]: leaseRow as unknown as LeaseDetail }))
+      }
+    }
+
     const updatedProperty = { ...selected, units: selected.units.map(u => u.id === editingUnit.id ? updatedUnit : u) }
     setSelected(updatedProperty)
     setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
     if (viewingUnit?.id === editingUnit.id) setViewingUnit(updatedUnit)
     setShowEditUnit(false)
+  }
+
+  async function onAttachLease() {
+    if (!viewingUnit || !selected) return
+    setAttachLeaseFormError('')
+    if (!attachLeaseTenantId) { setAttachLeaseFormError('Please select a tenant'); return }
+    if (!attachLeaseStartDate) { setAttachLeaseFormError('Start date is required'); return }
+    if (!attachLeaseEndDate) { setAttachLeaseFormError('End date is required'); return }
+    setAttachLeaseLoading(true)
+    const { data: leaseRow, error: leaseError } = await supabase.from('leases').insert({
+      tenant_id: attachLeaseTenantId,
+      unit_id: viewingUnit.id,
+      property_id: selected.id,
+      start_date: attachLeaseStartDate,
+      end_date: attachLeaseEndDate,
+      rent_amount: viewingUnit.rent_amount,
+      security_deposit: parseFloat(attachLeaseSecurityDeposit || '0'),
+      status: 'active',
+    }).select('id, unit_id, start_date, end_date, rent_amount, security_deposit, status, tenant:tenants(id, first_name, last_name, email)').single()
+    if (leaseError) { setAttachLeaseFormError(leaseError.message); setAttachLeaseLoading(false); return }
+    if (leaseRow) {
+      setUnitLeases(prev => ({ ...prev, [viewingUnit.id]: leaseRow as unknown as LeaseDetail }))
+    }
+    await supabase.from('units').update({ status: 'occupied' }).eq('id', viewingUnit.id)
+    const updatedUnit = { ...viewingUnit, status: 'occupied' as const }
+    setViewingUnit(updatedUnit)
+    const updatedProperty = { ...selected, units: selected.units.map(u => u.id === viewingUnit.id ? updatedUnit : u) }
+    setSelected(updatedProperty)
+    setProperties(prev => prev.map(p => p.id === selected.id ? updatedProperty : p))
+    setAttachLeaseExpanded(false)
+    setAttachLeaseTenantId(''); setAttachLeaseStartDate(''); setAttachLeaseEndDate(''); setAttachLeaseSecurityDeposit('')
+    setAttachLeaseLoading(false)
+  }
+
+  function resetReassign() {
+    setReassignExpanded(false)
+    setReassignTenantId(''); setReassignStartDate(''); setReassignEndDate(''); setReassignSecurityDeposit(''); setReassignFormError('')
+  }
+
+  async function onReassignLease(unitId: string, propertyId: string, rentAmount: number) {
+    setReassignFormError('')
+    if (!reassignTenantId) { setReassignFormError('Please select a tenant'); return }
+    if (!reassignStartDate) { setReassignFormError('Start date is required'); return }
+    if (!reassignEndDate) { setReassignFormError('End date is required'); return }
+    setReassignLoading(true)
+
+    const oldLease = unitLeases[unitId]
+    if (oldLease) {
+      await supabase.from('leases').update({ status: 'ended' }).eq('id', oldLease.id)
+    }
+
+    const { data: leaseRow, error } = await supabase.from('leases').insert({
+      tenant_id: reassignTenantId,
+      unit_id: unitId,
+      property_id: propertyId,
+      start_date: reassignStartDate,
+      end_date: reassignEndDate,
+      rent_amount: rentAmount,
+      security_deposit: parseFloat(reassignSecurityDeposit || '0'),
+      status: 'active',
+    }).select('id, unit_id, start_date, end_date, rent_amount, security_deposit, status, tenant:tenants(id, first_name, last_name, email)').single()
+
+    if (error) { setReassignFormError(error.message); setReassignLoading(false); return }
+    if (leaseRow) {
+      setUnitLeases(prev => ({ ...prev, [unitId]: leaseRow as unknown as LeaseDetail }))
+    }
+    setReassignLoading(false)
+    resetReassign()
+  }
+
+  function handleCloseUnitDetail() {
+    setViewingUnit(null)
+    setAttachLeaseExpanded(false)
+    setAttachLeaseTenantId(''); setAttachLeaseStartDate(''); setAttachLeaseEndDate(''); setAttachLeaseSecurityDeposit(''); setAttachLeaseFormError('')
+    resetReassign()
+  }
+
+  async function openUnitDetail(unit: DbUnit) {
+    setViewingUnit(unit)
+    setAttachLeaseExpanded(false)
+    setAttachLeaseTenantId(''); setAttachLeaseStartDate(''); setAttachLeaseEndDate(''); setAttachLeaseSecurityDeposit(''); setAttachLeaseFormError('')
+    resetReassign()
+    if (!unitLeases[unit.id]) {
+      const tenants = await fetchAvailableTenants()
+      setAttachLeaseTenantOptions(tenants)
+    }
   }
 
   if (authLoading || loading) {
@@ -424,7 +575,7 @@ export default function PropertiesPage() {
                       {selected.units.map(unit => (
                         <div
                           key={unit.id}
-                          onClick={() => setViewingUnit(unit)}
+                          onClick={() => openUnitDetail(unit)}
                           className="flex items-center justify-between py-3 hover:bg-surface-container-low rounded-xl px-4 transition-colors group cursor-pointer"
                         >
                           <div className="flex items-center gap-4">
@@ -490,7 +641,7 @@ export default function PropertiesPage() {
 
       {/* ── Unit Detail Modal ── */}
       {viewingUnit && (
-        <Modal open={!!viewingUnit} onClose={() => setViewingUnit(null)} title={`Unit ${viewingUnit.unit_number}`} size="lg">
+        <Modal open={!!viewingUnit} onClose={handleCloseUnitDetail} title={`Unit ${viewingUnit.unit_number}`} size="lg">
           <div className="space-y-6">
 
             {/* Image gallery */}
@@ -577,19 +728,104 @@ export default function PropertiesPage() {
                         </p>
                       </div>
                     )}
+                    {/* Reassign lease */}
+                    {!reassignExpanded ? (
+                      <Button size="sm" variant="secondary" iconLeft="swap_horiz" onClick={async () => {
+                        setReassignExpanded(true)
+                        if (!reassignTenantOptions.length) { const t = await fetchAvailableTenants(); setReassignTenantOptions(t) }
+                      }}>
+                        Reassign Lease
+                      </Button>
+                    ) : (
+                      <div className="border-t border-outline-variant/20 pt-3 space-y-3">
+                        <p className="text-xs font-bold text-outline uppercase tracking-wider">Reassign Lease</p>
+                        <div>
+                          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">New Tenant</label>
+                          <select className="input-base" value={reassignTenantId} onChange={e => setReassignTenantId(e.target.value)}>
+                            <option value="">— Select tenant —</option>
+                            {reassignTenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                          </select>
+                          {reassignTenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No available tenants.</p>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">Start Date</label>
+                            <input type="date" className="input-base" value={reassignStartDate} onChange={e => setReassignStartDate(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">End Date</label>
+                            <input type="date" className="input-base" value={reassignEndDate} onChange={e => setReassignEndDate(e.target.value)} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">Security Deposit ($)</label>
+                          <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={reassignSecurityDeposit} onChange={e => setReassignSecurityDeposit(e.target.value)} />
+                        </div>
+                        {reassignFormError && <p className="text-sm text-error">{reassignFormError}</p>}
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={resetReassign}>Cancel</Button>
+                          <Button size="sm" loading={reassignLoading} onClick={() => onReassignLease(viewingUnit.id, selected!.id, lease.rent_amount)}>Confirm Reassign</Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })() : (
-                <div className="bg-surface-container rounded-2xl p-4 flex items-center gap-3 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-xl">description</span>
-                  <p className="text-sm">No active lease for this unit.</p>
+                <div className="space-y-3">
+                  {!attachLeaseExpanded ? (
+                    <div className="bg-surface-container rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center gap-3 text-on-surface-variant">
+                        <span className="material-symbols-outlined text-xl">description</span>
+                        <p className="text-sm">No active lease for this unit.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={async () => { setAttachLeaseExpanded(true); if (!attachLeaseTenantOptions.length) { const t = await fetchAvailableTenants(); setAttachLeaseTenantOptions(t) } }} iconLeft="add">
+                          Attach Lease
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => router.push('/leases')} iconLeft="open_in_new">
+                          Go to Leases
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-surface-container rounded-2xl p-4 space-y-4">
+                      <p className="text-xs font-bold text-outline uppercase tracking-wider">Attach Lease</p>
+                      <div>
+                        <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">Tenant</label>
+                        <select className="input-base" value={attachLeaseTenantId} onChange={e => setAttachLeaseTenantId(e.target.value)}>
+                          <option value="">— Select tenant —</option>
+                          {attachLeaseTenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                        </select>
+                        {attachLeaseTenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No available tenants. Add a tenant first.</p>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">Start Date</label>
+                          <input type="date" className="input-base" value={attachLeaseStartDate} onChange={e => setAttachLeaseStartDate(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">End Date</label>
+                          <input type="date" className="input-base" value={attachLeaseEndDate} onChange={e => setAttachLeaseEndDate(e.target.value)} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1 block">Security Deposit ($)</label>
+                        <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={attachLeaseSecurityDeposit} onChange={e => setAttachLeaseSecurityDeposit(e.target.value)} />
+                      </div>
+                      {attachLeaseFormError && <p className="text-sm text-error">{attachLeaseFormError}</p>}
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => { setAttachLeaseExpanded(false); setAttachLeaseFormError('') }}>Cancel</Button>
+                        <Button size="sm" loading={attachLeaseLoading} onClick={onAttachLease}>Save Lease</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button variant="secondary" type="button" onClick={() => setViewingUnit(null)} className="flex-1">Close</Button>
-              <Button type="button" onClick={() => { setViewingUnit(null); openEditUnit(viewingUnit) }} className="flex-1">
+              <Button variant="secondary" type="button" onClick={handleCloseUnitDetail} className="flex-1">Close</Button>
+              <Button type="button" onClick={() => { handleCloseUnitDetail(); openEditUnit(viewingUnit) }} className="flex-1">
                 <span className="material-symbols-outlined text-base">edit</span> Edit Unit
               </Button>
             </div>
@@ -598,7 +834,7 @@ export default function PropertiesPage() {
       )}
 
       {/* ── Edit Unit Modal ── */}
-      <Modal open={showEditUnit} onClose={() => setShowEditUnit(false)} title={`Edit Unit ${editingUnit?.unit_number ?? ''}`} size="lg">
+      <Modal open={showEditUnit} onClose={() => { setShowEditUnit(false); resetReassign() }} title={`Edit Unit ${editingUnit?.unit_number ?? ''}`} size="lg">
         <form onSubmit={editUnitForm.handleSubmit(onEditUnit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Unit Number" className="col-span-2">
@@ -619,7 +855,20 @@ export default function PropertiesPage() {
               {editUnitForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{editUnitForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Status" className="col-span-2">
-              <select {...editUnitForm.register('status')} className="input-base">
+              <select
+                {...editUnitForm.register('status', {
+                  onChange: async (e) => {
+                    if (e.target.value === 'occupied' && editingUnit && !unitLeases[editingUnit.id] && !unitTenantOptions.length) {
+                      const tenants = await fetchAvailableTenants()
+                      setUnitTenantOptions(tenants)
+                    }
+                    if (e.target.value !== 'occupied') {
+                      setEditLeaseTenantId(''); setEditLeaseStartDate(''); setEditLeaseEndDate(''); setEditLeaseSecurityDeposit(''); setEditLeaseFormError('')
+                    }
+                  }
+                })}
+                className="input-base"
+              >
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
@@ -640,9 +889,104 @@ export default function PropertiesPage() {
               )}
             />
           </FormField>
+
+          {editStatus === 'occupied' && editingUnit && (
+            <div className="border-t border-outline-variant/20 pt-4 space-y-3">
+              <p className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-base">assignment</span>
+                {unitLeases[editingUnit.id] ? 'Current Lease' : 'Lease Required for Occupied Unit'}
+              </p>
+              <div className="bg-surface-container rounded-2xl p-4 space-y-4">
+                {unitLeases[editingUnit.id] ? (() => {
+                  const lease = unitLeases[editingUnit.id]
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Tenant</p>
+                          <p className="font-semibold text-on-surface">{lease.tenant?.first_name} {lease.tenant?.last_name}</p>
+                          <p className="text-xs text-on-surface-variant">{lease.tenant?.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Deposit</p>
+                          <p className="font-semibold text-on-surface">{formatCurrency(lease.security_deposit)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">Start</p>
+                          <p className="font-semibold text-on-surface">{formatDate(lease.start_date)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-wide font-semibold">End</p>
+                          <p className="font-semibold text-on-surface">{formatDate(lease.end_date)}</p>
+                        </div>
+                      </div>
+                      {!reassignExpanded ? (
+                        <Button size="sm" variant="secondary" iconLeft="swap_horiz" onClick={async () => {
+                          setReassignExpanded(true)
+                          if (!reassignTenantOptions.length) { const t = await fetchAvailableTenants(); setReassignTenantOptions(t) }
+                        }}>
+                          Reassign Lease
+                        </Button>
+                      ) : (
+                        <div className="border-t border-outline-variant/20 pt-3 space-y-3">
+                          <p className="text-xs font-bold text-outline uppercase tracking-wider">New Lease</p>
+                          <FormField label="New Tenant">
+                            <select className="input-base" value={reassignTenantId} onChange={e => setReassignTenantId(e.target.value)}>
+                              <option value="">— Select tenant —</option>
+                              {reassignTenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                            </select>
+                            {reassignTenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No available tenants.</p>}
+                          </FormField>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Start Date">
+                              <input type="date" className="input-base" value={reassignStartDate} onChange={e => setReassignStartDate(e.target.value)} />
+                            </FormField>
+                            <FormField label="End Date">
+                              <input type="date" className="input-base" value={reassignEndDate} onChange={e => setReassignEndDate(e.target.value)} />
+                            </FormField>
+                          </div>
+                          <FormField label="Security Deposit ($)" optional>
+                            <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={reassignSecurityDeposit} onChange={e => setReassignSecurityDeposit(e.target.value)} />
+                          </FormField>
+                          {reassignFormError && <p className="text-sm text-error">{reassignFormError}</p>}
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" variant="secondary" onClick={resetReassign}>Cancel</Button>
+                            <Button type="button" size="sm" loading={reassignLoading} onClick={() => onReassignLease(editingUnit.id, selected!.id, lease.rent_amount)}>Confirm Reassign</Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })() : (
+                  <>
+                    <FormField label="Tenant">
+                      <select className="input-base" value={editLeaseTenantId} onChange={e => setEditLeaseTenantId(e.target.value)}>
+                        <option value="">— Select tenant —</option>
+                        {unitTenantOptions.map(t => <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>)}
+                      </select>
+                      {unitTenantOptions.length === 0 && <p className="text-xs text-on-surface-variant mt-1">No available tenants. Add a tenant first.</p>}
+                    </FormField>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField label="Start Date">
+                        <input type="date" className="input-base" value={editLeaseStartDate} onChange={e => setEditLeaseStartDate(e.target.value)} />
+                      </FormField>
+                      <FormField label="End Date">
+                        <input type="date" className="input-base" value={editLeaseEndDate} onChange={e => setEditLeaseEndDate(e.target.value)} />
+                      </FormField>
+                    </div>
+                    <FormField label="Security Deposit ($)" optional>
+                      <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={editLeaseSecurityDeposit} onChange={e => setEditLeaseSecurityDeposit(e.target.value)} />
+                    </FormField>
+                    {editLeaseFormError && <p className="text-sm text-error">{editLeaseFormError}</p>}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {editUnitServerError && <p className="text-sm text-error">{editUnitServerError}</p>}
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowEditUnit(false)} className="flex-1">Cancel</Button>
+            <Button type="button" variant="secondary" onClick={() => { setShowEditUnit(false); resetReassign() }} className="flex-1">Cancel</Button>
             <Button type="submit" loading={editUnitForm.formState.isSubmitting} className="flex-1">{editUnitForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
           </div>
         </form>
@@ -670,7 +1014,7 @@ export default function PropertiesPage() {
               {addUnitForm.formState.errors.rent_amount && <p className="text-error text-xs mt-1">{addUnitForm.formState.errors.rent_amount.message}</p>}
             </FormField>
             <FormField label="Status" className="col-span-2">
-              <select {...addUnitForm.register('status')} className="input-base" disabled={addUnitCreateLease}>
+              <select {...addUnitForm.register('status')} className="input-base">
                 <option value="vacant">Vacant</option>
                 <option value="occupied">Occupied</option>
                 <option value="maintenance">Under Maintenance</option>
@@ -693,19 +1037,13 @@ export default function PropertiesPage() {
             />
           </FormField>
 
-          {/* Optional lease section */}
-          <div className="border-t border-outline-variant/20 pt-4">
-            <button
-              type="button"
-              onClick={() => { setAddUnitCreateLease(v => !v); setLeaseFormError('') }}
-              className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-            >
-              <span className="material-symbols-outlined text-base">{addUnitCreateLease ? 'check_box' : 'check_box_outline_blank'}</span>
-              Attach a lease to this unit
-            </button>
-
-            {addUnitCreateLease && (
-              <div className="mt-4 space-y-4 bg-surface-container rounded-2xl p-4">
+          {addUnitCreateLease && (
+            <div className="border-t border-outline-variant/20 pt-4 space-y-4">
+              <p className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-base">assignment</span>
+                Lease Required for Occupied Unit
+              </p>
+              <div className="bg-surface-container rounded-2xl p-4 space-y-4">
                 <FormField label="Tenant">
                   <select className="input-base" value={leaseTenantId} onChange={e => setLeaseTenantId(e.target.value)}>
                     <option value="">— Select tenant —</option>
@@ -721,13 +1059,13 @@ export default function PropertiesPage() {
                     <input type="date" className="input-base" value={leaseEndDate} onChange={e => setLeaseEndDate(e.target.value)} />
                   </FormField>
                 </div>
-                <FormField label="Security Deposit ($)">
+                <FormField label="Security Deposit ($)" optional>
                   <input type="number" min="0" step="0.01" className="input-base" placeholder="e.g. 5000" value={leaseSecurityDeposit} onChange={e => setLeaseSecurityDeposit(e.target.value)} />
                 </FormField>
                 {leaseFormError && <p className="text-sm text-error">{leaseFormError}</p>}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {unitServerError && <p className="text-sm text-error">{unitServerError}</p>}
           <div className="flex gap-3 pt-2">
