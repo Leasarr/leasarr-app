@@ -30,5 +30,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Keep auth user_metadata in sync so middleware routing matches profile role
+  await serviceClient.auth.admin.updateUserById(user.id, {
+    user_metadata: { role },
+  })
+
   return NextResponse.json({ ok: true })
 }
