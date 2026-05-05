@@ -97,7 +97,11 @@ export async function middleware(request: NextRequest) {
     const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r))
     // Auth pages (login/register) redirect logged-in users to their home
     if (isAuthRoute && user) {
-      const role = user.user_metadata?.role as string
+      let role = user.user_metadata?.role as string | undefined
+      if (!role) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        role = profile?.role ?? ''
+      }
       return NextResponse.redirect(
         new URL(role === 'tenant' ? '/portal' : '/dashboard', request.url)
       )
@@ -113,7 +117,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Logged in: enforce role-based access
-  const role = user.user_metadata?.role as string
+  // Prefer user_metadata.role (fast, no DB); fall back to profiles table if missing
+  let role = user.user_metadata?.role as string | undefined
+  if (!role) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    role = profile?.role ?? ''
+  }
 
   if (MANAGER_ROUTES.some(r => pathname.startsWith(r)) && role === 'tenant') {
     return NextResponse.redirect(new URL('/portal', request.url))
