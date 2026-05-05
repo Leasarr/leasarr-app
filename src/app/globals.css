@@ -159,6 +159,7 @@
     color: rgb(var(--color-on-surface));
     min-height: 100dvh;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
 
   .font-headline, h1, h2, h3 {
