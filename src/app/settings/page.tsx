@@ -150,7 +150,7 @@ function ProfileSection() {
   async function removePhoto() {
     setRemovingPhoto(true)
     try {
-      await updateProfile({ avatar_url: undefined })
+      await updateProfile({ avatar_url: null })
     } finally {
       setRemovingPhoto(false)
     }
@@ -289,12 +289,15 @@ function ProfileSection() {
 
         {profile?.role === 'manager' ? (
           <>
-            <p className="text-sm text-on-surface-variant mb-4">
-              Manager accounts cannot be self-deleted — your account is linked to properties, tenants, leases, and payments. Contact support to close your account.
+            <p className="text-sm text-on-surface-variant mb-2">
+              Manager accounts cannot be self-deleted — your account is linked to properties, tenants, leases, and payments.
             </p>
-            <Button variant="destructive" size="md" disabled iconLeft="delete_forever">
-              Delete Account
-            </Button>
+            <a
+              href="mailto:support@leasarr.com?subject=Account%20Deletion%20Request"
+              className="text-sm font-semibold text-error hover:underline"
+            >
+              Contact support to close your account →
+            </a>
           </>
         ) : (
           <>

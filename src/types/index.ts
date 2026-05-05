@@ -4,7 +4,7 @@ export interface Profile {
   name: string
   email: string
   role: 'admin' | 'manager' | 'tenant'
-  avatar_url?: string
+  avatar_url?: string | null
   phone?: string
   created_at: string
   updated_at: string

@@ -104,25 +104,23 @@ export function ImageUpload({ value, onChange, bucket, path, shape = 'square', h
       />
 
       {preview ? (
-        <div className={cn('relative overflow-hidden bg-surface-container-high', radiusClass, shape === 'circle' ? 'aspect-square' : height)}>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className={cn('relative overflow-hidden bg-surface-container-high group block', radiusClass, shape === 'circle' ? 'aspect-square w-full' : `w-full ${height}`)}
+        >
           <img src={preview} alt="" className="w-full h-full object-cover" />
           {uploading ? (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <span className="material-symbols-outlined text-white text-2xl animate-spin">progress_activity</span>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="absolute inset-0 w-full h-full flex items-end justify-center pb-2"
-            >
-              <span className="bg-black/60 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">edit</span>
-                Change
-              </span>
-            </button>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+              <span className="material-symbols-outlined text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200">photo_camera</span>
+            </div>
           )}
-        </div>
+        </button>
       ) : (
         <button
           type="button"

@@ -5,12 +5,16 @@ import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, Suspense } from 'react'
 
-if (typeof window !== 'undefined') {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-    capture_pageview: false, // manual pageview via PostHogPageview
-    capture_pageleave: true,
-  })
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  try {
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      capture_pageview: false,
+      capture_pageleave: true,
+    })
+  } catch {
+    // blocked by ad blocker or privacy extension
+  }
 }
 
 function PostHogPageview() {
@@ -20,10 +24,12 @@ function PostHogPageview() {
 
   useEffect(() => {
     if (pathname) {
-      const url = searchParams.toString()
-        ? `${pathname}?${searchParams.toString()}`
-        : pathname
-      ph.capture('$pageview', { $current_url: url })
+      try {
+        const url = searchParams.toString()
+          ? `${pathname}?${searchParams.toString()}`
+          : pathname
+        ph.capture('$pageview', { $current_url: url })
+      } catch {}
     }
   }, [pathname, searchParams, ph])
 

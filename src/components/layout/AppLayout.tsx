@@ -87,6 +87,16 @@ function NotificationContent({
   )
 }
 
+function AvatarBubble({ avatarUrl, initials, size = 8 }: { avatarUrl: string | null; initials: string; size?: number }) {
+  return avatarUrl ? (
+    <img src={avatarUrl} alt="" className={cn(`w-${size} h-${size}`, 'rounded-full object-cover')} suppressHydrationWarning />
+  ) : (
+    <div suppressHydrationWarning className={cn(`w-${size} h-${size}`, 'rounded-full primary-gradient flex items-center justify-center flex-shrink-0')}>
+      <span className="text-on-primary text-xs font-bold" suppressHydrationWarning>{initials}</span>
+    </div>
+  )
+}
+
 type NavItem = { href?: string; icon: string; label: string; exact?: boolean; action?: () => void }
 
 const MANAGER_NAV_ITEMS: NavItem[] = [
@@ -134,10 +144,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const [ownerName, setOwnerName] = useState<string | null>(null)
   // pinned = user locked sidebar open; hovered = temporary hover expansion
-  const [pinned, setPinned] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('sidebar_pinned') === 'true'
-  })
+  const [pinned, setPinned] = useState(false)
+  useEffect(() => {
+    setPinned(localStorage.getItem('sidebar_pinned') === 'true')
+  }, [])
   const [hovered, setHovered] = useState(false)
   const isExpanded = pinned || hovered
 
@@ -249,13 +259,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push('/')
   }
 
-  const AvatarBubble = ({ size = 8 }: { size?: number }) => avatarUrl ? (
-    <img src={avatarUrl} alt="" className={cn(`w-${size} h-${size}`, 'rounded-full object-cover')} />
-  ) : (
-    <div className={cn(`w-${size} h-${size}`, 'rounded-full primary-gradient flex items-center justify-center flex-shrink-0')}>
-      <span className="text-on-primary text-xs font-bold">{initials}</span>
-    </div>
-  )
 
   return (
     <div className="min-h-screen flex flex-col bg-surface overflow-x-hidden">
@@ -351,7 +354,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="ml-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                <AvatarBubble size={8} />
+                <AvatarBubble avatarUrl={avatarUrl} initials={initials} size={8} />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -505,7 +508,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* User info */}
             <div className="flex items-center gap-3 px-5 py-4 border-b border-outline-variant/10">
-              <AvatarBubble size={10} />
+              <AvatarBubble avatarUrl={avatarUrl} initials={initials} size={10} />
               <div>
                 <p className="text-sm font-semibold text-on-surface">{displayName}</p>
                 <p className="text-[10px] text-on-surface-variant">{roleLabel}</p>

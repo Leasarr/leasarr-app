@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
@@ -28,7 +28,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signOut: () => Promise<void>
-  updateProfile: (data: Partial<Pick<Profile, 'name' | 'email' | 'phone' | 'avatar_url'>>) => Promise<void>
+  updateProfile: (data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>> & { avatar_url?: string | null }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -57,10 +57,18 @@ function buildMockProfile(role: Profile['role']): Profile {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const [user, setUser] = useState<User | null>(null)
-  // Seed from localStorage so returning users skip the auth spinner entirely
-  const [profile, setProfile] = useState<Profile | null>(readCachedProfile)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(() => readCachedProfile() === null)
+  const [loading, setLoading] = useState(true)
+
+  // Load cached profile before first paint to avoid layout flash (useLayoutEffect = before paint)
+  useLayoutEffect(() => {
+    const cached = readCachedProfile()
+    if (cached) {
+      setProfile(cached)
+      setLoading(false)
+    }
+  }, [])
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -120,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }
 
-  async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone' | 'avatar_url'>>) {
+  async function updateProfile(data: Partial<Pick<Profile, 'name' | 'email' | 'phone'>> & { avatar_url?: string | null }) {
     if (MOCK_AUTH) {
       setProfile(prev => {
         const next = prev ? { ...prev, ...data } : prev
