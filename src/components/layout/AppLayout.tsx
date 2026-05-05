@@ -230,7 +230,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
-  const { isTrialing, isExpired, daysLeft } = useSubscription()
+  const { isTrialing, isExpired, isActive, daysLeft, loading: subLoading } = useSubscription()
 
   const unreadCount = notifications.filter(n => !n.read).length
   const isTenant = profile?.role === 'tenant'
@@ -553,6 +553,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 Sign Out
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Trial expired paywall ── */}
+      {!subLoading && !isTenant && isExpired && !isActive && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-surface/80 backdrop-blur-sm px-4">
+          <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal w-full max-w-md p-8 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-error-container flex items-center justify-center mx-auto mb-5">
+              <span className="material-symbols-outlined text-error text-2xl">lock</span>
+            </div>
+            <h2 className="font-headline text-2xl font-bold text-on-surface mb-2">Your trial has ended</h2>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
+              Your 30-day free trial is over. Upgrade to a plan to keep managing your properties, tenants, and payments.
+            </p>
+            <Link
+              href="/settings?section=billing"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl primary-gradient text-on-primary font-bold text-sm hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-base">upgrade</span>
+              Choose a Plan
+            </Link>
+            <p className="mt-4 text-xs text-outline">
+              Questions?{' '}
+              <a href="mailto:support@leasarr.com" className="underline hover:text-on-surface-variant transition-colors">
+                Contact support
+              </a>
+            </p>
           </div>
         </div>
       )}
