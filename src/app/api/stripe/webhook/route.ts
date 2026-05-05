@@ -30,7 +30,36 @@ async function getManagerIdFromSubscription(stripeSubscriptionId: string) {
 }
 
 function emailHtml(title: string, body: string, ctaLabel: string, ctaUrl: string) {
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px"><tr><td align="center"><table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden"><tr><td style="background:#1a1a2e;padding:24px 32px"><span style="color:#ffffff;font-size:20px;font-weight:700">Leasarr</span></td></tr><tr><td style="padding:32px"><h2 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#111">${title}</h2><p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444">${body}</p><a href="${ctaUrl}" style="display:inline-block;padding:12px 24px;background:#1a1a2e;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">${ctaLabel} →</a></td></tr></table></td></tr></table></body></html>`
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
+        <tr>
+          <td style="background:#1a1a2e;padding:24px 32px">
+            <span style="color:#ffffff;font-size:20px;font-weight:700;font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.5px">Leasarr</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:700;font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111">${title}</h2>
+            <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444">${body}</p>
+            <a href="${ctaUrl}" style="display:inline-block;padding:12px 24px;background:#1a1a2e;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">${ctaLabel} →</a>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
 }
 
 export async function POST(request: NextRequest) {
