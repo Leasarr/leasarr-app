@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   const tenantName = [tenant_first_name, tenant_last_name].filter(Boolean).join(' ')
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const appUrl = new URL(request.url).origin
   const registerUrl = `${appUrl}/auth/register?email=${encodeURIComponent(tenant_email)}&role=tenant`
 
   await resend.emails.send({
