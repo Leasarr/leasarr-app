@@ -154,7 +154,7 @@ export function Nav() {
                     Sign in
                   </Link>
                   <Link
-                    href="/auth/register"
+                    href="/waitlist"
                     className={cn(
                       'text-sm font-semibold px-4 py-2 rounded-lg transition-all duration-200',
                       scrolled
@@ -162,7 +162,7 @@ export function Nav() {
                         : 'bg-white text-[#003D9B] hover:bg-white/90 hover:scale-[1.02]'
                     )}
                   >
-                    Start free →
+                    Join waitlist →
                   </Link>
                 </>
               )}
@@ -237,7 +237,7 @@ export function Nav() {
                 </Link>
               ) : (
                 <>
-                  <Link href="/auth/register" className="btn-primary text-center py-3" onClick={() => setMobileOpen(false)}>Start free →</Link>
+                  <Link href="/waitlist" className="btn-primary text-center py-3" onClick={() => setMobileOpen(false)}>Join waitlist →</Link>
                   <Link href="/auth/login" className="text-center text-on-surface-variant font-medium py-2" onClick={() => setMobileOpen(false)}>Sign in</Link>
                 </>
               )}

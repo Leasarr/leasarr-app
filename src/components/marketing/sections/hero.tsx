@@ -19,8 +19,9 @@ export function Hero() {
       <div className="relative max-w-7xl mx-auto px-6 md:px-10 lg:px-16 py-20 lg:py-28">
         <div className="flex flex-col items-center text-center gap-8 lg:gap-10">
           {/* Label pill */}
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase bg-white/10 text-white border border-white/20">
-            Property Management Platform
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase bg-white/10 text-white border border-white/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            Private beta · 25 spots available
           </span>
 
           {/* Headline */}
@@ -37,16 +38,16 @@ export function Hero() {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <Link
-              href="/auth/register"
+              href="/waitlist"
               className="px-6 py-3 rounded-lg bg-white text-[#003D9B] font-semibold text-base hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-lg"
             >
-              Start free — no card needed
+              Request early access →
             </Link>
             <Link
               href="/#features"
               className="px-6 py-3 rounded-lg border border-white/30 text-white font-semibold text-base hover:bg-white/10 transition-all duration-200"
             >
-              See how it works →
+              See how it works
             </Link>
           </div>
 

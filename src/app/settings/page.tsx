@@ -26,7 +26,9 @@ import type { Subscription } from '@/types'
 
 const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-type Section = 'profile' | 'billing' | 'team' | 'notifications'
+const ADMIN_EMAILS = ['bhasmangdixit@gmail.com', 'prashantgadhvi111@gmail.com']
+
+type Section = 'profile' | 'billing' | 'team' | 'notifications' | 'beta'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -49,11 +51,12 @@ type PasswordForm = z.infer<typeof passwordSchema>
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const ALL_SECTIONS: { key: Section; icon: string; label: string; description: string; managerOnly?: boolean }[] = [
+const ALL_SECTIONS: { key: Section; icon: string; label: string; description: string; managerOnly?: boolean; adminOnly?: boolean }[] = [
   { key: 'profile', icon: 'person', label: 'Profile', description: 'Name, email, avatar, password' },
   { key: 'billing', icon: 'credit_card', label: 'Billing', description: 'Subscription and plan', managerOnly: true },
   { key: 'team', icon: 'group', label: 'Team', description: 'Invite and manage team members', managerOnly: true },
   { key: 'notifications', icon: 'notifications', label: 'Notifications', description: 'Email notification preferences' },
+  { key: 'beta', icon: 'verified', label: 'Beta', description: 'Waitlist and invite management', adminOnly: true },
 ]
 
 // ─── Plan config ──────────────────────────────────────────────────────────────
@@ -999,6 +1002,148 @@ function NotificationsSection() {
   )
 }
 
+// ─── Beta section (admin only) ────────────────────────────────────────────────
+
+type WaitlistEntry = { id: string; name: string; email: string; property_count: string | null; created_at: string }
+type InviteCode = { id: string; code: string; uses_count: number; max_uses: number }
+
+function BetaSection() {
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([])
+  const [codes, setCodes] = useState<InviteCode[]>([])
+  const [loading, setLoading] = useState(true)
+  const [approving, setApproving] = useState<WaitlistEntry | null>(null)
+  const [selectedCode, setSelectedCode] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
+  const [sentTo, setSentTo] = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/admin/waitlist')
+      .then(r => r.json())
+      .then(d => { setWaitlist(d.waitlist ?? []); setCodes(d.codes ?? []) })
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function sendInvite() {
+    if (!approving || !selectedCode) return
+    setSending(true)
+    setSendError('')
+    const res = await fetch('/api/admin/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: approving.name, email: approving.email, code: selectedCode }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSendError(data.error ?? 'Failed to send')
+      setSending(false)
+      return
+    }
+    setSentTo(prev => [...prev, approving.email])
+    setCodes(prev => prev.filter(c => c.code !== selectedCode))
+    setApproving(null)
+    setSelectedCode('')
+    setSending(false)
+  }
+
+  if (loading) return <LoadingState size="panel" />
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card padding="md">
+          <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Waitlist</p>
+          <p className="text-3xl font-headline font-extrabold text-on-surface">{waitlist.length}</p>
+          <p className="text-xs text-on-surface-variant mt-0.5">people waiting</p>
+        </Card>
+        <Card padding="md">
+          <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Codes left</p>
+          <p className="text-3xl font-headline font-extrabold text-on-surface">{codes.length}</p>
+          <p className="text-xs text-on-surface-variant mt-0.5">available</p>
+        </Card>
+      </div>
+
+      {/* Waitlist */}
+      <Card padding="md">
+        <p className="text-sm font-bold text-on-surface mb-4">Waitlist</p>
+        {waitlist.length === 0 ? (
+          <EmptyState icon="people" title="No one on the waitlist yet" size="inline" />
+        ) : (
+          <div className="divide-y divide-outline-variant/10 -mx-1">
+            {waitlist.map(entry => {
+              const approved = sentTo.includes(entry.email)
+              return (
+                <div key={entry.id} className="flex items-center gap-3 py-3 px-1">
+                  <div className="w-9 h-9 rounded-xl bg-primary-container/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {entry.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-on-surface truncate">{entry.name}</p>
+                    <p className="text-xs text-on-surface-variant truncate">{entry.email} · {entry.property_count ?? '—'} units</p>
+                  </div>
+                  <p className="text-xs text-on-surface-variant flex-shrink-0 hidden sm:block">
+                    {formatDate(entry.created_at)}
+                  </p>
+                  {approved ? (
+                    <span className="badge bg-secondary-container text-on-secondary-container flex-shrink-0">Invited</span>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={codes.length === 0}
+                      onClick={() => { setApproving(entry); setSelectedCode(codes[0]?.code ?? '') }}
+                    >
+                      Approve
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* Approve modal */}
+      <Modal
+        open={Boolean(approving)}
+        onClose={() => { setApproving(null); setSelectedCode(''); setSendError('') }}
+        title="Send invite"
+        size="sm"
+      >
+        {approving && (
+          <div className="space-y-4">
+            <p className="text-sm text-on-surface-variant">
+              Sending an invite code to <span className="font-semibold text-on-surface">{approving.name}</span> ({approving.email}).
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Select invite code</label>
+              <select
+                value={selectedCode}
+                onChange={e => setSelectedCode(e.target.value)}
+                className="input-base"
+              >
+                {codes.map(c => (
+                  <option key={c.id} value={c.code}>{c.code}</option>
+                ))}
+              </select>
+            </div>
+            {sendError && <p className="text-sm text-error">{sendError}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="secondary" size="md" onClick={() => { setApproving(null); setSendError('') }}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="md" loading={sending} onClick={sendInvite}>
+                {sending ? 'Sending...' : 'Send invite →'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function SettingsPageInner() {
@@ -1016,11 +1161,14 @@ function SettingsPageInner() {
   }, [])
 
   const isTenant = profile?.role === 'tenant'
+  const isAdmin = ADMIN_EMAILS.includes(profile?.email ?? '')
   const backHref = isTenant ? '/portal' : '/dashboard'
   const backLabel = isTenant ? 'Back to Portal' : 'Back to Dashboard'
-  const navItems = isTenant
-    ? ALL_SECTIONS.filter(s => !s.managerOnly)
-    : ALL_SECTIONS
+  const navItems = ALL_SECTIONS.filter(s => {
+    if (s.adminOnly) return isAdmin
+    if (s.managerOnly) return !isTenant
+    return true
+  })
 
   const activeMeta = navItems.find(n => n.key === activeSection)
 
@@ -1135,6 +1283,7 @@ function SettingsPageInner() {
               {activeSection === 'billing' && <BillingSection />}
               {activeSection === 'team' && <TeamSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
+              {activeSection === 'beta' && <BetaSection />}
             </div>
           )}
 

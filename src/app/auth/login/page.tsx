@@ -184,8 +184,8 @@ function LoginForm() {
         </div>
 
         <p className="text-center text-sm text-on-surface-variant mt-6">
-          Don&apos;t have an account?{' '}
-          <a href="/auth/register" className="font-bold text-primary hover:underline">Create one</a>
+          Have an invite code?{' '}
+          <a href="/auth/register" className="font-bold text-primary hover:underline">Create your account →</a>
         </p>
       </div>
     </div>

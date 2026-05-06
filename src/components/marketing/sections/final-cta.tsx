@@ -13,14 +13,14 @@ export function FinalCTA() {
             Ready to run your portfolio smarter?
           </h2>
           <p className="text-lg text-white/70 mb-10 max-w-xl mx-auto">
-            Free to start. No credit card required.
+            We're onboarding our first 25 property managers. Join the waitlist for early access.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/register"
+              href="/waitlist"
               className="px-7 py-3.5 rounded-lg bg-white text-[#003D9B] font-semibold text-base hover:bg-white/90 hover:scale-[1.02] transition-all duration-200 shadow-lg"
             >
-              Start free →
+              Join the waitlist →
             </Link>
             <a
               href="mailto:hello@leasarr.com"
