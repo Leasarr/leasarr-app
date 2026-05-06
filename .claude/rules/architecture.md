@@ -11,6 +11,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/` | Marketing homepage; logged-in users redirected to their dashboard |
 | `/pricing` | Pricing page — open to everyone including logged-in users |
 | `/about` | About page — open to everyone (V2, not yet built) |
+| `/waitlist` | Beta waitlist signup — open to everyone; collects name, email, property count |
 
 ### Auth
 
@@ -31,7 +32,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/payments` | Full CRUD; auto-fills from active lease |
 | `/maintenance` | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
 | `/leases` | Full CRUD; smart form (tenant↔property↔unit auto-population; filters units without active lease) |
-| `/settings` | Four sections (Profile, Billing, Team, Notifications); profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs; supports `?section=billing\|profile\|team\|notifications` deep-link |
+| `/settings` | Five sections (Profile, Billing, Team, Notifications, Beta); Beta section visible only to `ADMIN_EMAILS` list; profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs; supports `?section=billing\|profile\|team\|notifications` deep-link |
 | `/tenants` | Master-detail tenant list; add tenant form; per-tenant tabs for payments, lease, maintenance (not in sidebar nav) |
 | `/communication` | Live Supabase data; sidebar toggles Messages/Broadcast; messages tab: ConversationList + ChatPanel with realtime; broadcast tab: BroadcastPanel + AnnouncementHistory; NewChatModal for starting conversations |
 | `/reports` | Mock data — V2 |
@@ -67,12 +68,13 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 
 ### Marketing site
 - `src/components/marketing/layout.tsx` — `<MarketingLayout>` wraps all marketing pages with `<Nav>` + `<Footer>`.
-- `src/components/marketing/nav.tsx` — Fixed top nav; transparent on dark hero, frosted glass on scroll. Active link: "Pricing". Theme toggle dropdown.
+- `src/components/marketing/nav.tsx` — Fixed top nav; transparent on dark hero, frosted glass on scroll. Active link: "Pricing". Theme toggle dropdown. CTA: "Join waitlist →" → `/waitlist`.
 - `src/components/marketing/footer.tsx` — Shared footer.
-- `src/components/marketing/sections/` — Homepage sections: `hero`, `proof-bar`, `feature-overview`, `feature-deepdive`, `audience`, `testimonials`, `final-cta`.
+- `src/components/marketing/sections/` — Homepage sections: `hero`, `proof-bar`, `feature-overview`, `feature-deepdive`, `audience`, `testimonials`, `final-cta`. Hero and final-cta CTAs point to `/waitlist` (private beta mode).
 - `src/components/marketing/sections/pricing/` — Pricing page sections: `intro` (hero band), `tier-grid` (4-card grid + billing toggle + unit recommender), `compare` (feature table), `addons` (add-on grid), `faq` (accordion), `context` (`PricingControlsProvider` + `usePricing()`).
 - `src/components/marketing/ui/` — Shared marketing primitives: `fade-in`, `label-pill`, `section-header`, `mockup-panel`.
 - `src/lib/marketing/pricing.ts` — Single source of truth for pricing: `PRICING_TIERS`, `COMPARE_ROWS`, `PRICING_ADDONS`, `PRICING_FAQ`, `recommendTier(units)`. Keep in sync with `src/lib/stripe/plans.ts` when numbers change (plans.ts drives billing logic; pricing.ts drives marketing copy).
+- `src/app/waitlist/page.tsx` — Beta waitlist page; form submits to `/api/waitlist`; success state on submit.
 
 ## Migrations
 
@@ -97,6 +99,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `017_tenant_link_on_tenant_insert.sql` | Trigger + backfill: links existing profiles to tenant records by email on tenant INSERT (reverse of 009) |
 | `018_tenant_invited_at.sql` | Adds `invited_at timestamptz` to `tenants`; tracks when manager last sent portal invite |
 | `019_trial_setup.sql` | Trigger: auto-creates `subscriptions` row (`status='trialing'`, `trial_end = now() + 30 days`) on manager profile INSERT; backfills existing managers |
+| `020_rls_audit_fixes.sql` | RLS audit fixes |
+| `021_invite_waitlist.sql` | `invite_codes` table (code, max_uses, uses_count); `waitlist` table (email, name, property_count); RLS: invite_codes service-role only, waitlist anon insert |
 
 ## API routes
 
@@ -113,6 +117,11 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/api/notifications/email` | POST | Supabase webhook on `notifications` INSERT → sends email |
 | `/api/notifications/welcome` | POST | Supabase webhook on `profiles` INSERT → sends welcome email |
 | `/api/tenant/invite` | POST | Sends portal invite email to tenant via Resend; stamps `tenants.invited_at`; accepts `tenant_id`, `tenant_email`, `tenant_first_name`, `tenant_last_name` |
+| `/api/waitlist` | POST | Inserts into `waitlist` table; open to anyone (anon); dedupes by email |
+| `/api/invite/validate` | POST | Checks if an invite code exists and has remaining uses; used by register page before account creation |
+| `/api/invite/consume` | POST | Increments `uses_count` on an invite code; called after successful Supabase registration |
+| `/api/admin/waitlist` | GET | Returns waitlist entries + available invite codes; restricted to `ADMIN_EMAILS` |
+| `/api/admin/send-invite` | POST | Sends branded Resend invite email with code to an approved waitlist applicant; restricted to `ADMIN_EMAILS` |
 
 ## Supabase
 

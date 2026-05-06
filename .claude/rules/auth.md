@@ -15,10 +15,15 @@ paths:
 
 Keep any new auth logic dual-path.
 
+## Invite-only beta
+
+Manager registration requires an invite code. The register page shows an invite code field when role = manager and it's not a team invite (`isInvite`). Flow: validate code (`/api/invite/validate`) → Supabase signUp → consume code (`/api/invite/consume`). Google OAuth is hidden for manager sign-ups during beta (can't validate code mid-OAuth). Tenant and team-invite flows bypass the code check. Codes stored in `invite_codes` table; managed via Settings → Beta section (admin only). Login page shows "Have an invite code? Create your account →" to guide approved users.
+
 ## Google OAuth
 
 - Login: "Continue with Google" → `signInWithOAuth` → callback → `/dashboard`
-- Register: role selected first → "Sign up with Google" → role encoded in `redirectTo` → callback → `/auth/set-role?role=<role>` → POST `/api/auth/set-role` → home
+- Register (tenant/team invite only): role selected first → "Sign up with Google" → role encoded in `redirectTo` → callback → `/auth/set-role?role=<role>` → POST `/api/auth/set-role` → home
+- Manager register: Google OAuth hidden during beta — email/password + invite code only
 - `/auth/set-role` is in `PUBLIC_ROUTES` and `ALWAYS_ALLOW` in middleware
 - Callback decodes the `next` param (`decodeURIComponent`) for encoded query strings
 
@@ -42,10 +47,10 @@ const { user, profile, session, loading, signOut, updateProfile } = useAuth()
 
 Three distinct route tiers — defined by `OPEN_ROUTES`, `AUTH_ROUTES`, and `ALWAYS_ALLOW` in `src/middleware.ts`:
 
-- **Open** (`/pricing`, `/about`) — anyone can visit, logged-in or not. No redirect.
+- **Open** (`/pricing`, `/about`, `/waitlist`) — anyone can visit, logged-in or not. No redirect.
 - **Homepage** (`/`) — behaves like an auth route: logged-in users are redirected to their dashboard; logged-out users see the marketing homepage.
 - **Auth routes** (`/auth/login`, `/auth/register`, `/auth/reset-password`) — logged-out only; logged-in users redirected to their home.
-- **Always allow** (`/auth/callback`, `/auth/update-password`, `/auth/set-role`, `/api/stripe`, `/api/notifications`) — never redirected.
+- **Always allow** (`/auth/callback`, `/auth/update-password`, `/auth/set-role`, `/api/stripe`, `/api/notifications`, `/api/team`, `/api/waitlist`, `/api/invite`, `/api/admin`) — never redirected.
 - **Manager routes** (`/dashboard`, `/people`, `/payments`, `/maintenance`, `/leases`, `/properties`, `/communication`, `/reports`, `/notifications`) — manager role only; tenant → `/portal`.
 - **Tenant routes** (`/portal`) — tenant role only; manager → `/dashboard`.
 - Unauthenticated on a protected route → `/auth/login?redirectTo=<path>`
