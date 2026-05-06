@@ -75,12 +75,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${MARKETING_HOST}`))
   }
 
-  // leasarr.com: send app routes to the app subdomain
+  // leasarr.com: send app routes (including auth pages) to the app subdomain
+  // ALWAYS_ALLOW routes (/auth/callback, /auth/set-role, etc.) still pass through on both domains
   if (site === 'marketing') {
     const isAllowed =
       pathname === '/' ||
       OPEN_ROUTES.some(r => pathname.startsWith(r)) ||
-      pathname.startsWith('/auth') ||
       ALWAYS_ALLOW.some(r => pathname.startsWith(r))
     if (!isAllowed) {
       return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${APP_HOST}`))
