@@ -1,12 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const APP_HOST = 'app.leasarr.com'
+const MARKETING_HOST = 'leasarr.com'
+
 // Marketing pages — open to everyone, including logged-in users
 const OPEN_ROUTES = ['/pricing', '/about']
 // Routes where logged-in users are redirected to their home (homepage + auth pages)
 const AUTH_ROUTES = ['/', '/auth/login', '/auth/register', '/auth/reset-password']
 const PUBLIC_ROUTES = [...OPEN_ROUTES, ...AUTH_ROUTES, '/auth/callback', '/auth/set-role']
 const ALWAYS_ALLOW = ['/auth/callback', '/auth/update-password', '/auth/set-role', '/auth/accept-invite', '/api/stripe', '/api/notifications', '/api/team']
+
+function getSite(request: NextRequest): 'app' | 'marketing' | 'dev' {
+  const host = request.headers.get('host') ?? ''
+  if (host.includes('localhost') || host.includes('127.0.0.1')) return 'dev'
+  if (host.startsWith('app.')) return 'app'
+  return 'marketing'
+}
 
 const MANAGER_ROUTES = [
   '/dashboard', '/tenants', '/people', '/payments', '/maintenance',
@@ -57,6 +67,26 @@ export async function middleware(request: NextRequest) {
     return handleMockAuth(request)
   }
 
+  const pathname = request.nextUrl.pathname
+  const site = getSite(request)
+
+  // app.leasarr.com: send marketing-only pages to the marketing domain
+  if (site === 'app' && OPEN_ROUTES.some(r => pathname.startsWith(r))) {
+    return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${MARKETING_HOST}`))
+  }
+
+  // leasarr.com: send app routes to the app subdomain
+  if (site === 'marketing') {
+    const isAllowed =
+      pathname === '/' ||
+      OPEN_ROUTES.some(r => pathname.startsWith(r)) ||
+      pathname.startsWith('/auth') ||
+      ALWAYS_ALLOW.some(r => pathname.startsWith(r))
+    if (!isAllowed) {
+      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, `https://${APP_HOST}`))
+    }
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
@@ -87,7 +117,11 @@ export async function middleware(request: NextRequest) {
   // Always use getUser() in middleware — validates the JWT server-side
   const { data: { user } } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
+  // On app subdomain, logged-out users hitting / should see the marketing site
+  if (site === 'app' && pathname === '/' && !user) {
+    return NextResponse.redirect(new URL('/', `https://${MARKETING_HOST}`))
+  }
+
   const isPublic = PUBLIC_ROUTES.some(r => r === '/' ? pathname === '/' : pathname.startsWith(r))
 
   // Callback must always run — never redirect mid-OAuth
