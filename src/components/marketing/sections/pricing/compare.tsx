@@ -18,6 +18,9 @@ function Cell({ value }: { value: CellValue }) {
   if (value === 'Add-on') {
     return <Badge variant="neutral">Add-on</Badge>
   }
+  if (value === 'Coming soon') {
+    return <Badge variant="secondary">Coming soon</Badge>
+  }
   return <span className="text-sm font-medium text-on-surface">{value}</span>
 }
 

@@ -57,7 +57,8 @@ export const PRICING_TIERS: PricingTier[] = [
       '3 manager seats',
       '10 GB document storage',
       'Everything in Starter',
-      'Reports & analytics + CSV export',
+      'Reports & analytics (coming soon)',
+      'CSV export (coming soon)',
       'In-app messaging',
     ],
     popular: true,
@@ -106,7 +107,7 @@ export const PRICING_TIERS: PricingTier[] = [
   },
 ]
 
-export type CellValue = true | false | string
+export type CellValue = true | false | 'Coming soon' | string
 
 export interface CompareRow {
   group: string
@@ -121,10 +122,10 @@ export const COMPARE_ROWS: CompareRow[] = [
   { group: 'Core management', label: 'Maintenance requests', values: [true, true, true, true] },
   { group: 'Core management', label: 'Vendor management', values: [true, true, true, true] },
   { group: 'Core management', label: 'Tenant portal', values: [true, true, true, true] },
-  { group: 'Team & limits', label: 'Manager seats', values: ['1', '3', '10', 'Unlimited'] },
-  { group: 'Team & limits', label: 'Document storage', values: ['1 GB', '10 GB', '50 GB', 'Unlimited'] },
-  { group: 'Reporting & data', label: 'Reports & analytics', values: [false, true, true, true] },
-  { group: 'Reporting & data', label: 'CSV export', values: [false, true, true, true] },
+  { group: 'Team & limits', label: 'Manager seats', values: ['1', '3', '10', 'Custom'] },
+  { group: 'Team & limits', label: 'Document storage', values: ['1 GB', '10 GB', '50 GB', 'Custom'] },
+  { group: 'Reporting & data', label: 'Reports & analytics', values: [false, 'Coming soon', 'Coming soon', 'Coming soon'] },
+  { group: 'Reporting & data', label: 'CSV export', values: [false, 'Coming soon', 'Coming soon', 'Coming soon'] },
   { group: 'Reporting & data', label: 'In-app messaging', values: [false, true, true, true] },
   { group: 'Add-ons included', label: 'ACH payments', values: ['Add-on', 'Add-on', true, true] },
   { group: 'Add-ons included', label: 'e-Sign documents', values: ['Add-on', 'Add-on', true, true] },

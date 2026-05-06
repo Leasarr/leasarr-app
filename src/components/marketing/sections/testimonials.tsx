@@ -17,7 +17,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "I can see every unit's status from one dashboard. My owners stopped asking for manual reports because they trust the numbers.",
+      "I can see every unit's status from one dashboard. Occupancy, payments, maintenance — everything in one place instead of chasing it down.",
     name: 'Carlos T.',
     role: 'Portfolio Manager',
     units: 230,

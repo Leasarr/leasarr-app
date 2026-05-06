@@ -23,7 +23,7 @@ const AUDIENCE_CARDS = [
     painPoints: [
       'No single view across your managed portfolio',
       'Vendor coordination happening outside any system',
-      'Owner reporting is manual and time-consuming',
+      'No audit trail — payments, leases, and maintenance live in separate tools',
       'Tenant communication scattered across tools and people',
     ],
     cta: 'Talk to us',

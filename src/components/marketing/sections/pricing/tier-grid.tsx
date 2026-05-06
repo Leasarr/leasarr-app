@@ -142,12 +142,17 @@ export function TierGrid() {
                   <div className="border-t border-outline-variant/40 my-6" />
 
                   <ul className="flex flex-col gap-3 flex-1">
-                    {tier.highlights.map(h => (
-                      <li key={h} className="flex items-start gap-2 text-sm text-on-surface">
-                        <span className="material-symbols-outlined text-base text-primary mt-0.5 flex-shrink-0">check</span>
-                        {h}
-                      </li>
-                    ))}
+                    {tier.highlights.map(h => {
+                      const isComingSoon = h.includes('(coming soon)')
+                      return (
+                        <li key={h} className={cn('flex items-start gap-2 text-sm', isComingSoon ? 'text-on-surface-variant' : 'text-on-surface')}>
+                          <span className={cn('material-symbols-outlined text-base mt-0.5 flex-shrink-0', isComingSoon ? 'text-on-surface-variant' : 'text-primary')}>
+                            {isComingSoon ? 'schedule' : 'check'}
+                          </span>
+                          {h}
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               </FadeIn>
