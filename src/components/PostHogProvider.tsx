@@ -11,6 +11,10 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
       capture_pageview: false,
       capture_pageleave: true,
+      loaded: (ph) => {
+        // Required for the PostHog toolbar to work on any page
+        ;(window as Window & { posthog?: typeof ph }).posthog = ph
+      },
     })
   } catch {
     // blocked by ad blocker or privacy extension
