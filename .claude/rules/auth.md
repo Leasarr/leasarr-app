@@ -47,7 +47,7 @@ const { user, profile, session, loading, signOut, updateProfile } = useAuth()
 
 Three distinct route tiers — defined by `OPEN_ROUTES`, `AUTH_ROUTES`, and `ALWAYS_ALLOW` in `src/middleware.ts`:
 
-- **Open** (`/pricing`, `/about`, `/waitlist`) — anyone can visit, logged-in or not. No redirect.
+- **Open** (`/pricing`, `/about`, `/waitlist`, `/privacy`) — anyone can visit, logged-in or not. No redirect.
 - **Homepage** (`/`) — behaves like an auth route: logged-in users are redirected to their dashboard; logged-out users see the marketing homepage.
 - **Auth routes** (`/auth/login`, `/auth/register`, `/auth/reset-password`) — logged-out only; logged-in users redirected to their home.
 - **Always allow** (`/auth/callback`, `/auth/update-password`, `/auth/set-role`, `/api/stripe`, `/api/notifications`, `/api/team`, `/api/waitlist`, `/api/invite`, `/api/admin`) — never redirected.

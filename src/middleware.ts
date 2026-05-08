@@ -5,7 +5,7 @@ const APP_HOST = 'app.leasarr.com'
 const MARKETING_HOST = 'leasarr.com'
 
 // Marketing pages — open to everyone, including logged-in users
-const OPEN_ROUTES = ['/pricing', '/about', '/waitlist']
+const OPEN_ROUTES = ['/pricing', '/about', '/waitlist', '/privacy']
 // Routes where logged-in users are redirected to their home (homepage + auth pages)
 const AUTH_ROUTES = ['/', '/auth/login', '/auth/register', '/auth/reset-password']
 const PUBLIC_ROUTES = [...OPEN_ROUTES, ...AUTH_ROUTES, '/auth/callback', '/auth/set-role']
