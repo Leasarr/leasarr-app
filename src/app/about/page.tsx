@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: 'About Leasarr',
     description: 'Leasarr is property management software built for landlords and property managers in Canada.',
     url: `${BASE_URL}/about`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'About Leasarr' }],
+    siteName: 'Leasarr',
   },
   alternates: {
     canonical: `${BASE_URL}/about`,

@@ -11,13 +11,12 @@ export const metadata: Metadata = {
     title: 'Get Early Access to Leasarr',
     description: "We're onboarding our first 25 property managers by invite only. Join the list.",
     url: `${BASE_URL}/waitlist`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Leasarr — Join the Waitlist' }],
+    siteName: 'Leasarr',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Get Early Access to Leasarr',
     description: "We're onboarding our first 25 property managers by invite only.",
-    images: [`${BASE_URL}/og-image.png`],
   },
   alternates: {
     canonical: `${BASE_URL}/waitlist`,

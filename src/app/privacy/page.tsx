@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: 'Leasarr Privacy Policy',
     description: 'How Leasarr collects, uses, and protects your personal information under PIPEDA and Quebec Law 25.',
     url: `${BASE_URL}/privacy`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Leasarr Privacy Policy' }],
+    siteName: 'Leasarr',
   },
   alternates: {
     canonical: `${BASE_URL}/privacy`,

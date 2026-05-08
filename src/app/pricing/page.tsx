@@ -16,15 +16,14 @@ export const metadata: Metadata = {
   description: 'Simple, transparent pricing for property management software. Free trial, no credit card required. Plans that scale with your portfolio.',
   openGraph: {
     title: 'Leasarr Pricing — Property Management Software',
-    description: 'Free trial, no credit card required. Plans that scale with your portfolio.',
+    description: 'Simple, transparent pricing. Plans that scale with your portfolio.',
     url: `${BASE_URL}/pricing`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Leasarr Pricing' }],
+    siteName: 'Leasarr',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Leasarr Pricing',
-    description: 'Free trial, no credit card required. Plans that scale with your portfolio.',
-    images: [`${BASE_URL}/og-image.png`],
+    description: 'Simple, transparent pricing. Plans that scale with your portfolio.',
   },
   alternates: {
     canonical: `${BASE_URL}/pricing`,
