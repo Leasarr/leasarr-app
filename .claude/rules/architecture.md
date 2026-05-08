@@ -12,6 +12,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/pricing` | Pricing page — open to everyone including logged-in users |
 | `/about` | About page — open to everyone (V2, not yet built) |
 | `/waitlist` | Beta waitlist signup — open to everyone; collects name, email, property count |
+| `/privacy` | Privacy policy page — open to everyone; covers data collection, retention, third-party processors, user rights (Law 25 / PIPEDA) |
 
 ### Auth
 
@@ -125,6 +126,9 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/api/invite/consume` | POST | Increments `uses_count` on an invite code; called after successful Supabase registration |
 | `/api/admin/waitlist` | GET | Returns waitlist entries + available invite codes; restricted to `ADMIN_EMAILS` |
 | `/api/admin/send-invite` | POST | Sends branded Resend invite email with code to an approved waitlist applicant; restricted to `ADMIN_EMAILS` |
+| `/api/consent` | GET | Returns the most recent consent record for the logged-in user (used by `syncFromServer`) |
+| `/api/consent` | POST | Inserts a new consent audit record; accepts `analytics`, `marketing`, `anonymous_id` |
+| `/api/consent` | DELETE | Inserts a `withdrawn` record; triggers banner re-prompt on next load |
 
 ## Supabase
 
