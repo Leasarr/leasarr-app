@@ -25,7 +25,7 @@ const TESTIMONIALS = [
 ]
 
 const STATS = [
-  { value: '500+', label: 'Early adopters' },
+  { value: '25', label: 'Beta spots available' },
   { value: 'Free', label: 'To get started' },
   { value: '<24hr', label: 'Support response' },
 ]

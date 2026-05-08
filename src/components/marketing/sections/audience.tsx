@@ -13,8 +13,8 @@ const AUDIENCE_CARDS = [
       'Tenants emailing and texting with no single thread',
       'No clear view of what each unit is actually costing you',
     ],
-    cta: 'Start free',
-    ctaHref: '/auth/register',
+    cta: 'Join the waitlist',
+    ctaHref: '/waitlist',
   },
   {
     icon: 'business',

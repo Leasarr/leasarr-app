@@ -10,7 +10,7 @@ export function ProofBar() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-16">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           <p className="text-sm font-medium text-on-surface-variant text-center lg:text-left">
-            Be among the first 500 property managers running on Leasarr.
+            Be among the first 25 property managers to get early access.
           </p>
           <div className="flex items-center gap-8 lg:gap-12">
             {METRICS.map((metric, i) => (
