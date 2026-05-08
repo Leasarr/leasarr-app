@@ -6,7 +6,7 @@ const AUDIENCE_CARDS = [
   {
     icon: 'person',
     title: 'Independent Landlord',
-    positioning: 'Run your units like a pro — without an office full of staff.',
+    positioning: 'Run your units like a pro, without an office full of staff.',
     painPoints: [
       'Juggling payments, maintenance, and leases across spreadsheets',
       'Missing renewal dates because nothing reminds you',
@@ -19,11 +19,11 @@ const AUDIENCE_CARDS = [
   {
     icon: 'business',
     title: 'Property Manager / Team',
-    positioning: 'One platform your whole team works from — not a stack of separate tools.',
+    positioning: 'One platform your whole team works from, not a stack of separate tools.',
     painPoints: [
       'No single view across your managed portfolio',
       'Vendor coordination happening outside any system',
-      'No audit trail — payments, leases, and maintenance live in separate tools',
+      'No audit trail. Payments, leases, and maintenance all live in separate tools',
       'Tenant communication scattered across tools and people',
     ],
     cta: 'Talk to us',
@@ -37,7 +37,7 @@ export function Audience() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-16">
         <FadeIn>
           <SectionHeader
-            heading="Built for how you operate."
+            heading="Built for independent landlords and property managers."
             subtext="Whether you manage 5 units or 500, Leasarr fits how you work."
             align="center"
             className="mb-14"
@@ -48,7 +48,7 @@ export function Audience() {
             <FadeIn key={card.title} delay={i * 120}>
               <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/40 p-8 flex flex-col gap-6 hover:-translate-y-1 transition-all duration-200 hover:shadow-lg h-full">
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-3xl text-primary">{card.icon}</span>
+                  <span className="material-symbols-outlined text-3xl text-primary" aria-hidden="true">{card.icon}</span>
                   <h3 className="text-xl font-bold text-on-surface">{card.title}</h3>
                 </div>
                 <p className="text-base font-medium text-on-surface-variant leading-relaxed">
@@ -57,7 +57,7 @@ export function Audience() {
                 <ul className="flex flex-col gap-2.5 flex-1">
                   {card.painPoints.map((point) => (
                     <li key={point} className="flex items-start gap-2 text-sm text-on-surface-variant">
-                      <span className="material-symbols-outlined text-tertiary text-base mt-0.5 flex-shrink-0">
+                      <span className="material-symbols-outlined text-tertiary text-base mt-0.5 flex-shrink-0" aria-hidden="true">
                         arrow_right
                       </span>
                       {point}

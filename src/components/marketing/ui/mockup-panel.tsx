@@ -6,6 +6,7 @@ interface MockupPanelProps {
   imageAlt?: string
   width?: number
   height?: number
+  priority?: boolean
   className?: string
 }
 
@@ -14,6 +15,7 @@ export function MockupPanel({
   imageAlt = 'Product screenshot',
   width = 1200,
   height = 750,
+  priority = false,
   className,
 }: MockupPanelProps) {
   return (
@@ -29,6 +31,7 @@ export function MockupPanel({
           alt={imageAlt}
           width={width}
           height={height}
+          priority={priority}
           className="w-full h-auto"
         />
       ) : (

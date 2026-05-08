@@ -1,8 +1,21 @@
 import { MarketingLayout } from '@/components/marketing/layout'
 
-export const metadata = {
-  title: 'Privacy Policy — Leasarr',
-  description: 'How Leasarr collects, uses, and protects your personal information.',
+import type { Metadata } from 'next'
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leasarr.com'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'How Leasarr collects, uses, and protects your personal information under PIPEDA and Quebec Law 25.',
+  openGraph: {
+    title: 'Leasarr Privacy Policy',
+    description: 'How Leasarr collects, uses, and protects your personal information under PIPEDA and Quebec Law 25.',
+    url: `${BASE_URL}/privacy`,
+    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Leasarr Privacy Policy' }],
+  },
+  alternates: {
+    canonical: `${BASE_URL}/privacy`,
+  },
 }
 
 export default function PrivacyPage() {
@@ -62,7 +75,7 @@ export default function PrivacyPage() {
               <Row
                 category="Usage data"
                 examples="Pages visited, features used, browser type"
-                purpose="Product analytics (PostHog) — only with your consent"
+                purpose="Product analytics (PostHog), only with your consent"
               />
               <Row
                 category="Consent records"
@@ -118,11 +131,11 @@ export default function PrivacyPage() {
         <Section title="6. Your rights">
           <p>Under PIPEDA and Law 25, you have the right to:</p>
           <ul className="mt-2 space-y-1 list-disc list-inside text-on-surface-variant">
-            <li><strong className="text-on-surface">Access</strong> — request a copy of the personal information we hold about you</li>
-            <li><strong className="text-on-surface">Correction</strong> — request that inaccurate or incomplete information be corrected</li>
-            <li><strong className="text-on-surface">Deletion</strong> — request that your personal information be deleted (subject to legal retention obligations)</li>
-            <li><strong className="text-on-surface">Portability</strong> — request your data in a structured, machine-readable format</li>
-            <li><strong className="text-on-surface">Withdraw consent</strong> — withdraw consent to analytics cookies at any time via Cookie Preferences</li>
+            <li><strong className="text-on-surface">Access:</strong> request a copy of the personal information we hold about you</li>
+            <li><strong className="text-on-surface">Correction:</strong> request that inaccurate or incomplete information be corrected</li>
+            <li><strong className="text-on-surface">Deletion:</strong> request that your personal information be deleted (subject to legal retention obligations)</li>
+            <li><strong className="text-on-surface">Portability:</strong> request your data in a structured, machine-readable format</li>
+            <li><strong className="text-on-surface">Withdraw consent:</strong> withdraw consent to analytics cookies at any time via Cookie Preferences</li>
           </ul>
           <p className="mt-4">
             To exercise any of these rights, email{' '}

@@ -4,19 +4,16 @@ import { CookiePreferencesButton } from '@/components/consent/CookiePreferencesB
 const PRODUCT_LINKS = [
   { label: 'Features', href: '/#features' },
   { label: 'Pricing', href: '/pricing' },
-  { label: 'Changelog', href: '/changelog' },
   { label: 'Tenant Portal', href: '/#features' },
 ]
 
 const COMPANY_LINKS = [
   { label: 'About', href: '/about' },
-  { label: 'Blog', href: '/blog' },
   { label: 'Contact', href: 'mailto:hello@leasarr.com' },
 ]
 
 const LEGAL_LINKS = [
   { label: 'Privacy Policy', href: '/privacy' },
-  { label: 'Terms of Service', href: '/terms' },
 ]
 
 export function Footer() {

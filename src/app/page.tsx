@@ -10,6 +10,39 @@ import { Testimonials } from '@/components/marketing/sections/testimonials'
 import { FinalCTA } from '@/components/marketing/sections/final-cta'
 
 const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leasarr.com'
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Leasarr',
+  url: BASE_URL,
+  logo: `${BASE_URL}/logo.png`,
+  description: 'Property management software for landlords and property managers in Canada.',
+  foundingDate: '2024',
+  areaServed: 'Canada',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'Customer Support',
+    email: 'hello@leasarr.com',
+  },
+}
+
+const softwareSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Leasarr',
+  url: BASE_URL,
+  description: 'Manage properties, tenants, leases, maintenance, and rent payments in one unified platform.',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'CAD',
+    price: '0',
+    description: 'Free trial available. Paid plans scale with your portfolio.',
+  },
+}
 
 export default async function RootPage() {
   if (!isMockMode) {
@@ -23,14 +56,23 @@ export default async function RootPage() {
   }
 
   return (
-    <MarketingLayout>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+      <MarketingLayout>
       <Hero />
       <ProofBar />
       <FeatureOverview />
       <FeatureDeepDive
         label="Portfolio View"
-        heading="See your entire portfolio at a glance."
-        body="Get a live view of every property, unit, and tenant in your portfolio. Occupancy rates, upcoming renewals, and outstanding maintenance — surfaced on your dashboard before you even ask."
+        heading="See occupancy rates, lease renewals, and open vacancies in one place."
+        body="Get a live view of every property, unit, and tenant in your portfolio. Occupancy rates, upcoming renewals, and outstanding maintenance, all surfaced on your dashboard before you even ask."
         bullets={[
           'Occupancy and vacancy rates by property',
           'Upcoming lease expirations with renewal status',
@@ -44,10 +86,10 @@ export default async function RootPage() {
       />
       <FeatureDeepDive
         label="Maintenance"
-        heading="From request to resolved, end to end."
-        body="Tenants submit requests through their portal. You assign vendors, track status, and close jobs — without chasing anyone for updates. Every job has a full history."
+        heading="End-to-end maintenance tracking, from first request to resolved."
+        body="Tenants submit requests through their portal. You assign vendors, track status, and close jobs without chasing anyone for updates. Every job has a full history."
         bullets={[
-          'Tenant portal submission — no emails required',
+          'Tenant portal submission, no email required',
           'Assign and notify vendors in one step',
           'Real-time status visible to everyone',
           'Full job history per unit',
@@ -59,8 +101,8 @@ export default async function RootPage() {
       />
       <FeatureDeepDive
         label="Payments"
-        heading="Track every dollar, on every unit."
-        body="Record rent payments, log partial payments, and track balances per tenant. Every transaction is timestamped and tied to a lease — so your books are always clean."
+        heading="Rent collection and payment tracking across every unit."
+        body="Record rent payments, log partial payments, and track balances per tenant. Every transaction is timestamped and tied to a lease, so your books are always clean."
         bullets={[
           'Record and categorise payments by type',
           'Auto-fill from active lease on every entry',
@@ -75,6 +117,7 @@ export default async function RootPage() {
       <Audience />
       <Testimonials />
       <FinalCTA />
-    </MarketingLayout>
+      </MarketingLayout>
+    </>
   )
 }

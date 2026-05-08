@@ -32,7 +32,7 @@ export function Hero() {
 
           {/* Subtext */}
           <p className="text-lg md:text-xl text-white/70 max-w-2xl leading-relaxed">
-            Leasarr brings properties, tenants, leases, maintenance, and payments into one unified platform. Built for operators who manage at scale.
+            Leasarr is property management software that brings properties, tenants, leases, maintenance, and payments into one unified platform. Built for landlords and property managers who operate at scale.
           </p>
 
           {/* CTAs */}
@@ -56,6 +56,7 @@ export function Hero() {
             <MockupPanel
               imageSrc="/mockups/dashboard.png"
               imageAlt="Leasarr dashboard overview"
+              priority
               className="w-full"
             />
             {/* Overlapping detail panel */}

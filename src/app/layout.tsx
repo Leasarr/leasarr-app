@@ -26,10 +26,46 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://leasarr.com'
+
 export const metadata: Metadata = {
-  title: 'Leasarr — Property Management',
-  description: 'Modern property management platform for landlords and property managers.',
+  title: {
+    default: 'Leasarr — Property Management Software for Landlords',
+    template: '%s — Leasarr',
+  },
+  description: 'Manage properties, tenants, leases, maintenance, and rent payments in one unified platform. Built for landlords and property managers.',
   manifest: '/manifest.json',
+  openGraph: {
+    title: 'Leasarr — Property Management Software for Landlords',
+    description: 'Manage properties, tenants, leases, maintenance, and rent payments in one unified platform.',
+    url: BASE_URL,
+    siteName: 'Leasarr',
+    images: [
+      {
+        url: `${BASE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'Leasarr — Property Management Software',
+      },
+    ],
+    type: 'website',
+    locale: 'en_CA',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Leasarr — Property Management Software for Landlords',
+    description: 'Manage properties, tenants, leases, maintenance, and rent payments in one unified platform.',
+    images: [`${BASE_URL}/og-image.png`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+  },
+  alternates: {
+    canonical: BASE_URL,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

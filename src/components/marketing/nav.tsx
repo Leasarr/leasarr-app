@@ -94,7 +94,6 @@ export function Nav() {
                 )}
               </div>
               <Link href="/pricing" className={navLinkClass}>Pricing</Link>
-              <Link href="/about" className={navLinkClass}>About</Link>
             </nav>
 
             {/* Desktop CTAs */}
@@ -102,7 +101,9 @@ export function Nav() {
               {/* Theme toggle */}
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className={cn(
+                  <button
+                    aria-label="Change theme"
+                    className={cn(
                     'w-9 h-9 flex items-center justify-center rounded-full transition-colors',
                     scrolled ? 'hover:bg-surface-container' : 'hover:bg-white/10'
                   )}>
@@ -229,7 +230,6 @@ export function Nav() {
               </Link>
             ))}
             <Link href="/pricing" className="px-3 py-3 rounded-lg text-base font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" onClick={() => setMobileOpen(false)}>Pricing</Link>
-            <Link href="/about" className="px-3 py-3 rounded-lg text-base font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors" onClick={() => setMobileOpen(false)}>About</Link>
             <div className="mt-4 pt-4 border-t border-outline-variant/30 flex flex-col gap-3">
               {user ? (
                 <Link href={dashboardHref} className="btn-primary text-center py-3">

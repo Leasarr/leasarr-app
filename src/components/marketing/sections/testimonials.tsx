@@ -17,7 +17,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "I can see every unit's status from one dashboard. Occupancy, payments, maintenance — everything in one place instead of chasing it down.",
+      "I can see every unit's status from one dashboard. Occupancy, payments, maintenance: everything in one place instead of chasing it down.",
     name: 'Carlos T.',
     role: 'Portfolio Manager',
     units: 230,
@@ -44,11 +44,11 @@ export function Testimonials() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
           {TESTIMONIALS.map((t, i) => (
             <FadeIn key={t.name} delay={i * 80}>
-              <div className="bg-surface-container-low rounded-2xl p-6 flex flex-col gap-4 h-full">
-                <p className="text-base text-on-surface italic leading-relaxed flex-1">
+              <figure className="bg-surface-container-low rounded-2xl p-6 flex flex-col gap-4 h-full">
+                <blockquote className="text-base text-on-surface italic leading-relaxed flex-1">
                   &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="flex items-center justify-between">
+                </blockquote>
+                <figcaption className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-semibold text-on-surface">{t.name}</div>
                     <div className="text-xs text-on-surface-variant">{t.role}</div>
@@ -56,8 +56,8 @@ export function Testimonials() {
                   <span className="text-xs font-semibold text-primary bg-primary-fixed px-2 py-0.5 rounded-full">
                     {t.units} units
                   </span>
-                </div>
-              </div>
+                </figcaption>
+              </figure>
             </FadeIn>
           ))}
         </div>
