@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/patterns/EmptyState'
 import { FormField } from '@/components/patterns/FormField'
 import { cn, formatDate, formatCurrency, getInitials } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { useConsent } from '@/context/CookieConsentContext'
 import { createClient } from '@/lib/supabase/client'
 import { PLANS, type PlanKey } from '@/lib/stripe/plans'
 import { useSeats } from '@/hooks/useSeats'
@@ -28,7 +29,7 @@ const MOCK_AUTH = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUB
 
 const ADMIN_EMAILS = ['bhasmangdixit@gmail.com', 'prashantgadhvi111@gmail.com']
 
-type Section = 'profile' | 'billing' | 'team' | 'notifications' | 'beta'
+type Section = 'profile' | 'billing' | 'team' | 'notifications' | 'privacy' | 'beta'
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ const ALL_SECTIONS: { key: Section; icon: string; label: string; description: st
   { key: 'billing', icon: 'credit_card', label: 'Billing', description: 'Subscription and plan', managerOnly: true },
   { key: 'team', icon: 'group', label: 'Team', description: 'Invite and manage team members', managerOnly: true },
   { key: 'notifications', icon: 'notifications', label: 'Notifications', description: 'Email notification preferences' },
+  { key: 'privacy', icon: 'privacy_tip', label: 'Privacy', description: 'Cookie and tracking preferences' },
   { key: 'beta', icon: 'verified', label: 'Beta', description: 'Waitlist and invite management', adminOnly: true },
 ]
 
@@ -1002,6 +1004,83 @@ function NotificationsSection() {
   )
 }
 
+// ─── Privacy section ──────────────────────────────────────────────────────────
+
+function PrivacySection() {
+  const { decided, analytics, openPreferences } = useConsent()
+
+  const rows = [
+    {
+      icon: 'lock',
+      label: 'Strictly Necessary',
+      description: 'Authentication, security, and session management. Always active.',
+      enabled: true,
+      alwaysOn: true,
+    },
+    {
+      icon: 'analytics',
+      label: 'Analytics',
+      description: 'Helps us understand how you use Leasarr so we can improve it. Powered by PostHog.',
+      enabled: analytics,
+      alwaysOn: false,
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <Card padding="md">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="material-symbols-outlined text-primary text-xl">cookie</span>
+          <p className="text-sm font-bold text-on-surface">Cookie Settings</p>
+        </div>
+        <p className="text-xs text-on-surface-variant mb-5">
+          {decided
+            ? 'Your current cookie preferences are shown below.'
+            : 'You haven\'t set your cookie preferences yet.'}
+        </p>
+        <div className="space-y-4">
+          {rows.map(row => (
+            <div key={row.label} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-on-surface-variant text-base">{row.icon}</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-on-surface">{row.label}</p>
+                  <p className="text-xs text-on-surface-variant">{row.description}</p>
+                </div>
+              </div>
+              {row.alwaysOn ? (
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <div className="w-11 h-6 rounded-full bg-outline-variant/30 relative cursor-not-allowed">
+                    <span className="absolute top-0.5 right-0.5 w-5 h-5 bg-on-surface-variant/40 rounded-full" />
+                  </div>
+                  <p className="text-[10px] text-on-surface-variant mt-0.5">Always on</p>
+                </div>
+              ) : (
+                <div className={cn(
+                  'w-11 h-6 rounded-full relative flex-shrink-0 cursor-default',
+                  row.enabled ? 'bg-primary' : 'bg-outline-variant/50'
+                )}>
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                    row.enabled ? 'translate-x-5' : 'translate-x-0'
+                  )} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 pt-4 border-t border-outline-variant/20">
+          <Button variant="secondary" size="md" onClick={openPreferences} iconLeft="tune">
+            Manage Cookie Preferences
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 // ─── Beta section (admin only) ────────────────────────────────────────────────
 
 type WaitlistEntry = { id: string; name: string; email: string; property_count: string | null; created_at: string }
@@ -1283,6 +1362,7 @@ function SettingsPageInner() {
               {activeSection === 'billing' && <BillingSection />}
               {activeSection === 'team' && <TeamSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
+              {activeSection === 'privacy' && <PrivacySection />}
               {activeSection === 'beta' && <BetaSection />}
             </div>
           )}

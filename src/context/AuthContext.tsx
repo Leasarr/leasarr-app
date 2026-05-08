@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { useConsent } from '@/context/CookieConsentContext'
 import type { Profile } from '@/types'
 
 const PROFILE_CACHE_KEY = 'leasarr_profile'
@@ -56,6 +57,7 @@ function buildMockProfile(role: Profile['role']): Profile {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
+  const { syncFromServer } = useConsent()
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // TOKEN_REFRESHED fires on tab refocus — profile data hasn't changed, skip the re-fetch
           if (event !== 'TOKEN_REFRESHED') {
             fetchProfile(session.user.id)
+            if (event === 'SIGNED_IN') syncFromServer()
           }
         } else {
           setProfile(null)
