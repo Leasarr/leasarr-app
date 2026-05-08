@@ -99,8 +99,7 @@ export default function PrivacyPage() {
             </tbody>
           </table>
           <p className="mt-3 text-on-surface-variant text-sm">
-            All processors are required to handle data in accordance with applicable privacy law. We maintain
-            Data Processing Agreements with each processor.
+            All processors are contractually required to handle data in accordance with applicable privacy law.
           </p>
         </Section>
 

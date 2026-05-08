@@ -100,7 +100,7 @@ export function Footer() {
 
         <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-white/30">© 2026 Leasarr. All rights reserved.</p>
-          <p className="text-xs text-white/30">Encrypted data · 99.9% uptime · GDPR compliant</p>
+          <p className="text-xs text-white/30">Made in Canada.</p>
         </div>
       </div>
     </footer>
