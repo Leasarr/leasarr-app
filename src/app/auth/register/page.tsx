@@ -123,11 +123,11 @@ function RegisterInner() {
 
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="w-16 h-16 primary-gradient rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-primary">
-            <span className="material-symbols-outlined text-white text-3xl">domain</span>
-          </div>
-          <h1 className="text-3xl font-headline font-extrabold text-primary tracking-tight">Leasarr</h1>
-          <p className="text-on-surface-variant mt-1 text-sm">Property Management, Simplified</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-logo/Leasarr-Logo_Dark.svg" alt="Leasarr" className="h-7 w-auto mx-auto mb-5 self-center dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-logo/Leasarr-Logo_Light.svg" alt="Leasarr" className="h-7 w-auto mx-auto mb-5 self-center hidden dark:block" />
+          <p className="text-on-surface-variant text-sm">Property Management, Simplified</p>
         </div>
 
         {/* Card */}

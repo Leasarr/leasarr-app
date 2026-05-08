@@ -266,11 +266,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* ── Full-width Top Bar ── */}
       <header className="fixed top-0 left-0 right-0 z-50 h-14 glass-dark border-b border-outline-variant/20 flex items-center justify-between px-4 lg:px-5">
         {/* Logo */}
-        <Link href={isTenant ? '/portal' : '/dashboard'} className="flex items-center gap-2.5 shrink-0">
-          <div className="w-8 h-8 rounded-xl primary-gradient flex items-center justify-center">
-            <span className="material-symbols-outlined text-white text-base">domain</span>
-          </div>
-          <span className="text-lg font-headline font-extrabold text-primary tracking-tight">Leasarr</span>
+        <Link href={isTenant ? '/portal' : '/dashboard'} className="flex items-center shrink-0" aria-label="Leasarr">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-logo/Leasarr_Fav-Color.svg" alt="Leasarr" className="h-6 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand-logo/Leasarr_Fav-Light.svg" alt="Leasarr" className="h-6 w-auto hidden dark:block" />
         </Link>
 
         {/* Right controls */}

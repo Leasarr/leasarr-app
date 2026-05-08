@@ -23,7 +23,8 @@ export function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1 flex flex-col gap-4">
-            <span className="font-extrabold text-xl text-white">Leasarr</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand-logo/Leasarr-Logo_Light.svg" alt="Leasarr" className="h-5 w-auto self-start" />
             <p className="text-sm text-white/60 leading-relaxed max-w-xs">
               Property management software built for operators who mean business.
             </p>

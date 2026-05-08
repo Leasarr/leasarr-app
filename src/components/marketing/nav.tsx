@@ -53,14 +53,19 @@ export function Nav() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-16">
           <div className="flex items-center justify-between h-16">
             {/* Wordmark */}
-            <Link
-              href="/"
-              className={cn(
-                'font-extrabold text-xl tracking-tight transition-colors',
-                scrolled ? 'text-on-surface' : 'text-white'
-              )}
-            >
-              Leasarr
+            <Link href="/" aria-label="Leasarr">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand-logo/Leasarr-Logo_Light.svg"
+                alt="Leasarr"
+                className={cn('h-5 w-auto', scrolled ? 'hidden dark:block' : 'block')}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand-logo/Leasarr-Logo_Dark.svg"
+                alt="Leasarr"
+                className={cn('h-5 w-auto', scrolled ? 'block dark:hidden' : 'hidden')}
+              />
             </Link>
 
             {/* Desktop nav */}
@@ -192,7 +197,10 @@ export function Nav() {
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] bg-surface-container-lowest">
           <div className="flex items-center justify-between h-16 px-6 border-b border-outline-variant/30">
-            <span className="font-extrabold text-xl text-on-surface">Leasarr</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand-logo/Leasarr-Logo_Dark.svg" alt="Leasarr" className="h-5 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand-logo/Leasarr-Logo_Light.svg" alt="Leasarr" className="h-5 w-auto hidden dark:block" />
             <button onClick={() => setMobileOpen(false)} aria-label="Close menu">
               <span className="material-symbols-outlined text-2xl text-on-surface">close</span>
             </button>
