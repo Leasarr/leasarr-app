@@ -53,7 +53,7 @@ export function Testimonials() {
                     <div className="text-sm font-semibold text-on-surface">{t.name}</div>
                     <div className="text-xs text-on-surface-variant">{t.role}</div>
                   </div>
-                  <span className="text-xs font-semibold text-primary bg-primary-fixed px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-on-primary-fixed bg-primary-fixed px-2 py-0.5 rounded-full">
                     {t.units} units
                   </span>
                 </figcaption>
