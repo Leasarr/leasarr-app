@@ -13,7 +13,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
 
   useEffect(() => {
-    const stored = localStorage.getItem('leasarr-theme') as Theme | null
+    const cookie = document.cookie.split(';').find(c => c.trim().startsWith('leasarr-theme='))
+    const stored = (cookie ? cookie.trim().slice(14) : localStorage.getItem('leasarr-theme')) as Theme | null
     if (stored) setThemeState(stored)
   }, [])
 
@@ -38,6 +39,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (t: Theme) => {
     setThemeState(t)
     localStorage.setItem('leasarr-theme', t)
+    const domain = window.location.hostname.includes('leasarr.com') ? '; domain=.leasarr.com' : ''
+    document.cookie = `leasarr-theme=${t}; path=/; max-age=31536000; SameSite=Lax${domain}`
   }
 
   return (

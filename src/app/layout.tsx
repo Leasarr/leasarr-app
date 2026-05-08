@@ -66,8 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
           rel="stylesheet"
         />
-        {/* Anti-flash: apply theme class before first paint */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('leasarr-theme')||'system';if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')})()` }} />
+        {/* Anti-flash: apply theme class before first paint. Reads cookie first (shared across subdomains), falls back to localStorage. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var c=document.cookie.split(';').find(function(s){return s.trim().startsWith('leasarr-theme=')});var t=c?c.trim().slice(14):(localStorage.getItem('leasarr-theme')||'system');if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')})()` }} />
       </head>
       <body className="bg-surface font-body text-on-surface antialiased">
         <PostHogProvider>
