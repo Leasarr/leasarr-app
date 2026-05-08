@@ -205,8 +205,12 @@ export interface FAQItem {
 
 export const PRICING_FAQ: FAQItem[] = [
   {
+    q: 'How do I get access?',
+    a: "Leasarr is currently in private beta with 25 spots. Join the waitlist and we'll send you an invite code when a spot opens. You can then create your account and start your 30-day trial.",
+  },
+  {
     q: 'What happens after the 30-day trial?',
-    a: 'Your trial gives you full access to Growth features for 30 days. At the end, choose a plan to continue — or stay on the free tier with limited access. No automatic charges.',
+    a: 'Your trial gives you full access to Growth features for 30 days. At the end, choose a plan to continue. No automatic charges.',
   },
   {
     q: 'Do I need a credit card to start?',
