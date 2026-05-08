@@ -32,7 +32,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `/payments` | Full CRUD; auto-fills from active lease |
 | `/maintenance` | Active/history; CRUD; real-time INSERT/UPDATE/DELETE |
 | `/leases` | Full CRUD; smart form (tenant↔property↔unit auto-population; filters units without active lease) |
-| `/settings` | Five sections (Profile, Billing, Team, Notifications, Beta); Beta section visible only to `ADMIN_EMAILS` list; profile name/email/phone/avatar/password; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs; supports `?section=billing\|profile\|team\|notifications` deep-link |
+| `/settings` | Five sections (Profile, Billing, Team, Notifications, Beta); Beta section visible only to `ADMIN_EMAILS` list; profile name/email/phone/avatar/password + delete account; billing via Stripe checkout/portal; team invite/revoke gated by `useSeats`; email notification prefs; supports `?section=billing\|profile\|team\|notifications` deep-link |
 | `/tenants` | Master-detail tenant list; add tenant form; per-tenant tabs for payments, lease, maintenance (not in sidebar nav) |
 | `/communication` | Live Supabase data; sidebar toggles Messages/Broadcast; messages tab: ConversationList + ChatPanel with realtime; broadcast tab: BroadcastPanel + AnnouncementHistory; NewChatModal for starting conversations |
 | `/reports` | Mock data — V2 |
@@ -51,10 +51,10 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 ## Key files
 
 ### App
-- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: collapsible sidebar (icon-only `w-16` collapsed, `w-64` pinned-open; pin state persisted to `localStorage`; hover temporarily expands) + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials. "Profile & Settings" links to `/settings` page (no longer a modal). Trial pill + "Upgrade" button in top bar for trialing managers (desktop only); pill color: green > 14 days, amber ≤ 14, red ≤ 7 / expired.
+- `src/components/layout/AppLayout.tsx` — Responsive shell. Desktop: collapsible sidebar (icon-only `w-16` collapsed, `w-64` pinned-open; pin state persisted to `localStorage`; hover temporarily expands) + top bar. Mobile: bottom nav + "More" sheet. Breakpoint `lg`. Realtime notifications; avatar resolves Google photo → uploaded → initials. "Profile & Settings" links to `/settings` page (no longer a modal). Trial pill + "Upgrade" button in top bar for trialing managers (desktop only); pill color: green > 14 days, amber ≤ 14, red ≤ 7 / expired. Trial expired paywall: fullscreen modal overlay when `isExpired && !isActive` (non-tenant only); blocks all app access; links to `/settings?section=billing`.
 - `src/context/AuthContext.tsx` — `useAuth()` → `{ user, profile, session, loading, signOut, updateProfile }`
 - `src/context/ThemeContext.tsx` — `useTheme()` → `{ theme, setTheme }`. `dark` class on `<html>`.
-- `src/middleware.ts` — Three-tier route model: **open** (`/`, `/pricing`, `/about` — everyone including logged-in users, except `/` redirects logged-in users to their home); **auth** (`/auth/login`, `/auth/register` — unauthenticated only; logged-in users redirected); **protected** (manager + tenant routes). API routes open to authenticated users; webhook routes always unauthenticated.
+- `src/middleware.ts` — Three-tier route model: **open** (`/`, `/pricing`, `/about` — everyone including logged-in users, except `/` redirects logged-in users to their home); **auth** (`/auth/login`, `/auth/register` — unauthenticated only; logged-in users redirected); **protected** (manager + tenant routes). API routes open to authenticated users; webhook routes always unauthenticated. **Subdomain routing**: `app.leasarr.com` serves the app (marketing-only paths redirect to `leasarr.com`); `leasarr.com` serves marketing (app paths redirect to `app.leasarr.com`); localhost/127.0.0.1 treated as `dev` (no cross-domain redirects).
 - `src/lib/supabase/client.ts` / `server.ts` — Browser and server Supabase clients.
 - `src/lib/stripe/server.ts` / `plans.ts` — Stripe SDK + plan definitions (Starter/Growth/Pro).
 - `src/lib/resend.ts` — Resend client (server-only).
@@ -65,6 +65,7 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 - `src/data/mock.ts` — Mock fallback; used by /reports only.
 - `src/hooks/useSubscription.ts` — `useSubscription()` → `{ plan, status, trialEnd, daysLeft, isTrialing, isActive, isExpired, loading }`. Single source of truth for subscription state; used by AppLayout trial pill and any feature gating.
 - `src/hooks/useSeats.ts` — Reads plan from `useSubscription`, returns `{ used, max, available, loading }`. Used to gate team-invite UI.
+- `src/components/PostHogProvider.tsx` — PostHog analytics wrapper; sets `window.posthog` in the loaded callback for toolbar support; wraps `<body>` in `src/app/layout.tsx`.
 
 ### Marketing site
 - `src/components/marketing/layout.tsx` — `<MarketingLayout>` wraps all marketing pages with `<Nav>` + `<Footer>`.

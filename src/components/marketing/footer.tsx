@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CookiePreferencesButton } from '@/components/consent/CookiePreferencesButton'
 
 const PRODUCT_LINKS = [
   { label: 'Features', href: '/#features' },
@@ -90,6 +91,9 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <CookiePreferencesButton />
+              </li>
             </ul>
           </div>
         </div>

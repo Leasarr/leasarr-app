@@ -9,7 +9,7 @@ const OPEN_ROUTES = ['/pricing', '/about', '/waitlist']
 // Routes where logged-in users are redirected to their home (homepage + auth pages)
 const AUTH_ROUTES = ['/', '/auth/login', '/auth/register', '/auth/reset-password']
 const PUBLIC_ROUTES = [...OPEN_ROUTES, ...AUTH_ROUTES, '/auth/callback', '/auth/set-role']
-const ALWAYS_ALLOW = ['/auth/callback', '/auth/update-password', '/auth/set-role', '/auth/accept-invite', '/api/stripe', '/api/notifications', '/api/team', '/api/waitlist', '/api/invite', '/api/admin']
+const ALWAYS_ALLOW = ['/auth/callback', '/auth/update-password', '/auth/set-role', '/auth/accept-invite', '/api/stripe', '/api/notifications', '/api/team', '/api/waitlist', '/api/invite', '/api/admin', '/api/consent']
 
 function getSite(request: NextRequest): 'app' | 'marketing' | 'dev' {
   const host = request.headers.get('host') ?? ''

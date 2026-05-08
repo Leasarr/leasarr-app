@@ -5,6 +5,9 @@ import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { PostHogProvider } from '@/components/PostHogProvider'
+import { CookieConsentProvider } from '@/context/CookieConsentContext'
+import { CookieConsentBanner } from '@/components/consent/CookieConsentBanner'
+import { CookiePreferencesModal } from '@/components/consent/CookiePreferencesModal'
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -43,10 +46,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-surface font-body text-on-surface antialiased">
         <PostHogProvider>
           <ThemeProvider>
-            <AuthProvider>
-              {children}
-              <Toaster position="top-right" richColors />
-            </AuthProvider>
+            <CookieConsentProvider>
+              <AuthProvider>
+                {children}
+                <Toaster position="top-right" richColors />
+              </AuthProvider>
+              <CookieConsentBanner />
+              <CookiePreferencesModal />
+            </CookieConsentProvider>
           </ThemeProvider>
         </PostHogProvider>
       </body>
