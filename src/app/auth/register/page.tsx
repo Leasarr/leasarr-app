@@ -197,19 +197,62 @@ function RegisterInner() {
             </div>
           )}
 
-          {/* Google OAuth — hidden for manager beta sign-ups; visible for tenants and team invites */}
-          {!needsInviteCode && (
+          {/* Invite code field — above Google button so users fill it before clicking */}
+          {needsInviteCode && (
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-on-surface mb-1.5">Invite code</label>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                className="input-base font-mono tracking-widest"
+                placeholder="XXXX-XXXX"
+                autoComplete="off"
+              />
+              <p className="text-xs text-on-surface-variant mt-1">
+                Don&apos;t have a code?{' '}
+                <a href="/waitlist" className="text-primary font-semibold hover:underline">Join the waitlist →</a>
+              </p>
+            </div>
+          )}
+
+          {/* Google OAuth — always shown; invite code validated on click for manager beta sign-ups */}
+          {!isInvite && (
             <>
               <button
                 type="button"
                 onClick={async () => {
-                  const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/auth/set-role?role=${role}`)}`,
-                    },
-                  })
-                  if (error) setServerError(error.message)
+                  setServerError('')
+                  if (needsInviteCode) {
+                    if (!inviteCode.trim()) {
+                      setServerError('Enter your invite code before continuing with Google.')
+                      return
+                    }
+                    const res = await fetch('/api/invite/validate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ code: inviteCode }),
+                    })
+                    const result = await res.json()
+                    if (!result.valid) {
+                      setServerError(result.error || 'Invalid invite code.')
+                      return
+                    }
+                    const next = encodeURIComponent(`/auth/set-role?role=manager&ic=${encodeURIComponent(inviteCode)}`)
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: { redirectTo: `${window.location.origin}/auth/callback?next=${next}` },
+                    })
+                    if (error) setServerError(error.message)
+                  } else {
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/auth/set-role?role=${role}`)}`,
+                      },
+                    })
+                    if (error) setServerError(error.message)
+                  }
                 }}
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-outline-variant bg-surface-container text-on-surface text-sm font-semibold hover:bg-surface-container-high transition-colors min-h-[44px] mb-4"
               >
@@ -231,23 +274,6 @@ function RegisterInner() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {needsInviteCode && (
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-1.5">Invite code</label>
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={e => setInviteCode(e.target.value.toUpperCase())}
-                  className="input-base font-mono tracking-widest"
-                  placeholder="XXXX-XXXX"
-                  autoComplete="off"
-                />
-                <p className="text-xs text-on-surface-variant mt-1">
-                  Don&apos;t have a code?{' '}
-                  <a href="/waitlist" className="text-primary font-semibold hover:underline">Join the waitlist →</a>
-                </p>
-              </div>
-            )}
             <div>
               <label className="block text-sm font-semibold text-on-surface mb-1.5">Full name</label>
               <input

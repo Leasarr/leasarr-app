@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/Button'
 import { useConsent } from '@/context/CookieConsentContext'
 
 export function CookieConsentBanner() {
-  const { decided, acceptAll, declineAll, openPreferences } = useConsent()
+  const { ready, decided, acceptAll, declineAll, openPreferences } = useConsent()
 
-  if (decided) return null
+  if (!ready || decided) return null
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6 animate-slide-up">

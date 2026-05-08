@@ -12,6 +12,7 @@ function SetRole() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const role = searchParams.get('role') ?? 'manager'
+  const inviteCode = searchParams.get('ic') ?? ''
   const supabase = createClient()
 
   useEffect(() => {
@@ -26,6 +27,14 @@ function SetRole() {
       })
 
       if (!res.ok) { router.push('/auth/login'); return }
+
+      if (inviteCode) {
+        await fetch('/api/invite/consume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: inviteCode }),
+        })
+      }
 
       router.push(role === 'tenant' ? '/portal' : '/dashboard')
     }

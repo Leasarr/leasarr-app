@@ -14,6 +14,7 @@ interface ConsentState {
 }
 
 interface ConsentContextValue extends ConsentState {
+  ready: boolean
   acceptAll: () => void
   declineAll: () => void
   savePreferences: (prefs: { analytics: boolean }) => void
@@ -89,11 +90,13 @@ const CookieConsentContext = createContext<ConsentContextValue | null>(null)
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ConsentState>({ decided: false, analytics: false })
+  const [ready, setReady] = useState(false)
   const [preferencesOpen, setPreferencesOpen] = useState(false)
 
   useEffect(() => {
     const stored = readStorage()
     setState(stored)
+    setReady(true)
     if (stored.decided) applyPostHog(stored.analytics)
   }, [])
 
@@ -137,6 +140,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     <CookieConsentContext.Provider
       value={{
         ...state,
+        ready,
         acceptAll,
         declineAll,
         savePreferences,
