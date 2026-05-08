@@ -1,11 +1,16 @@
 'use client'
+import { useRef, useLayoutEffect, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { cn } from '@/lib/utils'
 import { FadeIn } from '@/components/marketing/ui/fade-in'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { PRICING_TIERS } from '@/lib/marketing/pricing'
 import { usePricing } from './context'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const BILLING_OPTIONS = [
   { key: 'monthly', label: 'Monthly' },
@@ -20,6 +25,51 @@ export function TierGrid() {
   const { billingInterval, setBillingInterval, unitsHint, setUnitsHint, recommendedTier } = usePricing()
   const isAnnual = billingInterval === 'annual'
   const router = useRouter()
+  const sectionRef  = useRef<HTMLElement>(null)
+  const hasCountedRef = useRef(false)
+
+  function runCountUp() {
+    const els = Array.from(
+      sectionRef.current?.querySelectorAll<HTMLElement>('.tier-price') ?? []
+    )
+    els.forEach((el) => {
+      const target = parseFloat(el.dataset.count ?? '0')
+      const obj = { val: 0 }
+      gsap.killTweensOf(obj)
+      gsap.to(obj, {
+        val: target,
+        duration: 0.9,
+        ease: 'power2.out',
+        onUpdate() {
+          el.textContent = `$${formatPrice(obj.val)}`
+        },
+      })
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: 'top 80%',
+        once: true,
+        onEnter: () => {
+          hasCountedRef.current = true
+          runCountUp()
+        },
+      })
+    }, sectionRef)
+    return () => ctx.revert()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!hasCountedRef.current) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    runCountUp()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnnual])
 
   function handleBillingChange(v: string) {
     const interval = v as 'monthly' | 'annual'
@@ -35,7 +85,7 @@ export function TierGrid() {
   }
 
   return (
-    <section className="bg-surface py-20 lg:py-28">
+    <section ref={sectionRef} className="bg-surface py-20 lg:py-28">
       <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-16">
 
         {/* Controls */}
@@ -100,7 +150,10 @@ export function TierGrid() {
                     {displayPrice !== null ? (
                       <>
                         <div className="flex items-baseline gap-1">
-                          <span className="font-headline font-extrabold text-5xl text-on-surface">
+                          <span
+                            className="tier-price font-headline font-extrabold text-5xl text-on-surface"
+                            data-count={displayPrice}
+                          >
                             ${formatPrice(displayPrice)}
                           </span>
                           <span className="text-base text-on-surface-variant">/mo</span>

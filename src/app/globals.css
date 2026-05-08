@@ -255,3 +255,18 @@
 .bounce-dot { animation: bounce-dot 1.4s ease-in-out infinite; }
 .bounce-dot:nth-child(2) { animation-delay: -0.32s; }
 .bounce-dot:nth-child(3) { animation-delay: -0.16s; }
+
+/* GSAP animation initial state ─────────────────────────────────────────────
+   When JS is present the .js class lands on <html> synchronously (via an
+   inline <script> in <head>) before the browser renders any body content.
+   This hides every [data-anim] element at the very first paint, so there is
+   no flash of visible content before GSAP's useLayoutEffect fires.
+   GSAP's gsap.to() calls already target opacity:1 and own the transforms,
+   so no other changes are needed in animation code.
+   Reduced-motion: skip the hide entirely so content is always readable. */
+.js [data-anim] {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .js [data-anim] { opacity: 1; }
+}

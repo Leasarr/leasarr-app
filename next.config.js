@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@supabase/supabase-js', '@supabase/postgrest-js', '@supabase/ssr'],
   experimental: {
     // Keep the router cache fresh for 30s on dynamic routes (default: 0 = always stale).
     // Prevents Next.js from re-fetching the RSC payload on every tab focus.

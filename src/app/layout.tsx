@@ -68,6 +68,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* Anti-flash: apply theme class before first paint. Reads cookie first (shared across subdomains), falls back to localStorage. */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var c=document.cookie.split(';').find(function(s){return s.trim().startsWith('leasarr-theme=')});var t=c?c.trim().slice(14):(localStorage.getItem('leasarr-theme')||'system');if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')})()` }} />
+        {/* JS-detection: adds .js to <html> synchronously before <body> is parsed,
+            so CSS can hide GSAP-animated elements before the first pixel is painted. */}
+        <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add('js')` }} />
       </head>
       <body className="bg-surface font-body text-on-surface antialiased">
         <PostHogProvider>
