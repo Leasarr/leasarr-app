@@ -234,6 +234,25 @@ export const PRICING_FAQ: FAQItem[] = [
   },
 ]
 
+export const HOMEPAGE_FAQ: FAQItem[] = [
+  {
+    q: 'How do I get access?',
+    a: "Leasarr is currently in private beta with 25 spots. Join the waitlist and we'll send you an invite code when a spot opens. You can then create your account and start your 30-day trial.",
+  },
+  {
+    q: 'Is there a free trial?',
+    a: 'Yes. Every new account starts with a 30-day trial on Growth features — no credit card required. At the end, choose a plan that fits your portfolio.',
+  },
+  {
+    q: 'Do I need a credit card to start?',
+    a: "No. You can start your 30-day trial without entering any payment information. We'll remind you a few days before it ends.",
+  },
+  {
+    q: 'Are early customers grandfathered?',
+    a: "Yes. If you subscribe during our early-access period, your rate is locked in for the life of your subscription. We will never raise prices on existing subscribers without at least 90 days' notice.",
+  },
+]
+
 export function recommendTier(units: number): TierKey {
   if (units <= 10) return 'starter'
   if (units <= 50) return 'growth'

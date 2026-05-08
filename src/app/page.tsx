@@ -7,6 +7,7 @@ import { FeatureOverview } from '@/components/marketing/sections/feature-overvie
 import { FeatureDeepDive } from '@/components/marketing/sections/feature-deepdive'
 import { Audience } from '@/components/marketing/sections/audience'
 import { Testimonials } from '@/components/marketing/sections/testimonials'
+import { HomepageFAQ } from '@/components/marketing/sections/faq'
 import { FinalCTA } from '@/components/marketing/sections/final-cta'
 
 const isMockMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -116,6 +117,7 @@ export default async function RootPage() {
       />
       <Audience />
       <Testimonials />
+      <HomepageFAQ />
       <FinalCTA />
       </MarketingLayout>
     </>
