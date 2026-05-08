@@ -19,7 +19,7 @@ export function PricingIntro() {
           Simple pricing that scales with your portfolio.
         </h1>
         <p className="font-body text-lg lg:text-xl text-white/70 max-w-2xl">
-          Start with a 30-day Growth trial. No credit card.
+          Currently in private beta. Join the waitlist to get early access.
         </p>
       </div>
     </section>

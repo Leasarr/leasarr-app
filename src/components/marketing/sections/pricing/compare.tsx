@@ -59,10 +59,10 @@ export function CompareTable() {
                       )}
                       {tier.key !== 'enterprise' ? (
                         <Link
-                          href={`${tier.ctaHref}&billing=${billingInterval}`}
+                          href={tier.ctaHref}
                           className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"
                         >
-                          Start free →
+                          Join waitlist →
                         </Link>
                       ) : (
                         <a

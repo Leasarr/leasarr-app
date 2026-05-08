@@ -30,8 +30,8 @@ export const PRICING_TIERS: PricingTier[] = [
     annualSavings: 58,
     seats: 1,
     storageGb: 1,
-    ctaLabel: 'Start free trial',
-    ctaHref: '/auth/register?plan=starter',
+    ctaLabel: 'Join waitlist',
+    ctaHref: '/waitlist',
     highlights: [
       '1 manager seat',
       '1 GB document storage',
@@ -51,8 +51,8 @@ export const PRICING_TIERS: PricingTier[] = [
     annualSavings: 158,
     seats: 3,
     storageGb: 10,
-    ctaLabel: 'Start free trial',
-    ctaHref: '/auth/register?plan=growth',
+    ctaLabel: 'Join waitlist',
+    ctaHref: '/waitlist',
     highlights: [
       '3 manager seats',
       '10 GB document storage',
@@ -74,8 +74,8 @@ export const PRICING_TIERS: PricingTier[] = [
     annualSavings: 398,
     seats: 10,
     storageGb: 50,
-    ctaLabel: 'Start free trial',
-    ctaHref: '/auth/register?plan=pro',
+    ctaLabel: 'Join waitlist',
+    ctaHref: '/waitlist',
     highlights: [
       '10 manager seats',
       '50 GB document storage',
