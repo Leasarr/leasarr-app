@@ -18,7 +18,8 @@ export function CookieConsentBanner() {
           <div>
             <p className="font-bold text-on-surface text-sm">We use cookies</p>
             <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-              We use analytics cookies to understand how people use Leasarr and make it better. Strictly necessary cookies are always active — they keep the site secure and your session running.
+              We use analytics cookies to understand how people use Leasarr and make it better. Strictly necessary cookies are always active — they keep the site secure and your session running.{' '}
+              <a href="/privacy" className="underline hover:text-on-surface">Privacy policy</a>
             </p>
           </div>
         </div>

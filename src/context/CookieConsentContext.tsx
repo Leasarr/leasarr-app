@@ -5,6 +5,8 @@ import posthog from 'posthog-js'
 
 const STORAGE_KEY = 'leasarr_cookie_consent'
 const ANON_ID_KEY  = 'leasarr_anon_id'
+const POLICY_VERSION = '1.0'
+const CONSENT_TTL_DAYS = 365
 
 interface ConsentState {
   decided: boolean
@@ -25,14 +27,25 @@ interface ConsentContextValue extends ConsentState {
 function readStorage(): ConsentState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const stored = JSON.parse(raw)
+      if (stored.policy_version !== POLICY_VERSION) return { decided: false, analytics: false }
+      if (stored.decidedAt) {
+        const ageDays = (Date.now() - new Date(stored.decidedAt).getTime()) / (1000 * 60 * 60 * 24)
+        if (ageDays > CONSENT_TTL_DAYS) return { decided: false, analytics: false }
+      }
+      return stored
+    }
   } catch {}
   return { decided: false, analytics: false }
 }
 
 function writeStorage(state: ConsentState) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, decidedAt: new Date().toISOString() }))
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...state, decidedAt: new Date().toISOString(), policy_version: POLICY_VERSION })
+    )
   } catch {}
 }
 
