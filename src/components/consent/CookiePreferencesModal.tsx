@@ -7,8 +7,16 @@ import { cn } from '@/lib/utils'
 import { useConsent } from '@/context/CookieConsentContext'
 
 export function CookiePreferencesModal() {
-  const { preferencesOpen, closePreferences, acceptAll, declineAll, savePreferences, analytics } = useConsent()
+  const { preferencesOpen, closePreferences, acceptAll, declineAll, savePreferences, resetConsent, decided, analytics } = useConsent()
   const [analyticsEnabled, setAnalyticsEnabled] = useState(analytics)
+  const [resetting, setResetting] = useState(false)
+
+  async function handleReset() {
+    setResetting(true)
+    await resetConsent()
+    setResetting(false)
+    closePreferences()
+  }
 
   useEffect(() => {
     if (preferencesOpen) setAnalyticsEnabled(analytics)
@@ -89,6 +97,18 @@ export function CookiePreferencesModal() {
             </Button>
           </div>
         </div>
+
+        {decided && (
+          <div className="pt-2 flex justify-center">
+            <button
+              onClick={handleReset}
+              disabled={resetting}
+              className="text-xs text-on-surface-variant/60 hover:text-on-surface-variant transition-colors disabled:opacity-50"
+            >
+              {resetting ? 'Resetting…' : 'Reset Cookie Preferences'}
+            </button>
+          </div>
+        )}
       </div>
     </Modal>
   )

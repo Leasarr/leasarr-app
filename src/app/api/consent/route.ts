@@ -5,6 +5,13 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 const MOCK = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY
 const POLICY_VERSION = '1.0'
 
+function serviceRoleClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json()
   const { analytics, marketing = false, anonymous_id } = body
@@ -15,46 +22,33 @@ export async function POST(request: NextRequest) {
 
   if (MOCK) return NextResponse.json({ ok: true })
 
-  const serviceRole = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  // Detect country from Vercel/Cloudflare header for jurisdiction tracking
   const ip_country = request.headers.get('x-vercel-ip-country') ?? null
+  const action = analytics ? 'accepted' : 'declined'
 
-  // Check if the request comes from an authenticated user
   const serverClient = createServerClient()
   const { data: { user } } = await serverClient.auth.getUser()
+  const serviceRole = serviceRoleClient()
 
   if (user) {
-    // Authenticated: upsert against profile_id
     const { error } = await serviceRole
       .from('cookie_consents')
-      .upsert(
-        {
-          profile_id: user.id,
-          analytics,
-          marketing,
-          ip_country,
-          policy_version: POLICY_VERSION,
-          decided_at: new Date().toISOString(),
-        },
-        { onConflict: 'profile_id', ignoreDuplicates: false }
-      )
+      .insert({
+        profile_id: user.id,
+        analytics,
+        marketing,
+        ip_country,
+        policy_version: POLICY_VERSION,
+        decided_at: new Date().toISOString(),
+        action,
+      })
 
     if (error) return NextResponse.json({ error: 'Failed to save consent' }, { status: 500 })
     return NextResponse.json({ ok: true })
   }
 
-  // Anonymous visitor: require an anonymous_id
   if (!anonymous_id || typeof anonymous_id !== 'string') {
     return NextResponse.json({ error: 'anonymous_id is required for unauthenticated requests' }, { status: 400 })
   }
-
-  // For anonymous, delete-then-insert since partial unique indexes don't
-  // support onConflict upsert reliably in all Supabase versions
-  await serviceRole.from('cookie_consents').delete().eq('anonymous_id', anonymous_id)
 
   const { error } = await serviceRole
     .from('cookie_consents')
@@ -65,13 +59,41 @@ export async function POST(request: NextRequest) {
       ip_country,
       policy_version: POLICY_VERSION,
       decided_at: new Date().toISOString(),
+      action,
     })
 
   if (error) return NextResponse.json({ error: 'Failed to save consent' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
-// Fetch stored consent for the current authenticated user (used on login to sync localStorage)
+// Inserts a 'withdrawn' record — preserves full audit history
+export async function DELETE(request: NextRequest) {
+  if (MOCK) return NextResponse.json({ ok: true })
+
+  const ip_country = request.headers.get('x-vercel-ip-country') ?? null
+  const serverClient = createServerClient()
+  const { data: { user } } = await serverClient.auth.getUser()
+
+  if (!user) return NextResponse.json({ ok: true })
+
+  const { error } = await serviceRoleClient()
+    .from('cookie_consents')
+    .insert({
+      profile_id: user.id,
+      analytics: false,
+      marketing: false,
+      ip_country,
+      policy_version: POLICY_VERSION,
+      decided_at: new Date().toISOString(),
+      action: 'withdrawn',
+    })
+
+  if (error) return NextResponse.json({ error: 'Failed to withdraw consent' }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
+// Returns the most recent consent decision for the authenticated user.
+// Returns null if no record exists or the latest action is 'withdrawn'.
 export async function GET() {
   if (MOCK) return NextResponse.json({ consent: null })
 
@@ -79,16 +101,14 @@ export async function GET() {
   const { data: { user } } = await serverClient.auth.getUser()
   if (!user) return NextResponse.json({ consent: null })
 
-  const serviceRole = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { data } = await serviceRole
+  const { data } = await serviceRoleClient()
     .from('cookie_consents')
-    .select('analytics, marketing, policy_version, decided_at')
+    .select('analytics, marketing, policy_version, decided_at, action')
     .eq('profile_id', user.id)
+    .order('decided_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
 
+  if (!data || data.action === 'withdrawn') return NextResponse.json({ consent: null })
   return NextResponse.json({ consent: data })
 }

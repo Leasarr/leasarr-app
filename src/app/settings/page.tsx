@@ -1007,7 +1007,14 @@ function NotificationsSection() {
 // ─── Privacy section ──────────────────────────────────────────────────────────
 
 function PrivacySection() {
-  const { decided, analytics, openPreferences } = useConsent()
+  const { decided, analytics, openPreferences, resetConsent } = useConsent()
+  const [resetting, setResetting] = useState(false)
+
+  async function handleReset() {
+    setResetting(true)
+    await resetConsent()
+    setResetting(false)
+  }
 
   const rows = [
     {
@@ -1071,10 +1078,15 @@ function PrivacySection() {
             </div>
           ))}
         </div>
-        <div className="mt-5 pt-4 border-t border-outline-variant/20">
+        <div className="mt-5 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-3">
           <Button variant="secondary" size="md" onClick={openPreferences} iconLeft="tune">
             Manage Cookie Preferences
           </Button>
+          {decided && (
+            <Button variant="ghost" size="md" onClick={handleReset} loading={resetting} iconLeft="restart_alt">
+              Reset Consent
+            </Button>
+          )}
         </div>
       </Card>
     </div>

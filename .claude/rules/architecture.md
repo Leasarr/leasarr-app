@@ -102,6 +102,8 @@ Next.js 14 App Router, TypeScript, Tailwind CSS, Supabase. Path alias: `@/*` →
 | `019_trial_setup.sql` | Trigger: auto-creates `subscriptions` row (`status='trialing'`, `trial_end = now() + 30 days`) on manager profile INSERT; backfills existing managers |
 | `020_rls_audit_fixes.sql` | RLS audit fixes |
 | `021_invite_waitlist.sql` | `invite_codes` table (code, max_uses, uses_count); `waitlist` table (email, name, property_count); RLS: invite_codes service-role only, waitlist anon insert |
+| `022_cookie_consents.sql` | `cookie_consents` table; stores consent per profile/anonymous visitor; RLS: users manage own row |
+| `023_cookie_consent_audit.sql` | Converts `cookie_consents` to append-only audit log; adds `action` column (`accepted/declined/withdrawn`); drops unique indexes; adds time-ordered indexes for latest-row queries |
 
 ## API routes
 

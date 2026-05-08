@@ -15,6 +15,7 @@ interface ConsentContextValue extends ConsentState {
   acceptAll: () => void
   declineAll: () => void
   savePreferences: (prefs: { analytics: boolean }) => void
+  resetConsent: () => Promise<void>
   syncFromServer: () => Promise<void>
   preferencesOpen: boolean
   openPreferences: () => void
@@ -98,6 +99,13 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
     [save]
   )
 
+  const resetConsent = useCallback(async () => {
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
+    applyPostHog(false)
+    setState({ decided: false, analytics: false })
+    try { await fetch('/api/consent', { method: 'DELETE' }) } catch {}
+  }, [])
+
   // Called after login to pull the server-stored consent and apply it locally
   const syncFromServer = useCallback(async () => {
     try {
@@ -119,6 +127,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
         acceptAll,
         declineAll,
         savePreferences,
+        resetConsent,
         syncFromServer,
         preferencesOpen,
         openPreferences: () => setPreferencesOpen(true),
