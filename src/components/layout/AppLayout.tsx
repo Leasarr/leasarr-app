@@ -12,6 +12,8 @@ import { NOTIFICATION_TYPE_META } from '@/lib/notificationMeta'
 import { useSubscription } from '@/hooks/useSubscription'
 import { Tooltip } from '@/components/ui/Tooltip'
 
+const ADMIN_EMAILS = ['bhasmangdixit@gmail.com', 'prashantgadhvi111@gmail.com']
+
 const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light' },
   { value: 'dark', icon: 'dark_mode', label: 'Dark' },
@@ -244,6 +246,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const unreadCount = notifications.filter(n => !n.read).length
   const isTenant = profile?.role === 'tenant'
+  const isAdmin = ADMIN_EMAILS.includes(profile?.email ?? '')
   const navItems = isTenant ? TENANT_NAV_ITEMS : MANAGER_NAV_ITEMS
   const baseBottomNav = isTenant ? TENANT_BOTTOM_NAV : MANAGER_BOTTOM_NAV
   const moreNavItems = navItems.filter(item => !baseBottomNav.some(b => b.href === item.href))
@@ -276,7 +279,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Right controls */}
         <div className="flex items-center gap-1">
           {/* Trial pill + upgrade — managers on trial, desktop only */}
-          {!isTenant && (isTrialing || isExpired) && (
+          {!isTenant && !isAdmin && (isTrialing || isExpired) && (
             <div className="hidden lg:flex items-center gap-2">
               <Tooltip
                 content={
@@ -561,7 +564,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ── Trial expired paywall ── */}
-      {!subLoading && !isTenant && isExpired && !isActive && (
+      {!subLoading && !isTenant && !isAdmin && isExpired && !isActive && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-surface/80 backdrop-blur-sm px-4">
           <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-modal w-full max-w-md p-8 text-center">
             <div className="w-14 h-14 rounded-2xl bg-error-container flex items-center justify-center mx-auto mb-5">
